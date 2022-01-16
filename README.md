@@ -1,1 +1,2 @@
-# fuckyoumoney
+# Thales Trading Bot
+
