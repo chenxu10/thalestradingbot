@@ -1,5 +1,5 @@
-.pyc 
-fentu/__pycache__
+*.pyc 
+fentu/__pycache__/*
 fentu/.pytestcache
 tests/__pycache__
 data/*
