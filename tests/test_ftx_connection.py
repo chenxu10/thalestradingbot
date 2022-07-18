@@ -3,9 +3,9 @@
 
 # Historical-data-Basket trader-Your Basket account
 
-from urllib import response
 import requests
 from dotenv import load_dotenv
+from urllib import response
 
 def test_ftx_api_connection():
     """
