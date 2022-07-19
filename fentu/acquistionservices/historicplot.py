@@ -22,7 +22,7 @@ def get_running_gmean_qratio():
         return pd.read_csv("data/csv/b103.csv")
 
     def pick_interested_columns(df):
-        df = df.loc[:,['LM103164103.Q','FL102090005.Q']]
+        df = df.loc[:,['date','LM103164103.Q','FL102090005.Q']]
         return df
 
     def rename_column(df):
@@ -48,19 +48,28 @@ def get_running_gmean_qratio():
         df['geo_q_ratio'] = df['geo_corp_eqt_lblt']/df['geo_corp_net_worth']
         return df
 
-
     df =(load_data().
         pipe(pick_interested_columns).
         pipe(rename_column).
         pipe(delete_null_values).
         pipe(calculate_geometric_columns).
         pipe(add_geo_q_ratio)
-        )    
+        )
 
-    df['geo_q_ratio'].plot()
-    plt.show()
     return df
 
-if __name__ == '__main__':
-    get_running_gmean_qratio()
+def plot_q_ratio():
+    df = pd.read_csv("tests/mockdata/qratio.csv",index_col=0)
+    print(df)
+    x = df['date']
+    y = df['geo_q_ratio']
+    plt.plot(x,y)
+    #df['geo_q_ratio'].plot()
+    plt.axhline(y=1.0, color='black', linestyle="--")
+    plt.xticks(x[::10],  rotation='vertical')
+    plt.show()
 
+
+if __name__ == '__main__':
+    #get_running_gmean_qratio()
+    plot_q_ratio()
