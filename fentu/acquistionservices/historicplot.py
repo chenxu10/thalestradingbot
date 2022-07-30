@@ -1,16 +1,7 @@
 import pandas as pd
+import numpy as np 
 import matplotlib.pyplot as plt
 from scipy.stats import gmean
-
-def calculate_geometric_mean(x):
-    ans = []
-    
-    for i in range(1, len(x) + 1):
-        ans.append(gmean(x[i-3:i]))
-
-    ans = [round(s,2) for s in ans]
-
-    return ans
 
 def get_running_gmean_qratio():
     """
@@ -39,22 +30,21 @@ def get_running_gmean_qratio():
             df[c] = df[c].astype(int)
         return df
 
-    def calculate_geometric_columns(df):
-        for c in ["corp_eqt_lblt","corp_net_worth"]:
-            df["geo_" + c] = calculate_geometric_mean(list(df[c]))
-        return df
 
     def add_geo_q_ratio(df):
-        df['geo_q_ratio'] = df['geo_corp_eqt_lblt']/df['geo_corp_net_worth']
+        df['geo_q_ratio'] = df['corp_eqt_lblt']/df['corp_net_worth']
+        geomean = gmean(df['geo_q_ratio'])
+        df['geo_q_ratio'] = df['geo_q_ratio']/geomean
         return df
 
     df =(load_data().
         pipe(pick_interested_columns).
         pipe(rename_column).
         pipe(delete_null_values).
-        pipe(calculate_geometric_columns).
         pipe(add_geo_q_ratio)
         )
+
+    df.to_csv("tests/mockdata/qratio.csv")
 
     return df
 
@@ -63,13 +53,18 @@ def plot_q_ratio():
     print(df)
     x = df['date']
     y = df['geo_q_ratio']
+    y75quantile = np.percentile(y, 75)
+    y25quantile = np.percentile(y, 25)
     plt.plot(x,y)
     #df['geo_q_ratio'].plot()
+    plt.axhline(y=y75quantile, color='red', linestyle="--")
+    plt.axhline(y=y25quantile, color='green', linestyle="--")
     plt.axhline(y=1.0, color='black', linestyle="--")
     plt.xticks(x[::10],  rotation='vertical')
+    plt.ylim(0,3)
     plt.show()
 
 
 if __name__ == '__main__':
-    #get_running_gmean_qratio()
+    get_running_gmean_qratio()
     plot_q_ratio()
