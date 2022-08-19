@@ -1,3 +1,10 @@
+"""
+Calculates mises stationary index
+Reference:
+    <Dao of Capital> by Mark Spitznagel
+    https://msindex.net/
+Author: xs286@cornell.edu
+"""
 import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt
@@ -56,7 +63,6 @@ def plot_q_ratio():
     y75quantile = np.percentile(y, 75)
     y25quantile = np.percentile(y, 25)
     plt.plot(x,y)
-    #df['geo_q_ratio'].plot()
     plt.axhline(y=y75quantile, color='red', linestyle="--")
     plt.axhline(y=y25quantile, color='green', linestyle="--")
     plt.axhline(y=1.0, color='black', linestyle="--")

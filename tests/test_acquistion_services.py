@@ -22,11 +22,6 @@ def test_plot_qratio(monkeypatch):
     monkeypatch.setattr(plt, 'show', lambda: None)
     plot_q_ratio()
 
-# def test_plot_qratio():
-#     """
-#     """
-#     raise notImplementedError
 
 if __name__ == '__main__':
     print(test_calculate_geomtric_mean())
-    # test_get_qratio()
