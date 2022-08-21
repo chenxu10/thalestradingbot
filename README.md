@@ -1,6 +1,6 @@
 # Thales Trading Bot
 
-**Thales Trading Bot** provides tools to 
+**Thales Trading Bot**
 1. Design risk parity portfolios. Currently it helps you to dynamically allocate between two assets UPRO and TMF and will open M1 finance automatically.
 2. Dynamic tail hedging according to MS index.
 
