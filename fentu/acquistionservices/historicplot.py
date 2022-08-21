@@ -9,6 +9,16 @@ import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt
 from scipy.stats import gmean
+from statsmodels.tsa.stattools import adfuller
+
+
+def get_vticlose_vtistart():
+    raise NotImplementedError
+
+def extraploate(x, vticlose, vtistart):
+    percentage = (vticlose - vtistart) / vtistart
+    x = int(x + x * percentage)
+    return x
 
 def get_running_gmean_qratio():
     """
@@ -36,7 +46,6 @@ def get_running_gmean_qratio():
             df = df.loc[df[c].str.contains("ND")==False,:]
             df[c] = df[c].astype(int)
         return df
-
 
     def add_geo_q_ratio(df):
         df['geo_q_ratio'] = df['corp_eqt_lblt']/df['corp_net_worth']
@@ -70,7 +79,13 @@ def plot_q_ratio():
     plt.ylim(0,3)
     plt.show()
 
+def ducker_fuller_test_qratio():
+    df = pd.read_csv("tests/mockdata/qratio.csv",index_col=0)
+    qratio = df['geo_q_ratio'].values
+    result = adfuller(qratio)
+    print(result[1])
 
 if __name__ == '__main__':
-    get_running_gmean_qratio()
+    #get_running_gmean_qratio()
     plot_q_ratio()
+    # ducker_fuller_test_qratio()
