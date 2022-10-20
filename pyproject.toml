@@ -6,6 +6,11 @@ authors = ["chenxu10 <shenxu2011@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+ibapi = "^9.81.1"
+pandas = "^1.5.0"
+matplotlib = "^3.6.1"
+scipy = "^1.9.2"
+statsmodels = "^0.13.2"
 
 [tool.poetry.dev-dependencies]
 

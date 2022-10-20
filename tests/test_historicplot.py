@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from fentu.acquistionservices.historicplot import get_running_gmean_qratio, plot_q_ratio, extraploate
+from fentu.acquisitionservices.historicplot import get_running_gmean_qratio, plot_q_ratio, extraploate
 
 def test_get_qratio():
     """
