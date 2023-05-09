@@ -1,6 +1,9 @@
 # read in GLD and GDX price
 
 import yfinance as yf
+import pandas as pd
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
 
 # TODO:hedge ratio, exit point and entry point
 # TODO:correlation of return to calculate hedge ratio
@@ -14,9 +17,17 @@ def read_in_gld_gdx_price():
     data = yf.download(tickers, period='4y', interval='1d')['Adj Close']
     return data
 
+def plot_cointegration(data):
+    spread = data["GLD"] - data["GDX"]
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(data["Date"], spread, label="Spread")
+    ax.legend()
+    plt.title("Cointegration Plot")
+    return fig
+
+
 def main():
-    data = read_in_gld_gdx_price()
-    print(data.pct_change())
+    pass
 
 if __name__ == '__main__':
     main()
