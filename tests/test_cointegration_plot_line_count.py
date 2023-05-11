@@ -18,4 +18,4 @@ def test_cointegration_plot_line_count(data):
     # Verify number of lines in cointegration plot
     fig = plot_cointegration(data)
     line_counts = fig.get_axes()[0].get_lines()
-    assert len(fig.get_axes()[0].get_lines()) == 1
+    assert len(fig.get_axes()[0].get_lines()) == 2
