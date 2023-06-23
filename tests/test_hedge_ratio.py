@@ -1,17 +1,22 @@
 import numpy as np
 import pandas as pd
 import pytest
+import statsmodels.api as sm
 
 def calculate_hedge_ratio(assetonereturn, assettworeturn):
     # Calculate the returns for both assets over the given period
-    corr = np.corrcoef(assetonereturn, assettworeturn)[0, 1]
-    # Calculate the hedge ratio using the formula
-    hedge_ratio = round((corr * np.std(assetonereturn)) / np.std(assettworeturn),2)
+    model = sm.OLS(assetonereturn, assettworeturn)
+    results = model.fit()
+    hedge_ratio = results.params[0]
     return hedge_ratio
 
 def test_calculate_hedge_ratio():
-    assetonereturn = [0.02, -0.01, -0.002, -0.007]
-    assettworeturn = [0.003, -0.002, 0.002, 0.001]
+    assetonereturn = [1,2]
+    assettworeturn = [2,4]
     actual = calculate_hedge_ratio(assetonereturn, assettworeturn)
-    expected = 4.86
-    assert actual == expected
+    tolerance = 1e-3
+    expected = 0.5
+    assert abs(actual - expected) < tolerance
+
+
+
