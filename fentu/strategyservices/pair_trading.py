@@ -92,6 +92,10 @@ def generate_positions_basedon_spread_zscore(data):
     positions = np.array(positions_Long) + np.array(positions_Short)
     positions = pd.DataFrame(positions)   
     return positions
+
+def generate_dailyreturns(df):
+    dailyret = df.loc[:,("GLD","GDX")].pct_change() 
+    return dailyret
     
 if __name__ == '__main__':
     data = read_in_gld_gdx_price()
@@ -107,4 +111,6 @@ if __name__ == '__main__':
     
     positions = generate_positions_basedon_spread_zscore(data)
     print(positions)
+    print(positions.shift())
+    #dailyret = generate_dailyreturns(data)
 
