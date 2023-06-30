@@ -1,0 +1,24 @@
+# What I Learned From a Failed Backtesting of a GOLD Pair Trading Strategy
+
+## TLDR:Use data to falisy not confirm, Pair trading of GLD and GDX from 2019-08-01 to 2021-04-01
+doesn't make profit from backtesting
+
+## Data
+
+## Model
+
+## Profit Analysis
+
+## Action
+### Act Action
+### Nonact Action
+### Act NonAction
+
+## Interesting People
+
+## History
+
+## Mathematical Tools
+1. Total Least Squares and Orthogonal Regression
+## Instruments
+

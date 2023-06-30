@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from fentu.strategyservices.pair_trading import generate_dailyreturns
+from fentu.strategyservices.pair_trading import generate_dailyreturns, calculate_pandl
 
 def test_pandl():
     positions = pd.DataFrame({
@@ -12,7 +12,7 @@ def test_pandl():
         "GDX": [np.NaN, -0.5]}
     )
     expectedpl =[np.NaN, 1.0]
-    actualpl = (np.array(positions.shift()) * np.array(dailyret)).sum(axis=1)
+    actualpl = calculate_pandl(positions, dailyret)
     result = expectedpl == actualpl
     result == [False, True]
 
@@ -29,6 +29,9 @@ def test_generate_dailyreturns():
         "GDX": [np.NaN, -0.5]}
     )
     pd.testing.assert_frame_equal(actual, expected)
+
+def test_calculate_sharpe(train_size):
+    sharpeTrainset = np.sqrt(train_size) * np.mean(returns) / np.std(returns)
 
 
 if __name__ == '__main__':
