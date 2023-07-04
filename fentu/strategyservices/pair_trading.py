@@ -3,6 +3,9 @@ Pair trading strategy for GLD and GDX
 
 This script tries to reproduce results of Analysis of GLD/GDX from pair trading lab
 using data from 2019-08-01 to 2021-04-01
+
+The acceptance test of this project is to reproduce results close enough to the 
+MEDIAN, WORST and BEST CAGR performance.
 """
 
 import sys
@@ -24,10 +27,23 @@ def read_in_gld_gdx_price():
     """
     Use past four years of data of price Adj close fromm 2019-06-24 to 2023-06-22
     """
-    tickers = ['GLD', 'GDX']
-    data = yf.download(tickers, start='2019-08-01', end='2021-04-01', interval='1d')['Adj Close']
-    data = data.reset_index()
+    gld_data = pd.read_csv("data/gld_historical_data.csv")
+    gld_data["Date"] = pd.to_datetime(gld_data["Date"])
+    gdx_data = pd.read_csv("data/gdx_historical_data.csv")
+    # Subset gdx_data larger than 2006-05-23
+    gdx_data["Date"] = pd.to_datetime(gdx_data["Date"])
+    gdx_data = gdx_data[gdx_data["Date"] >= "2006-05-23"]
+    data = pd.merge(gld_data, gdx_data, on="Date", how="inner")
+    data = data[["Date", "Price_x", "Price_y"]]
+    data.columns = ["Date", "GLD", "GDX"]
+    # Reorder by Date column in ascending order
+    data = data.sort_values(by="Date")
     return data
+    # Download data from yahoo finance
+    # tickers = ['GLD', 'GDX']
+    # data = yf.download(tickers, start='2016-01-01', interval='1d')['Adj Close']
+    # data = data.reset_index()
+    # return data
 
 def generate_train_and_test_set(data, train_size=252):
     """
@@ -126,28 +142,54 @@ def fit_orthogonal_regression(data):
     print("Intercept:", intercept)
     return slope, intercept
 
+def calculate_cagr(initial_value, final_value, years):
+    cagr = (final_value / initial_value) ** (1 / years) - 1
+    return cagr
+
+
+def calculate_zscore(data, spread, spreadmean, spreadstd):
+    data["zscore"] = (spread - spreadmean) / spreadstd
+    return data
+
+def generate_positions_basedon_zscore(data):
+    data.loc[data["zscore"] >= 2, ("positions_GLD_Short","positions_GDX_Short")]=[-1,1]
+    data.loc[data["zscore"] <= -2, ("positions_GLD_Long","positions_GDX_Long")]=[1,-1]
+    data.loc[data["zscore"] <= 1, ("positions_GLD_Short","positions_GDX_Short")]=0
+    data.loc[data["zscore"] >= -1, ("positions_GLD_Long","positions_GDX_Long")]=0
+    data.fillna(method="ffill", inplace=True)
+    positions_Long = data.loc[:,("positions_GLD_Long","positions_GDX_Long")]
+    positions_Short = data.loc[:,("positions_GLD_Short","positions_GDX_Short")]
+    positions = np.array(positions_Long) + np.array(positions_Short)
+    positions = pd.DataFrame(positions)
+    return positions
+
+def calculate_sharpe_ratio(train_set, test_set, pandl):
+    trainreturns = pandl[train_set[1:]]
+    testreturns = pandl[test_set]
+    sharpeTrainset = np.sqrt(252) * np.mean(trainreturns) / np.std(trainreturns)
+    sharpeTestset = np.sqrt(252) * np.mean(testreturns) / np.std(testreturns)
+    return sharpeTrainset, sharpeTestset
+
 if __name__ == '__main__':
     data = read_in_gld_gdx_price()
-    #train_set, test_set = generate_train_and_test_set(data, train_size=252)
+    train_set, test_set = generate_train_and_test_set(data, train_size=252)
 
     #Calculate hedge ratio
-    # GLD = data.loc[:,"GLD"].iloc[train_set]
-    # GDX = data.loc[:,"GDX"].iloc[train_set]
-    # hedge_ratio = calculate_hedge_ratio(GLD, GDX)
+    GLD = data.loc[:,"GLD"].iloc[train_set]
+    GDX = data.loc[:,"GDX"].iloc[train_set]
+    hedge_ratio = calculate_hedge_ratio(GLD, GDX)
+    print(hedge_ratio)
 
-    # spread = data.loc[:,"GLD"] - hedge_ratio * data.loc[:,"GDX"]
-    # spreadmean, spreadstd = calculate_spread_mean_and_std(spread, train_set)
-    
-    # positions = generate_positions_basedon_spread_zscore(data)
-    # print(positions)
-    # print(positions.shift())
-    # dailyret = generate_dailyreturns(data)
-    # pandl = calculate_pandl(positions, dailyret)
-    # trainreturns = pandl[train_set[1:]]
-    # testreturns = pandl[test_set]
-    # sharpeTrainset = np.sqrt(252) * np.mean(trainreturns) / np.std(trainreturns)
-    # print(sharpeTrainset)
-    # sharpeTestset = np.sqrt(252) * np.mean(testreturns) / np.std(testreturns)
-    # print(sharpeTestset)
-    # plt.plot(np.cumsum(pandl[test_set]))
-    # plt.show()
+    spread = data.loc[:,"GLD"] - hedge_ratio * data.loc[:,"GDX"]
+    spreadmean, spreadstd = calculate_spread_mean_and_std(spread, train_set)
+
+    data = calculate_zscore(data, spread, spreadmean, spreadstd)
+    positions = generate_positions_basedon_zscore(data) 
+    dailyret = generate_dailyreturns(data)
+    pandl = calculate_pandl(positions, dailyret)
+    sharpetrain, sharpetest = calculate_sharpe_ratio(train_set, test_set, pandl)
+    print("Sharpe Ratio of Train Set:", sharpetrain)
+    print("Sharpe Ratio of Test Set:", sharpetest)
+
+    plt.plot(np.cumsum(pandl[test_set]))
+    plt.show()

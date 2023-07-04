@@ -1,24 +1,33 @@
 # What I Learned From a Failed Backtesting of a GOLD Pair Trading Strategy
 
 ## TLDR:Use data to falisy not confirm, Pair trading of GLD and GDX from 2019-08-01 to 2021-04-01
-doesn't make profit from backtesting
+doesn't make profit from backtesting.
 
 ## Data
+We download data from 20060523 to 20071130 to form the training and testing data set.
+This dataset's historical price is adjusted for splits but not for dividends and capital gains.
 
 ## Model
+### Deisgn
 
+### Evaluation
 ## Profit Analysis
 
 ## Action
-### Act Action
-### Nonact Action
-### Act NonAction
+### Act Action(What works)growth rate in different days
 
-## Interesting People
+Tricks to compute annual compounding 
+### Act NonAction(What doesn't work)
+### Nonact Action(Future Directions)
+How to find the data sources? 
+
+## Stories
 
 ## History
 
 ## Mathematical Tools
 1. Total Least Squares and Orthogonal Regression
-## Instruments
+2. Sharpe Ratio and why it can be wrong?
+
+## Markets and Instruments
 
