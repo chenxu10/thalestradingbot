@@ -1,7 +1,15 @@
 # What I Learned From a Failed Backtesting of a GOLD Pair Trading Strategy
 
-## TLDR:Use data to falisy not confirm, Pair trading of GLD and GDX from 2019-08-01 to 2021-04-01
-doesn't make profit from backtesting.
+Trading strategies cannot be profitable if they aren't any mean reverting
+or trending patterns underlying.
+Otherwise you think you are trading but instead you are just random walking.
+
+It's very hard to find a single stock deviates from its mean and revert
+back to mean but it's much more often we see a pair or a series of stocks
+back to its mean level.
+
+In this blog, we use data to falisy not confirm. We want to test whether the 
+pair trading of GLD and GDX will make profit.
 
 ## Data
 We download data from 20060523 to 20071130 to form the training and testing data set.
@@ -21,7 +29,10 @@ Tricks to compute annual compounding
 ### Nonact Action(Future Directions)
 How to find the data sources? 
 
-## Stories
+## Stories and Lessons
+Trading strategies can only be profitable if they are mean reverting or trending,
+otherwise you are just random walking in the market.
+
 
 ## History
 

@@ -27,23 +27,31 @@ def read_in_gld_gdx_price():
     """
     Use past four years of data of price Adj close fromm 2019-06-24 to 2023-06-22
     """
-    gld_data = pd.read_csv("data/gld_historical_data.csv")
-    gld_data["Date"] = pd.to_datetime(gld_data["Date"])
-    gdx_data = pd.read_csv("data/gdx_historical_data.csv")
-    # Subset gdx_data larger than 2006-05-23
-    gdx_data["Date"] = pd.to_datetime(gdx_data["Date"])
-    gdx_data = gdx_data[gdx_data["Date"] >= "2006-05-23"]
-    data = pd.merge(gld_data, gdx_data, on="Date", how="inner")
-    data = data[["Date", "Price_x", "Price_y"]]
-    data.columns = ["Date", "GLD", "GDX"]
-    # Reorder by Date column in ascending order
-    data = data.sort_values(by="Date")
-    return data
+    # gld_data = pd.read_csv("data/gld_historical_data.csv")
+    # gld_data["Date"] = pd.to_datetime(gld_data["Date"])
+    # gdx_data = pd.read_csv("data/gdx_historical_data.csv")
+    # # Subset gdx_data larger than 2006-05-23
+    # gdx_data["Date"] = pd.to_datetime(gdx_data["Date"])
+    # gdx_data = gdx_data[gdx_data["Date"] >= "2006-05-23"]
+    # data = pd.merge(gld_data, gdx_data, on="Date", how="inner")
+    # data = data[["Date", "Price_x", "Price_y"]]
+    # data.columns = ["Date", "GLD", "GDX"]
+    # # Reorder by Date column in ascending order
+    # data = data.sort_values(by="Date")
+    # return data
+    
     # Download data from yahoo finance
     # tickers = ['GLD', 'GDX']
     # data = yf.download(tickers, start='2016-01-01', interval='1d')['Adj Close']
     # data = data.reset_index()
     # return data
+
+    #Download FXI data from yahoo finance
+    tickers = 'FXI'
+    data = yf.download(tickers, start='2016-01-01', interval='1d')['Adj Close']
+    data = data.reset_index()
+    fxipctchange = data.loc[:,("Adj Close")].pct_change()
+    return fxipctchange
 
 def generate_train_and_test_set(data, train_size=252):
     """
@@ -172,24 +180,28 @@ def calculate_sharpe_ratio(train_set, test_set, pandl):
 
 if __name__ == '__main__':
     data = read_in_gld_gdx_price()
-    train_set, test_set = generate_train_and_test_set(data, train_size=252)
+    print(data[1:])
+    print(np.std(data[1:]))
+    print(np.mean(data[1:]))
+    print(np.median(data[1:]))
+    #train_set, test_set = generate_train_and_test_set(data, train_size=252)
 
-    #Calculate hedge ratio
-    GLD = data.loc[:,"GLD"].iloc[train_set]
-    GDX = data.loc[:,"GDX"].iloc[train_set]
-    hedge_ratio = calculate_hedge_ratio(GLD, GDX)
-    print(hedge_ratio)
+    # #Calculate hedge ratio
+    # GLD = data.loc[:,"GLD"].iloc[train_set]
+    # GDX = data.loc[:,"GDX"].iloc[train_set]
+    # hedge_ratio = calculate_hedge_ratio(GLD, GDX)
+    # print(hedge_ratio)
 
-    spread = data.loc[:,"GLD"] - hedge_ratio * data.loc[:,"GDX"]
-    spreadmean, spreadstd = calculate_spread_mean_and_std(spread, train_set)
+    # spread = data.loc[:,"GLD"] - hedge_ratio * data.loc[:,"GDX"]
+    # spreadmean, spreadstd = calculate_spread_mean_and_std(spread, train_set)
 
-    data = calculate_zscore(data, spread, spreadmean, spreadstd)
-    positions = generate_positions_basedon_zscore(data) 
-    dailyret = generate_dailyreturns(data)
-    pandl = calculate_pandl(positions, dailyret)
-    sharpetrain, sharpetest = calculate_sharpe_ratio(train_set, test_set, pandl)
-    print("Sharpe Ratio of Train Set:", sharpetrain)
-    print("Sharpe Ratio of Test Set:", sharpetest)
+    # data = calculate_zscore(data, spread, spreadmean, spreadstd)
+    # positions = generate_positions_basedon_zscore(data) 
+    # dailyret = generate_dailyreturns(data)
+    # pandl = calculate_pandl(positions, dailyret)
+    # sharpetrain, sharpetest = calculate_sharpe_ratio(train_set, test_set, pandl)
+    # print("Sharpe Ratio of Train Set:", sharpetrain)
+    # print("Sharpe Ratio of Test Set:", sharpetest)
 
-    plt.plot(np.cumsum(pandl[test_set]))
-    plt.show()
+    # plt.plot(np.cumsum(pandl[test_set]))
+    # plt.show()
