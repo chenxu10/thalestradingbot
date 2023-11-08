@@ -1,11 +1,10 @@
 # Thales Trading Bot
 
-**Thales Trading Bot** provides tools to design risk parity portfolios. 
-Currently it helps you to dynamically allocate between two assets UPRO and TMF and will open M1 finance automatically.
+## Introduction
 
-## Quick Start
+This project bets on volatitiy of volatitiy with out of money options. It aims to benefit from the fat
+tails and the high peaks.
 
-```bash
-python3 fentu/risk_parity.py
-```
-
+The project should display your full stack owenrship: from idea generation,
+data collection and vetting, statistical modeling, data infrastructures, production trading,
+monitoring and risk managment with model portfolio consideration.

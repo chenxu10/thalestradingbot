@@ -1,2 +1,6 @@
-fentu/__pycache__
+*.pyc 
+__pycache__/
 fentu/.pytestcache
+data/*
+config.ini
+shiyao
