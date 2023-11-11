@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
-
-def qq_plot(x):
-    return sm.qqplot(x, line='45')
+from fentu.explatoryservices.plotting_service import qq_plot
 
 def test_qqplot():
     x = np.array([0, 1, 2])

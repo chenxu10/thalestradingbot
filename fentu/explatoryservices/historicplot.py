@@ -86,6 +86,6 @@ def ducker_fuller_test_qratio():
     print(result[1])
 
 if __name__ == '__main__':
-    #get_running_gmean_qratio()
-    plot_q_ratio()
-    # ducker_fuller_test_qratio()
+    get_running_gmean_qratio()
+    #plot_q_ratio()
+    #ducker_fuller_test_qratio()
