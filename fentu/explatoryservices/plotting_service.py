@@ -15,6 +15,5 @@ def qq_plot(x):
     plt.text(0.05, 0.7, f'Mean: {mean:.4f}\nSD: {std:.4f}\nSkew: {skew:.4f}\nKurtosis: {kurtosis:.4f}', 
          transform=plt.gca().transAxes, fontsize=12)
     plt.ylabel("Returns ETF BAC")
-    plt.savefig("figures/qqplot_bac.png")
     return fig
 
