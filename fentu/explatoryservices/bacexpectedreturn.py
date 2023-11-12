@@ -16,3 +16,4 @@ def prepare_price_returns():
 if __name__ == "__main__":
     returns = prepare_price_returns()
     qq_plot(returns)
+    plt.show()
