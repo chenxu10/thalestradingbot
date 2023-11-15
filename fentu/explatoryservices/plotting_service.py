@@ -1,5 +1,7 @@
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 from scipy.stats import probplot
 
 def calculate_four_moments(x):
@@ -16,4 +18,12 @@ def qq_plot(x):
          transform=plt.gca().transAxes, fontsize=12)
     plt.ylabel("Returns ETF BAC")
     return fig
+
+def callspread_pandl_plot(df):
+    x = df["price_at_expiration"]
+    y = df["pandl"]
+    #y = 1 / (1 + np.exp(-y))
+    fig = plt.plot(x,y)
+    return fig
+
 
