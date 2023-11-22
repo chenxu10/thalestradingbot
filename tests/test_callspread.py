@@ -21,9 +21,10 @@ class OptionPrice:
 
 class TestCallSpreadStrategy:
     @mock.patch('fentu.strategyservices.callspread.before_cs_trade.input_strategy', create=True)
-    def test_before_cs_trade(self, mocked_input):
+    def test_before_trade(self, mocked_input):
         mocked_input.side_effect = 'b'
-        s = cs.before_cs_trade()
+        call_spread_strategt = cs.CallSpreadStrategy()       
+        s, long_strike, short_strike = call_spread_strategt.before_trade()
         assert s == "attactive"
 
 def test_callspread_pandl_plot():
