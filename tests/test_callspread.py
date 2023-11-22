@@ -6,32 +6,37 @@ of callspread strategy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from unittest import mock
+from unittest import TestCase
 from fentu.explatoryservices.plotting_service import callspread_pandl_plot
+from fentu.strategyservices import callspread as cs
 
-def test_callspread_pandl_plot():
+class OptionPrice:
     short_strike = 95
     long_strike = 91
     stock_price = 90
     short_premium = 0.39
     long_premium = 0.41
-    difference_between_strike = short_strike - long_strike
-    netcost_of_spread = long_premium - short_premium
     commission = 0.01
-    
-    exp_max_profit = difference_between_strike - netcost_of_spread
-    exp_max_loss = long_premium - short_premium + commission
-    
+
+class TestCallSpreadStrategy:
+    @mock.patch('fentu.strategyservices.callspread.before_cs_trade.input_strategy', create=True)
+    def test_before_cs_trade(self, mocked_input):
+        mocked_input.side_effect = 'b'
+        s = cs.before_cs_trade()
+        assert s == "attactive"
+
+def test_callspread_pandl_plot():
+    op = OptionPrice()
     test_df = pd.DataFrame(
         {"price_at_expiration":[87,88,89,90,91,92,93],
          "pandl":[22,22,22,32,32,32,32]}
     )
-    callspread_pandl_plot(test_df)
-    # ax = plt.gca()
-    # lines = ax.get_children()
-    # x_data, y_data = lines[0].get_xydata().T
-    assert exp_max_profit == 3.98
+    exp_max_profit, exp_max_loss, risk_and_reward_ratio = callspread_pandl_plot(test_df,op)
+
+    np.testing.assert_almost_equal(exp_max_profit,3.97)
     np.testing.assert_almost_equal(exp_max_loss,0.03,decimal=3)
-    plt.show()
+    np.testing.assert_almost_equal(risk_and_reward_ratio, 0.00755, decimal=5)
 
 
 if __name__ == "__main__":
