@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 
 from fentu.explatoryservices.plotting_service import qq_plot
 
-def prepare_price_returns():
+def prepare_price_returns(x="BAC"):
     # Download BAC data
-    bac = yf.Ticker("BAC")
+    bac = yf.Ticker(x)
     bac_hist = bac.history(period="max")
     prices = bac_hist['Close']
     # Calculate returns  
@@ -14,7 +14,8 @@ def prepare_price_returns():
     return returns
 
 if __name__ == "__main__":
-    returns = prepare_price_returns()
+    x = "TLT"
+    returns = prepare_price_returns(x)
     qq_plot(returns)
-    plt.savefig("figures/qqplot_bac.png")
+    plt.savefig("figures/qqplot_{}.png".format(x))
     plt.show()

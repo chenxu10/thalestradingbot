@@ -6,9 +6,9 @@ of callspread strategy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import pytest
 from unittest import mock
 from unittest import TestCase
-from fentu.explatoryservices.plotting_service import callspread_pandl_plot
 from fentu.strategyservices import callspread as cs
 
 class OptionPrice:
@@ -24,21 +24,11 @@ class TestCallSpreadStrategy:
     def test_before_trade(self, mocked_input):
         mocked_input.side_effect = 'b'
         call_spread_strategt = cs.CallSpreadStrategy()       
-        s, long_strike, short_strike = call_spread_strategt.before_trade()
-        assert s == "attactive"
-
-def test_callspread_pandl_plot():
-    op = OptionPrice()
-    test_df = pd.DataFrame(
-        {"price_at_expiration":[87,88,89,90,91,92,93],
-         "pandl":[22,22,22,32,32,32,32]}
-    )
-    exp_max_profit, exp_max_loss, risk_and_reward_ratio = callspread_pandl_plot(test_df,op)
-
-    np.testing.assert_almost_equal(exp_max_profit,3.97)
-    np.testing.assert_almost_equal(exp_max_loss,0.03,decimal=3)
-    np.testing.assert_almost_equal(risk_and_reward_ratio, 0.00755, decimal=5)
-
-
-if __name__ == "__main__":
-    test_callspread_pandl_plot()
+        before_trade_metrics = call_spread_strategt.before_trade()
+        
+        np.testing.assert_almost_equal(
+            before_trade_metrics["expected_max_loss"],0.03,decimal=3)
+        np.testing.assert_almost_equal(
+            before_trade_metrics["expected_max_profit"],3.97)
+        np.testing.assert_almost_equal(
+            before_trade_metrics["expected_max_profit"], 0.00755, decimal=5)
