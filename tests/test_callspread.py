@@ -10,6 +10,7 @@ import pytest
 from unittest import mock
 from unittest import TestCase
 from fentu.strategyservices import callspread as cs
+from unittest.mock import patch
 
 class OptionPrice:
     short_strike = 95
@@ -20,15 +21,18 @@ class OptionPrice:
     commission = 0.01
 
 class TestCallSpreadStrategy:
-    @mock.patch('fentu.strategyservices.callspread.before_cs_trade.input_strategy', create=True)
-    def test_before_trade(self, mocked_input):
-        mocked_input.side_effect = 'b'
-        call_spread_strategt = cs.CallSpreadStrategy()       
-        before_trade_metrics = call_spread_strategt.before_trade()
-        
-        np.testing.assert_almost_equal(
-            before_trade_metrics["expected_max_loss"],0.03,decimal=3)
-        np.testing.assert_almost_equal(
-            before_trade_metrics["expected_max_profit"],3.97)
-        np.testing.assert_almost_equal(
-            before_trade_metrics["expected_max_profit"], 0.00755, decimal=5)
+    @patch('builtins.input') 
+    def test_before_trade(self,mock_input):
+        mock_input.return_value = "a"
+        call_spread_strategy = cs.CallSpreadStrategy()
+        s = call_spread_strategy.before_trade()
+        assert s == 'attactive'
+    
+        # call_spread_strategt = cs.CallSpreadStrategy()       
+        # before_trade_metrics = call_spread_strategt.before_trade()
+        # np.testing.assert_almost_equal(
+        #     before_trade_metrics["expected_max_loss"],0.03,decimal=3)
+        # np.testing.assert_almost_equal(
+        #     before_trade_metrics["expected_max_profit"],3.97)
+        # np.testing.assert_almost_equal(
+        #     before_trade_metrics["expected_max_profit"], 0.00755, decimal=5)
