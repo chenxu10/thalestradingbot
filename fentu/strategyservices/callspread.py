@@ -54,10 +54,10 @@ class CallSpreadStrategy(Strategy):
         return before_trade_metrics
     
     def before_etrade_plot(self):
-        min_stock = int(input("Please input your minimum stock price "))
-        max_stock = int(input("Please input your maximum stock price "))
+        min_stock = int(input("Please input your minimum stock price that are likely to happen"))
+        max_stock = int(input("Please input your maximum stock price that are likely to happen"))
         stock_range = range(min_stock, max_stock)
-        pnl_base = range(100, 115)
+        pnl_base = range(min_stock, max_stock)
         fig = plt.plot(stock_range, pnl_base)
         return fig
 
