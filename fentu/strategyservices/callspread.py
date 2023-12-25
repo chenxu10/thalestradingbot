@@ -1,7 +1,14 @@
 from abc import ABC, abstractmethod
+from fentu.strategyservices.black_scholes_model import OptionData, BlackScholesPricer
 import matplotlib.pyplot as plt
 
 class Strategy(ABC):
+    def __init__(self):
+        self.long_strike = float(input("input your long call strike price"))
+        self.short_strike = float(input("input your short call strike price"))
+        self.long_premium = float(input("input your long call premium price"))
+        self.short_premium = float(input("input your short call premium price"))
+
     def before_trade(self):
         pass
 
@@ -12,6 +19,12 @@ class Strategy(ABC):
         pass
 
 class CallSpreadStrategy(Strategy):
+    def __init__(self):
+        self.long_strike = float(input("input your long call strike price"))
+        self.short_strike = float(input("input your short call strike price"))
+        self.long_premium = float(input("input your long call premium price"))
+        self.short_premium = float(input("input your short call premium price"))
+
     def callspread_pandl_plot(self, long_call_strike, short_call_strike, long_call_premium, short_call_premium):
         comission = 0.5
         difference_between_strike = short_call_strike - long_call_strike
@@ -39,13 +52,9 @@ class CallSpreadStrategy(Strategy):
             You choose attack so make sure your midpoint of two strike difference
             is larger than the current spot price.    
             """)
-            long_strike = float(input("input your long call strike price"))
-            short_strike = float(input("input your short call strike price"))
-            long_premium = float(input("input your long call premium price"))
-            short_premium = float(input("input your short call premium price"))
             
             exp_max_profit, exp_max_loss, breakeven_point, risk_and_reward_ratio = self.callspread_pandl_plot(
-                long_strike, short_strike, long_premium, short_premium
+                self.long_strike, self.short_strike, self.long_premium, self.short_premium
             )
             before_trade_metrics["expected_max_profit"] = exp_max_profit
             before_trade_metrics["expected_max_loss"] = exp_max_loss
@@ -53,11 +62,29 @@ class CallSpreadStrategy(Strategy):
             before_trade_metrics["risk_and_reward_ratio"] = risk_and_reward_ratio
         return before_trade_metrics
     
+    def calculate_pnl_base_with(
+            self, 
+            short_call_price_given_stock_price,
+            long_call_price_given_stock_price,
+            net_preimum=2):
+        return short_call_price_given_stock_price - \
+            long_call_price_given_stock_price + net_preimum
+
     def before_etrade_plot(self):
         min_stock = int(input("Please input your minimum stock price that are likely to happen"))
         max_stock = int(input("Please input your maximum stock price that are likely to happen"))
-        stock_range = range(min_stock, max_stock)
-        pnl_base = range(min_stock, max_stock)
+        time_to_expire = int(input("Please input your time to expire"))
+        interest_rate = float(input("Please input your current interest rate"))
+        volatility = float(input("Please input your implied volatility"))
+
+        stock_range = range(min_stock, max_stock, 1)
+        pnl_base = []
+        for s in stock_range:
+            short_call_opdata  = OptionData(s,self.short_strike,time_to_expire,interest_rate,volatility)
+            short_call_bspricer = BlackScholesPricer(short_call_opdata)
+            short_call_price_in_stockprice = short_call_bspricer.option_pricing_formula("call")
+            pnl_base.append(short_call_price_in_stockprice)
+                            
         fig = plt.plot(stock_range, pnl_base)
         return fig
 
