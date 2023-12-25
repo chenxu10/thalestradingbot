@@ -4,12 +4,9 @@ risk_and_reward_issue, and the impact on the whole portfolio
 of callspread strategy
 """
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from unittest import mock
-from unittest import TestCase
-from fentu.explatoryservices.plotting_service import callspread_pandl_plot
 from fentu.strategyservices import callspread as cs
+from unittest.mock import patch
 
 class OptionPrice:
     short_strike = 95
@@ -20,24 +17,36 @@ class OptionPrice:
     commission = 0.01
 
 class TestCallSpreadStrategy:
-    @mock.patch('fentu.strategyservices.callspread.before_cs_trade.input_strategy', create=True)
-    def test_before_cs_trade(self, mocked_input):
-        mocked_input.side_effect = 'b'
-        s = cs.before_cs_trade()
-        assert s == "attactive"
+    @patch('builtins.input') 
+    def test_before_trade_metrics(self,mock_input):
+        mock_input.side_effect = ["a","","91","95","0.41","0.39"]
+        call_spread_strategy = cs.CallSpreadStrategy()         
+        before_trade_metrics = call_spread_strategy.before_trade_metrics()
+        np.testing.assert_almost_equal(
+            before_trade_metrics["expected_max_profit"],3.48)
+        np.testing.assert_almost_equal(
+            before_trade_metrics["expected_max_loss"],0.52,decimal=3)
+        np.testing.assert_almost_equal(
+            before_trade_metrics["breakeven_point"],92.02)
+        
+    @patch('builtins.input')
+    def test_before_trade_plot(self,mock_input):
+        call_spread_strategy = cs.CallSpreadStrategy()
+        mock_input.side_effect = ["100","115"]
+        fig = call_spread_strategy.before_etrade_plot()
 
-def test_callspread_pandl_plot():
-    op = OptionPrice()
-    test_df = pd.DataFrame(
-        {"price_at_expiration":[87,88,89,90,91,92,93],
-         "pandl":[22,22,22,32,32,32,32]}
-    )
-    exp_max_profit, exp_max_loss, risk_and_reward_ratio = callspread_pandl_plot(test_df,op)
+        ax = plt.gca()
+        lines = ax.get_children()
+        x_data, y_data = lines[0].get_xydata().T
+        np.testing.assert_array_almost_equal(
+        x_data, np.array(range(100, 115)), decimal=2)
+        np.testing.assert_array_almost_equal(
+        y_data, np.array(range(100, 115)), decimal=2)
+        plt.close()
+        # np.testing.assert_array_almost_equal(
+        #     x_data, np.array([-0.819,0,0.819]), decimal=2)
 
-    np.testing.assert_almost_equal(exp_max_profit,3.97)
-    np.testing.assert_almost_equal(exp_max_loss,0.03,decimal=3)
-    np.testing.assert_almost_equal(risk_and_reward_ratio, 0.00755, decimal=5)
 
-
-if __name__ == "__main__":
-    test_callspread_pandl_plot()
+if __name__=="__main__":
+    tcs = TestCallSpreadStrategy()
+    print(tcs.test_before_trade_plot())
