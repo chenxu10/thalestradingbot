@@ -22,7 +22,6 @@ class TestCallSpreadStrategy:
     @patch('builtins.input')
     def call_spread_strategy(self,mock_input):
         mock_input.side_effect = ["91","95","0.41","0.39"]
-        #mock_input.side_effect = ["91","95","0.41","0.39","a",""]
         call_spread_strategy = cs.CallSpreadStrategy() 
         return call_spread_strategy
     
