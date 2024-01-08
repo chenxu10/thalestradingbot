@@ -68,4 +68,3 @@ class TestCallSpreadStrategy:
     #     np.testing.assert_array_almost_equal(
     #         x_data, np.array([-0.819,0,0.819]), decimal=2)
 
-sd
