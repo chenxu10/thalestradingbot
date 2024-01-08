@@ -16,8 +16,8 @@ def test_call_pnl_base():
         theortical_value.append(long_call_price_in_stockprice)
 
     print(theortical_value)
-    #assert len(pnl_val) == 10
-    #assert pnl_val[0] < pnl_val[-1]
+    assert len(theortical_value) == 10
+    assert theortical_value[0] < theortical_value[-1]
 
 
 if __name__ == '__main__':
