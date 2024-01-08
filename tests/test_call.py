@@ -7,7 +7,6 @@ def test_call_pnl_base():
     time_to_expire = 3
     interest_rate = 0.05
     volatility = 0.1
-    price_per_options = 0.35
     opdata = OptionData(current_stock_price, long_strike, time_to_expire, 
                         interest_rate, volatility)
     long_call_pricer = BlackScholesPricer(opdata)
