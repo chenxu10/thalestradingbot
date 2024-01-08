@@ -67,14 +67,14 @@ class CallSpreadStrategy(Strategy):
         interest_rate = float(input("Please input your current interest rate"))
         volatility = float(input("Please input your implied volatility "))
         net_preimum = float(input("Please input your net credit or net debit you received "))
-
-        stock_range = range(min_stock, max_stock, 1)
-        pnl_base = []
-        for s in stock_range:
-            short_call_opdata  = OptionData(s,self.short_strike,time_to_expire,interest_rate,volatility)
-            short_call_bspricer = BlackScholesPricer(short_call_opdata)
-            short_call_price_in_stockprice = short_call_bspricer.option_pricing_formula("call")
-            pnl_base.append(short_call_price_in_stockprice)
+        return net_preimum
+        # stock_range = range(min_stock, max_stock, 1)
+        # pnl_base = []
+        # for s in stock_range:
+        #     short_call_opdata  = OptionData(s,self.short_strike,time_to_expire,interest_rate,volatility)
+        #     short_call_bspricer = BlackScholesPricer(short_call_opdata)
+        #     short_call_price_in_stockprice = short_call_bspricer.option_pricing_formula("call")
+        #     pnl_base.append(short_call_price_in_stockprice)
             # long_call_opdata  = OptionData(s,self.long_strike,time_to_expire,interest_rate,volatility)
             # long_call_bspricer = BlackScholesPricer(long_call_opdata)
             # long_call_price_in_stockprice = long_call_bspricer.option_pricing_formula("call")
@@ -82,9 +82,9 @@ class CallSpreadStrategy(Strategy):
             #                                              long_call_price_in_stockprice,
             #                                              net_preimum))
         
-        fig = plt.plot(stock_range, pnl_base)
+        # fig = plt.plot(stock_range, pnl_base)
         # plt.show()
-        return fig
+        # return fig
     
 if __name__ == "__main__":
     call_spread_strategy = CallSpreadStrategy()
