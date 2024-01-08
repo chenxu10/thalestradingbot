@@ -45,11 +45,12 @@ class TestCallSpreadStrategy:
             net_preimum=2)
         assert result == (4 - 3 + 2)
 
-    # @patch('builtins.input')
-    # def test_before_trade_plot(self,mock_input):
-    #     call_spread_strategy = cs.CallSpreadStrategy()
-    #     mock_input.side_effect = ["100","115","30","0.052","0.1","2"]
-    #     fig = call_spread_strategy.before_trade_plot()
+    @patch('builtins.input')
+    def test_before_trade_plot(self,mock_input):
+        call_spread_strategy = cs.CallSpreadStrategy()
+        mock_input.side_effect = ["100","115","30","0.052","0.1","2"]
+        net_preimum = call_spread_strategy.before_trade_plot()
+        assert net_preimum == 2
     #     print("long strike input is: ",call_spread_strategy.long_strike)
     #     print("long strike input is: ",call_spread_strategy.short_strike)
     #     print("long preimum input is: ",call_spread_strategy.long_premium)
