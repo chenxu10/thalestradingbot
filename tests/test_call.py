@@ -12,6 +12,7 @@ def test_call_pnl_base():
                         interest_rate, volatility)
     long_call_pricer = BlackScholesPricer(opdata)
     pnl_val = [long_call_pricer.option_pricing_formula("call") for s in range(95,105)]
+    print(pnl_val)
     assert len(pnl_val) == 10
     #assert pnl_val[0] < pnl_val[-1]
 
