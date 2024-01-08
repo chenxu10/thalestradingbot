@@ -2,6 +2,11 @@ from fentu.strategyservices.black_scholes_model import OptionData, BlackScholesP
 
 
 def test_call_pnl_base():
+    """
+    Given properties of an option, you should calculate out the theortical
+    value of it, it should be roughly the same as the broker you are using
+    or main tools
+    """
     long_strike = 97
     time_to_expire = 3
     interest_rate = 0.05
