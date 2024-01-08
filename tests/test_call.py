@@ -16,9 +16,9 @@ def test_call_pnl_base():
         long_call_price_in_stockprice = long_call_pricer.option_pricing_formula("call")
         pnl_val.append(long_call_price_in_stockprice)
 
-    print(pnl_val)
-    #assert len(pnl_val) == 10
-    #assert pnl_val[0] < pnl_val[-1]
+
+    assert len(pnl_val) == 10
+    assert pnl_val[0] < pnl_val[-1]
 
 
 if __name__ == '__main__':
