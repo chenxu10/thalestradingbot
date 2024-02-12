@@ -7,7 +7,7 @@ from fentu.explatoryservices.plotting_service import qq_plot
 
 
 class DailyVolatility:
-    def calculate_1std_daily_volatility():
+    def calculate_1std_daily_volatility(daily_returns):
         pass
 
 class VolatilityFacade:
@@ -22,7 +22,7 @@ class VolatilityFacade:
         return returns
     
     def calculate_daily_volatility():
-        return DailyVolatility().calculate_1std_daily_volatility()
+        return DailyVolatility().calculate_1std_daily_volatility(self.daily_returns)
     
 
 
