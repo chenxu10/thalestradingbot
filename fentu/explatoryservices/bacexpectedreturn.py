@@ -26,15 +26,6 @@ class VolatilityFacade:
     def calculate_weekly_volatility(self):
         pass
 
-def prepare_price_returns(x="BAC"):
-    # Download BAC data
-    bac = yf.Ticker(x)
-    bac_hist = bac.history(period="max")
-    prices = bac_hist['Close']
-    # Calculate returns  
-    returns = prices.pct_change()[1:]
-    return returns
-
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
     print(tltvolatility.calculate_daily_volatility())
