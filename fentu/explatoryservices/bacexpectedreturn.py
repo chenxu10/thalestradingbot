@@ -16,7 +16,6 @@ class VolatilityFacade:
         returns = prices.pct_change()[1:]
         return returns
 
-
 def prepare_price_returns(x="BAC"):
     # Download BAC data
     bac = yf.Ticker(x)
