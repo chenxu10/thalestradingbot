@@ -8,6 +8,7 @@ from fentu.explatoryservices.plotting_service import qq_plot
 
 class DailyVolatility:
     def calculate_1std_daily_volatility(self, daily_returns):
+
         return daily_returns
 
 class VolatilityFacade:
@@ -18,7 +19,7 @@ class VolatilityFacade:
         instrument = yf.Ticker(instrument)
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']  
-        returns = prices.pct_change()[1:]
+        returns = prices.pct_change()[1:].reset_index()
         return returns
     
     def calculate_daily_volatility(self):
