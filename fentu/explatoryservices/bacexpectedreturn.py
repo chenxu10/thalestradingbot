@@ -9,7 +9,7 @@ class VolatilityFacade:
     def __init__(self, instrument):
         self.daily_returns = self._get_daily_returns(instrument)
 
-    def _get_daily_returns(instrument):
+    def _get_daily_returns(self, instrument):
         instrument = yf.Ticker(instrument)
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']  
@@ -26,9 +26,5 @@ def prepare_price_returns(x="BAC"):
     return returns
 
 if __name__ == "__main__":
-    x = "TLT"
-    returns = prepare_price_returns(x)
-    print(returns)
-    qq_plot(returns)
-    plt.savefig("figures/qqplot_{}.png".format(x))
-    plt.show()
+    tltvolatility = VolatilityFacade("TLT")
+    print(tltvolatility.daily_returns)
