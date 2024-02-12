@@ -5,6 +5,11 @@ import matplotlib.pyplot as plt
 from fentu.explatoryservices.plotting_service import qq_plot
 
 
+
+class DailyVolatility:
+    def calculate_1std_daily_volatility():
+        pass
+
 class VolatilityFacade:
     def __init__(self, instrument):
         self.daily_returns = self._get_daily_returns(instrument)
@@ -15,6 +20,11 @@ class VolatilityFacade:
         prices = instru_hist['Close']  
         returns = prices.pct_change()[1:]
         return returns
+    
+    def calculate_daily_volatility():
+        return DailyVolatility().calculate_1std_daily_volatility()
+    
+
 
 def prepare_price_returns(x="BAC"):
     # Download BAC data
