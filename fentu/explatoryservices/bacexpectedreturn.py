@@ -21,8 +21,9 @@ class VolatilityFacade:
         returns = prices.pct_change()[1:]
         return returns
     
-    def calculate_daily_volatility():
-        return DailyVolatility().calculate_1std_daily_volatility(self.daily_returns)
+    def calculate_daily_volatility(self):
+        daily_volatility_calculator = DailyVolatility()
+        return daily_volatility_calculator.calculate_1std_daily_volatility(self.daily_returns)
     
 
 
