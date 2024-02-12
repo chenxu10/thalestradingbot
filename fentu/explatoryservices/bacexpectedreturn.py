@@ -7,8 +7,8 @@ from fentu.explatoryservices.plotting_service import qq_plot
 
 
 class DailyVolatility:
-    def calculate_1std_daily_volatility(daily_returns):
-        pass
+    def calculate_1std_daily_volatility(self, daily_returns):
+        return daily_returns
 
 class VolatilityFacade:
     def __init__(self, instrument):
@@ -38,4 +38,4 @@ def prepare_price_returns(x="BAC"):
 
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
-    print(tltvolatility.daily_returns)
+    print(tltvolatility.calculate_daily_volatility())
