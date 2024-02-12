@@ -16,6 +16,7 @@ def prepare_price_returns(x="BAC"):
 if __name__ == "__main__":
     x = "TLT"
     returns = prepare_price_returns(x)
+    print(returns)
     qq_plot(returns)
     plt.savefig("figures/qqplot_{}.png".format(x))
     plt.show()
