@@ -38,7 +38,7 @@ class VolatilityFacade:
         """
         This function plots out a qq plot of daily percentage change
         """
-        print(self.daily_returns)
+        qq_plot(self.daily_returns['Close'])
 
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
