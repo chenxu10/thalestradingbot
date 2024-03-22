@@ -14,6 +14,9 @@ class DailyVolatility:
         return daily_returns['Close'].std()
 
 class VolatilityFacade:
+    """
+    This class gets daily percentage change of an instrument
+    """
     def __init__(self, instrument):
         self.daily_returns = self._get_daily_returns(instrument)
 
