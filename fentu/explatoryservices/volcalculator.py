@@ -34,6 +34,12 @@ class VolatilityFacade:
     def calculate_weekly_volatility(self):
         pass
 
+    def visualize_daily_percentage_change(self):
+        """
+        This function plots out a qq plot of daily percentage change
+        """
+        print(self.daily_returns)
+
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
-    print(tltvolatility.calculate_daily_volatility())
+    tltvolatility.visualize_daily_percentage_change()
