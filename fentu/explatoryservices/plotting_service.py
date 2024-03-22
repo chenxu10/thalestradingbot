@@ -16,7 +16,7 @@ def qq_plot(x):
     mean, std, skew, kurtosis = calculate_four_moments(x)
     plt.text(0.05, 0.7, f'Mean: {mean:.4f}\nSD: {std:.4f}\nSkew: {skew:.4f}\nKurtosis: {kurtosis:.4f}', 
          transform=plt.gca().transAxes, fontsize=12)
-    plt.ylabel("Returns ETF BAC")
+    plt.show()
     return fig
 
 
