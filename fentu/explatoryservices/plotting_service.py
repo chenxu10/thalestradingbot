@@ -8,6 +8,9 @@ from scipy.stats import norm
 def calculate_four_moments(x):
     mean = x.mean()
     std = x.std()
+    mask = (x.loc[0,:] >= mean - std) & (x.loc[0,:] <= mean + std)
+    proportion = mask.mean()
+    print("days within {}".format(proportion))
     skew = x.skew()
     kurtosis = x.kurtosis()
     return mean, std, skew, kurtosis
