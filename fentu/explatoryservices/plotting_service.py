@@ -1,6 +1,7 @@
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 from scipy.stats import probplot
 from scipy.stats import norm
 
