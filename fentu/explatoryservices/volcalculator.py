@@ -40,6 +40,7 @@ class VolatilityFacade:
         """
         ps.qq_plot(self.daily_returns['Close'])
         ps.histgram_plot(self.daily_returns)
+        print(self.daily_returns['Close'])
 
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
