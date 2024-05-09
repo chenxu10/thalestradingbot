@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns
 from scipy.stats import probplot
 from scipy.stats import norm
+import fentu.constants as const
 
 def calculate_four_moments(x):
     mean = x.mean()
@@ -20,11 +21,15 @@ def qq_plot(x):
     plt.show()
     return fig
 
-def histgram_plot(data):
-    mean = data['Close'].mean()
-    std = data['Close'].std()
-    mask = (data['Close'] >= mean - std) & (data['Close'] <= mean + std)
+def calculate_within_onestrd_prop(data):
+    close = data['Close']
+    mean = close.mean()
+    std = close.std()
+    mask = (close >= mean - std) & (close <= mean + std)
     proportion = mask.mean()
     print("days within {}".format(proportion))
+
+def histgram_plot(data):
+    calculate_within_onestrd_prop(data)
     sns.histplot(data, x='Close', kde=True, bins=30)
     plt.show()
