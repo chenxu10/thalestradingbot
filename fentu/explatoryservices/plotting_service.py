@@ -27,7 +27,7 @@ def calculate_within_onestrd_prop(data):
     std = close.std()
     mask = (close >= mean - std) & (close <= mean + std)
     proportion = mask.mean()
-    print("days within {}".format(proportion))
+    print("stock price change days within 1 standard deviation{}".format(proportion))
 
 def histgram_plot(data):
     calculate_within_onestrd_prop(data)
