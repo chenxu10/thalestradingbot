@@ -19,3 +19,7 @@ def qq_plot(x):
          transform=plt.gca().transAxes, fontsize=12)
     plt.show()
     return fig
+
+def histgram_plot(data):
+    sns.histplot(x, x='Close', kde=True, bins=30)
+    plt.show()
