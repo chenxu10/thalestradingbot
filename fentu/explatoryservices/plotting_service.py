@@ -21,5 +21,5 @@ def qq_plot(x):
     return fig
 
 def histgram_plot(data):
-    sns.histplot(x, x='Close', kde=True, bins=30)
+    sns.histplot(data, x='Close', kde=True, bins=30)
     plt.show()
