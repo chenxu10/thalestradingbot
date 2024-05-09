@@ -8,7 +8,7 @@ from scipy.stats import norm
 def calculate_four_moments(x):
     mean = x.mean()
     std = x.std()
-    mask = (x.loc[0,:] >= mean - std) & (x.loc[0,:] <= mean + std)
+    mask = (x['Close'] >= mean - std) & (x.loc[0,:] <= mean + std)
     proportion = mask.mean()
     print("days within {}".format(proportion))
     skew = x.skew()
