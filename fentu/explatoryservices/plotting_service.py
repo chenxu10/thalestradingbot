@@ -25,7 +25,7 @@ def calculate_within_onestrd_prop(data):
     close = data['Close']
     mean = close.mean()
     std = close.std()
-    mask = (close >= mean - std) & (close <= mean + std)
+    mask = (close >= mean - 2 * std) & (close <= mean + 2 * std)
     proportion = mask.mean()
     print("stock price change days within 1 standard deviation{}".format(proportion))
 
