@@ -41,5 +41,5 @@ class VolatilityFacade:
         qq_plot(self.daily_returns['Close'])
 
 if __name__ == "__main__":
-    tltvolatility = VolatilityFacade("BAC")
+    tltvolatility = VolatilityFacade("TLT")
     tltvolatility.visualize_daily_percentage_change()
