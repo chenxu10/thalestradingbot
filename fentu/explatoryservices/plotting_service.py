@@ -8,9 +8,6 @@ from scipy.stats import norm
 def calculate_four_moments(x):
     mean = x.mean()
     std = x.std()
-    mask = (x['Close'] >= mean - std) & (x.loc[0,:] <= mean + std)
-    proportion = mask.mean()
-    print("days within {}".format(proportion))
     skew = x.skew()
     kurtosis = x.kurtosis()
     return mean, std, skew, kurtosis
@@ -24,5 +21,10 @@ def qq_plot(x):
     return fig
 
 def histgram_plot(data):
+    mean = data['Close'].mean()
+    std = data['Close'].std()
+    mask = (data['Close'] >= mean - std) & (data['Close'] <= mean + std)
+    proportion = mask.mean()
+    print("days within {}".format(proportion))
     sns.histplot(data, x='Close', kde=True, bins=30)
     plt.show()
