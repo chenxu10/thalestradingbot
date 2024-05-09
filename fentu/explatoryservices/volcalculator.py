@@ -7,7 +7,7 @@ import yfinance as yf
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
-from fentu.explatoryservices.plotting_service import qq_plot
+import fentu.explatoryservices.plotting_service as ps
 
 class DailyVolatility:
     def calculate_1std_daily_volatility(self, daily_returns):
@@ -38,7 +38,8 @@ class VolatilityFacade:
         """
         This function plots out a qq plot of daily percentage change
         """
-        qq_plot(self.daily_returns['Close'])
+        ps.qq_plot(self.daily_returns['Close'])
+        ps.histgram_plot(self.daily_returns)
 
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
