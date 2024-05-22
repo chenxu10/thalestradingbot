@@ -42,10 +42,10 @@ class VolatilityFacade:
         ps.histgram_plot(self.daily_returns)
         print(self.daily_returns['Close'])
 
-    def show_today_price(self):
-        print(self.daily_returns)
+    def show_today_return(self):
+        return self.daily_returns[:1]
 
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
     #tltvolatility.visualize_daily_percentage_change()
-    tltvolatility.show_today_price()
+    tltvolatility.show_today_return()
