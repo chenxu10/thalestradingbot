@@ -43,7 +43,7 @@ class VolatilityFacade:
         print(self.daily_returns['Close'])
 
     def show_today_return(self):
-        print(self.daily_returns[:-1])
+        print(self.daily_returns.tail(1))
 
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
