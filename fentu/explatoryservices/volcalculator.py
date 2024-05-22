@@ -47,5 +47,5 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     tltvolatility = VolatilityFacade("TLT")
-    #tltvolatility.visualize_daily_percentage_change()
+    tltvolatility.visualize_daily_percentage_change()
     tltvolatility.show_today_return()
