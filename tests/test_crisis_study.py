@@ -10,6 +10,7 @@ def test_get_price_in_crisis_range():
     start = "2020-03-01" 
     end = "2020-04-01"
     data = get_price_in_crisis()
+    print(data)
     assert data.shape[0] == 22
 
     plt.figure(figsize=(12, 6))
