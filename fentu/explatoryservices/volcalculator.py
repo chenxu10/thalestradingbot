@@ -40,7 +40,7 @@ class VolatilityFacade:
         """
         ps.qq_plot(self.daily_returns['Close'])
         ps.histgram_plot(self.daily_returns)
-
+        
     def show_today_return(self):
         print(self.daily_returns.tail(1))
 
