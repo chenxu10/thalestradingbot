@@ -42,6 +42,7 @@ class VolatilityFacade:
         ps.histgram_plot(self.daily_returns)
         
     def show_today_return(self):
+        print(self.daily_returns.tail(10))
         print(self.daily_returns.tail(1))
 
 if __name__ == "__main__":
