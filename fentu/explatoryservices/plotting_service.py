@@ -25,9 +25,8 @@ def calculate_within_onestrd_prop(data):
     close = data['Close']
     mean = close.mean()
     std = close.std()
-    mask = (close >= mean - 1 * std) & (close <= mean + 1 * std)
-    proportion = mask.mean()
-    print("1 standard deviation predetermined threshold is {}".format(proportion))
+    print("mean close price change is {}".format(mean))
+    print("1 standard deviation close close price change is {}".format(std))
 
 def histgram_plot(data):
     calculate_within_onestrd_prop(data)
