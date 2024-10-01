@@ -27,6 +27,12 @@ class VolatilityFacade:
         returns = prices.pct_change()[1:].reset_index()
         return returns
     
+    def get_past_five_days(self, instrument):
+        instrument = yf.Ticker(instrument)
+        instru_hist = instrument.history(period="max")
+        prices = instru_hist['Close']
+        return prices.tail(5)
+    
     def calculate_daily_volatility(self):
         daily_volatility_calculator = DailyVolatility()
         return daily_volatility_calculator.calculate_1std_daily_volatility(self.daily_returns)
@@ -46,6 +52,7 @@ class VolatilityFacade:
         print(self.daily_returns.tail(1))
 
 if __name__ == "__main__":
-    tltvolatility = VolatilityFacade("FXI")
-    tltvolatility.visualize_daily_percentage_change()
-    tltvolatility.show_today_return()
+    volatility = VolatilityFacade("FXI")
+    volatility.visualize_daily_percentage_change()
+    volatility.show_today_return()
+    print(volatility.get_past_five_days("FXI"))
