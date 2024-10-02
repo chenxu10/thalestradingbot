@@ -60,7 +60,7 @@ class VolatilityFacade:
         ps.histgram_plot(self.daily_returns)
 
     def find_worst_weeks(self,threshold=-0.3):
-        return self.weekly_returns['Close']
+        return self.weekly_returns.loc[self.weekly_returns['Close']<threshold,:]
     
     def show_today_return(self):
         print(self.daily_returns.tail(10))
@@ -68,7 +68,7 @@ class VolatilityFacade:
 if __name__ == "__main__":
     volatility = VolatilityFacade("FXI")
     print(volatility.weekly_returns)
-    volatility.visualize_weekly_percentage_change()
+    #volatility.visualize_weekly_percentage_change()
     print(volatility.find_worst_weeks(threshold=-0.3))
     #volatility.visualize_daily_percentage_change()
     #volatility.show_today_return()
