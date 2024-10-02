@@ -20,6 +20,7 @@ class VolatilityFacade:
     def __init__(self, instrument):
         self.daily_returns = self._get_daily_returns(instrument)
         self.weekly_returns = self._get_weekly_returns(instrument)
+        self.monthly_returns = self._get_monthly_returns(instrument)
 
     def _get_daily_returns(self, instrument):
         instrument = yf.Ticker(instrument)
@@ -33,6 +34,13 @@ class VolatilityFacade:
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']  
         weekly_returns = prices.pct_change(5)[5:].reset_index()
+        return weekly_returns
+    
+    def _get_monthly_returns(self, instrument):
+        instrument = yf.Ticker(instrument)
+        instru_hist = instrument.history(period="max")
+        prices = instru_hist['Close']  
+        weekly_returns = prices.pct_change(21)[21:].reset_index()
         return weekly_returns
 
     def get_past_five_days(self, instrument):
@@ -51,7 +59,21 @@ class VolatilityFacade:
         """
         ps.qq_plot(self.weekly_returns['Close'])
         ps.histgram_plot(self.weekly_returns)
- 
+    
+    def visualize_monthly_percentage_change(self):
+        """
+        This function plots out a qq plot of daily percentage change
+        """
+        ps.qq_plot(self.monthly_returns['Close'])
+        ps.histgram_plot(self.monthly_returns)
+
+    def _get_monthly_returns(self, instrument):
+        instrument = yf.Ticker(instrument)
+        instru_hist = instrument.history(period="max")
+        prices = instru_hist['Close']  
+        monthly_returns = prices.pct_change(21)[21:].reset_index()
+        return monthly_returns
+
     def visualize_daily_percentage_change(self):
         """
         This function plots out a qq plot of daily percentage change
@@ -68,8 +90,9 @@ class VolatilityFacade:
 if __name__ == "__main__":
     volatility = VolatilityFacade("FXI")
     print(volatility.weekly_returns)
-    volatility.visualize_weekly_percentage_change()
-    print(volatility.find_worst_weeks(threshold=-0.18))
+    volatility.visualize_monthly_percentage_change()
+    #volatility.visualize_weekly_percentage_change()
+    #print(volatility.find_worst_weeks(threshold=-0.18))
     #volatility.visualize_daily_percentage_change()
     #volatility.show_today_return()
     #print(volatility.get_past_five_days("FXI"))
