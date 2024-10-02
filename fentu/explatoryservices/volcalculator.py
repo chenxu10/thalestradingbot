@@ -19,6 +19,7 @@ class VolatilityFacade:
     """
     def __init__(self, instrument):
         self.daily_returns = self._get_daily_returns(instrument)
+        self.weekly_returns = self._get_weekly_returns(instrument)
 
     def _get_daily_returns(self, instrument):
         instrument = yf.Ticker(instrument)
@@ -26,7 +27,14 @@ class VolatilityFacade:
         prices = instru_hist['Close']  
         returns = prices.pct_change()[1:].reset_index()
         return returns
-    
+
+    def _get_weekly_returns(self, instrument):
+        instrument = yf.Ticker(instrument)
+        instru_hist = instrument.history(period="max")
+        prices = instru_hist['Close']  
+        weekly_returns = prices.pct_change(5)[5:].reset_index()
+        return weekly_returns
+
     def get_past_five_days(self, instrument):
         instrument = yf.Ticker(instrument)
         instru_hist = instrument.history(period="max")
@@ -37,9 +45,13 @@ class VolatilityFacade:
         daily_volatility_calculator = DailyVolatility()
         return daily_volatility_calculator.calculate_1std_daily_volatility(self.daily_returns)
     
-    def calculate_weekly_volatility(self):
-        pass
-
+    def visualize_weekly_percentage_change(self):
+        """
+        This function plots out a qq plot of daily percentage change
+        """
+        ps.qq_plot(self.weekly_returns['Close'])
+        ps.histgram_plot(self.weekly_returns)
+ 
     def visualize_daily_percentage_change(self):
         """
         This function plots out a qq plot of daily percentage change
@@ -49,10 +61,10 @@ class VolatilityFacade:
         
     def show_today_return(self):
         print(self.daily_returns.tail(10))
-        print(self.daily_returns.tail(1))
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("FXI")
     volatility.visualize_daily_percentage_change()
+    volatility.visualize_weekly_percentage_change()
     volatility.show_today_return()
     print(volatility.get_past_five_days("FXI"))
