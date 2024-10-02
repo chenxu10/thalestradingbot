@@ -52,7 +52,7 @@ class VolatilityFacade:
         print(self.daily_returns.tail(1))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("FXI")
+    volatility = VolatilityFacade("TLT")
     volatility.visualize_daily_percentage_change()
     volatility.show_today_return()
-    print(volatility.get_past_five_days("FXI"))
+    print(volatility.get_past_five_days("TLT"))
