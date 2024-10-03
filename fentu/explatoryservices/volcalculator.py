@@ -92,6 +92,7 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("FXI")
+    print(volatility.daily_returns.tail(20))
     print(volatility.weekly_returns.tail(20))
     volatility.visualize_weekly_percentage_change()
     #volatility.visualize_monthly_percentage_change()
