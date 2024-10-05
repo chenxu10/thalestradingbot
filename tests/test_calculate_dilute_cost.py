@@ -4,7 +4,7 @@
 import pytest
 
 def calculate_dilueted_cost(x):
-    status_end_state = x["status"]["end_state"]
+    status_end_state = x["end_state"]
     cur_diluted_cost = x["cur_diluted_cost"]
     cur_position = x["cur_position"]
     preimum = x["preimum"]
@@ -16,11 +16,10 @@ def test_calculate_dilute_cost():
     order_data = {
         "cur_diluted_cost": 100,
         "cur_position":200,
-        "status":{
-            "type":"call",
-            "volume":1,
-            "end_state":"not_exercised"},
-        "preimum":20,
+        "type":"call",
+        "volume":1,
+        "end_state":"not_exercised",
+        "preimum":20
     } 
     actual = calculate_dilueted_cost(order_data)                                                         
     expected = 99.9
