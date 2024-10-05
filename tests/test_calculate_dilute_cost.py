@@ -41,6 +41,15 @@ def test_calculate_dilute_cost():
 
 def main():
     test_calculate_dilute_cost()
+    not_exercised_order_data = {
+        "cur_diluted_cost":49.1154,
+        "cur_position":600,
+        "type":"put",
+        "volume":4,
+        "end_state":"not_exercised",
+        "preimum":224.8
+    }
+    print(calculate_dilueted_cost(not_exercised_order_data))
 
 if __name__ == '__main__':
     main()
