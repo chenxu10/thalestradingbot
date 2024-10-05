@@ -13,19 +13,18 @@ def calculate_dilueted_cost(x):
     return new_diluted_cost
 
 def test_calculate_dilute_cost():
-    actual = calculate_dilueted_cost(
-        {
-            "cur_diluted_cost": 100,
-            "cur_position":200,
-            "status":{
-                "type":"call",
-                "volume":1,
-                "end_state":"not_exercised"},
-            "preimum":20,
-        })                                                         
+    order_data = {
+        "cur_diluted_cost": 100,
+        "cur_position":200,
+        "status":{
+            "type":"call",
+            "volume":1,
+            "end_state":"not_exercised"},
+        "preimum":20,
+    } 
+    actual = calculate_dilueted_cost(order_data)                                                         
     expected = 99.9
-    assert actual == expected
-    
+    assert actual == expected  
 
 def main():
     test_calculate_dilute_cost()
