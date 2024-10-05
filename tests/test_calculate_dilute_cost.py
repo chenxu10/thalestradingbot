@@ -1,6 +1,7 @@
 
 # TODO calculate breakeven price
 # For status call exercised, call not exercised, put exercised and put not exercised
+# Find low p/b and high volatility stocks
 import pytest
 
 def calculate_dilueted_cost(x):
@@ -13,7 +14,7 @@ def calculate_dilueted_cost(x):
     return new_diluted_cost
 
 def test_calculate_dilute_cost():
-    order_data = {
+    not_exercised_order_data = {
         "cur_diluted_cost": 100,
         "cur_position":200,
         "type":"call",
@@ -21,7 +22,7 @@ def test_calculate_dilute_cost():
         "end_state":"not_exercised",
         "preimum":20
     } 
-    actual = calculate_dilueted_cost(order_data)                                                         
+    actual = calculate_dilueted_cost(not_exercised_order_data)                                                         
     expected = 99.9
     assert actual == expected  
 
