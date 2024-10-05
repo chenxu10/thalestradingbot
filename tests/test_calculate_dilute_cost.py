@@ -10,19 +10,19 @@ import pytest
 def calculate_dilueted_cost(x):
     status_end_state = x["end_state"]
     cur_diluted_cost = x["cur_diluted_cost"]
-    cur_position = x["cur_position"]
+    cur_position_after_option_change = x["cur_position"]
     preimum = x["preimum"]
     strikeprice = x["strikeprice"]
     volume = x["volume"]
 
     if status_end_state == "not_exercised":
-        if cur_position == 0:
+        if cur_position_after_option_change == 0:
             new_diluted_cost = -preimum
         else:
-            new_diluted_cost = cur_diluted_cost - preimum / cur_position
+            new_diluted_cost = cur_diluted_cost - preimum / cur_position_after_option_change
 
     elif status_end_state == "exercised":
-        if cur_position == 0:
+        if cur_position_after_option_change == 0:
             new_diluted_cost = strikeprice - preimum / (volume * 100)
            
     return new_diluted_cost
