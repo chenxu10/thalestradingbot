@@ -9,6 +9,7 @@ def calculate_dilueted_cost(x):
     preimum = x["preimum"]
     if status_end_state == "not_exercised":
         new_diluted_cost = cur_diluted_cost - preimum / cur_position
+    print(new_diluted_cost)
     return new_diluted_cost
 
 def test_calculate_dilute_cost():
