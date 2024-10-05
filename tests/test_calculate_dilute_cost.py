@@ -1,6 +1,8 @@
 
 # TODO calculate breakeven price
+# Diluted price the price you can break even when you close
 # For status call exercised, call not exercised, put exercised and put not exercised
+# (持有期内买入总金额 - 持有期内期权总收入)/持有数量
 # Find low p/b and high volatility stocks
 import pytest
 
@@ -9,8 +11,12 @@ def calculate_dilueted_cost(x):
     cur_diluted_cost = x["cur_diluted_cost"]
     cur_position = x["cur_position"]
     preimum = x["preimum"]
+
     if status_end_state == "not_exercised":
-        new_diluted_cost = cur_diluted_cost - preimum / cur_position
+        if cur_position == 0:
+            new_diluted_cost = -preimum
+        else:
+            new_diluted_cost = cur_diluted_cost - preimum / cur_position
     return new_diluted_cost
 
 def test_calculate_dilute_cost():
@@ -42,12 +48,12 @@ def test_calculate_dilute_cost():
 def main():
     test_calculate_dilute_cost()
     not_exercised_order_data = {
-        "cur_diluted_cost":49.1154,
-        "cur_position":600,
+        "cur_diluted_cost":float('-inf'),
+        "cur_position":0,
         "type":"put",
         "volume":4,
         "end_state":"not_exercised",
-        "preimum":224.8
+        "preimum":135
     }
     print(calculate_dilueted_cost(not_exercised_order_data))
 
