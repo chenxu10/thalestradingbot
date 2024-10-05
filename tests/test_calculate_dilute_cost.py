@@ -52,7 +52,6 @@ def test_calculate_dilute_cost():
 
     }
     actual = calculate_dilueted_cost(put_exercised_order_data)
-    print(actual)
     expected = 89.8
     assert actual == expected
 
