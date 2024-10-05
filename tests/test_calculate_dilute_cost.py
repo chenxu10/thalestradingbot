@@ -4,6 +4,7 @@
 # For status call exercised, call not exercised, put exercised and put not exercised
 # (持有期内买入总金额 - 持有期内期权总收入)/持有数量
 # Find low p/b and high volatility stocks
+
 import pytest
 
 def calculate_dilueted_cost(x):
@@ -11,12 +12,19 @@ def calculate_dilueted_cost(x):
     cur_diluted_cost = x["cur_diluted_cost"]
     cur_position = x["cur_position"]
     preimum = x["preimum"]
+    strikeprice = x["strikeprice"]
+    volume = x["volume"]
 
     if status_end_state == "not_exercised":
         if cur_position == 0:
             new_diluted_cost = -preimum
         else:
             new_diluted_cost = cur_diluted_cost - preimum / cur_position
+
+    elif status_end_state == "exercised":
+        if cur_position == 0:
+            new_diluted_cost = strikeprice - preimum / (volume * 100)
+           
     return new_diluted_cost
 
 def test_calculate_dilute_cost():
@@ -26,24 +34,27 @@ def test_calculate_dilute_cost():
         "type":"call",
         "volume":1,
         "end_state":"not_exercised",
-        "preimum":20
+        "preimum":20,
+        "strikeprice":90
     } 
     actual = calculate_dilueted_cost(not_exercised_order_data)                                                         
     expected = 99.9
     assert actual == expected  
 
     put_exercised_order_data = {
-        "cur_diluted_cost":100,
-        "cur_position":200,
+        "cur_diluted_cost":float('-inf'),
+        "cur_position":0,
         "type":"call",
         "volume":1,
-        "end_state":"not_exercised",
+        "end_state":"exercised",
         "preimum":20,
         "strikeprice":90
 
     }
-    expected = 96.6
-
+    actual = calculate_dilueted_cost(put_exercised_order_data)
+    print(actual)
+    expected = 89.8
+    assert actual == expected
 
 def main():
     test_calculate_dilute_cost()
