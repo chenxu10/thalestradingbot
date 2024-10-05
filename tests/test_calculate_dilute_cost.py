@@ -1,12 +1,15 @@
 
-
-
 # TODO calculate breakeven price
 # For status call exercised, call not exercised, put exercised and put not exercised
 
-
 def calculate_dilueted_cost(x):
-    return 99.9
+    status_end_state = x["status"]["end_state"]
+    cur_diluted_cost = x["cur_diluted_cost"]
+    cur_position = x["cur_position"]
+    preimum = x["preimum"]
+    if status_end_state == "not_exercised":
+        new_diluted_cost = cur_diluted_cost - preimum / cur_position
+    return new_diluted_cost
 
 def test_calculate_dilute_cost():
     actual = calculate_dilueted_cost(
