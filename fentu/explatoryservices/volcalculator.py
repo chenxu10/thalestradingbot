@@ -82,7 +82,7 @@ class VolatilityFacade:
         ps.histgram_plot(self.daily_returns)
     
     def find_worst_ten_days(self):
-        return self.daily_returns.sort_values('Close').head(10)
+        return self.daily_returns.sort_values('Close').head(20)
 
     def find_worst_weeks(self,threshold=-0.1):
         return self.weekly_returns.loc[self.weekly_returns['Close']<threshold,:]
