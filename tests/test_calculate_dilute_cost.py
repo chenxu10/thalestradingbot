@@ -14,6 +14,7 @@ def calculate_dilueted_cost(x):
     preimum = x["preimum"]
     strikeprice = x["strikeprice"]
     volume = x["volume"]
+    type = x["type"]
 
     if status_end_state == "not_exercised":
         if cur_position_after_option_change == 0:
