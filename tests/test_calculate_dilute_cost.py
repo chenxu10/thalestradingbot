@@ -37,7 +37,7 @@ def test_calculate_dilute_cost():
     not_exercised_order_data = {
         "cur_diluted_cost":100,
         "cur_position":200,
-        "type":"put",
+        "type":"call",
         "volume":1,
         "end_state":"not_exercised",
         "preimum":20,
@@ -64,7 +64,7 @@ def test_calculate_dilute_cost():
     put_exercised_order_data = {
         "cur_diluted_cost":100,
         "cur_position":300,
-        "type":"call",
+        "type":"put",
         "volume":1,
         "end_state":"exercised",
         "preimum":20,
