@@ -31,7 +31,12 @@ def calculate_dilueted_cost(x):
                 total_buy_cost = strikeprice * exercised_shares + cur_diluted_cost * (
                     cur_position_after_option_change - exercised_shares) 
                 new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
-           
+            elif type == "call":
+                exercised_shares = volume * 100
+                total_buy_cost = cur_diluted_cost * (cur_position_after_option_change 
+                    + exercised_shares) - strikeprice * exercised_shares
+                new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
+
     return new_diluted_cost
 
 def test_calculate_dilute_cost():
