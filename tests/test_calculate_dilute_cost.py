@@ -26,10 +26,11 @@ def calculate_dilueted_cost(x):
         if cur_position_after_option_change == 0:
             new_diluted_cost = strikeprice - preimum / (volume * 100)
         else:
-            exercised_shares = volume * 100
-            total_buy_cost = strikeprice * exercised_shares + cur_diluted_cost * (
-                cur_position_after_option_change - exercised_shares) 
-            new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
+            if type == "put":
+                exercised_shares = volume * 100
+                total_buy_cost = strikeprice * exercised_shares + cur_diluted_cost * (
+                    cur_position_after_option_change - exercised_shares) 
+                new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
            
     return new_diluted_cost
 
