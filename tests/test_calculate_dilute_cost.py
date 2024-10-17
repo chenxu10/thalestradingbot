@@ -116,7 +116,6 @@ def main():
     }
     calculator = DilutedCostCalculator(put_fxi_order)
     di = calculator.calculate()
-    print(di)
 
 if __name__ == '__main__':
     main()
