@@ -18,7 +18,6 @@ def calculate_dilueted_cost(x):
     closeprice = x["closeorderprice"]
 
     if volume < 0:
-        print("calculating short option strategy diluted cost...")
         volume = abs(volume)
         if status_end_state == "filled":
             new_diluted_cost = cur_diluted_cost - (preimum - closeprice) / cur_position_after_option_change
