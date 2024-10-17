@@ -15,7 +15,11 @@ def calculate_dilueted_cost(x):
     strikeprice = x["strikeprice"]
     volume = x["volume"]
     type = x["type"]
+    closeprice = x["closeorderprice"]
 
+    if status_end_state == "filled":
+        new_diluted_cost = cur_diluted_cost - (preimum - closeprice) / cur_position_after_option_change
+        
     if status_end_state == "not_exercised":
         if cur_position_after_option_change == 0:
             new_diluted_cost = -preimum
@@ -47,7 +51,8 @@ def test_calculate_dilute_cost():
         "volume":1,
         "end_state":"not_exercised",
         "preimum":20,
-        "strikeprice":90
+        "strikeprice":90,
+        "closeorderprice":0
     } 
     actual = calculate_dilueted_cost(not_exercised_order_data)                                                         
     expected = 99.9
@@ -60,8 +65,8 @@ def test_calculate_dilute_cost():
         "volume":1,
         "end_state":"exercised",
         "preimum":20,
-        "strikeprice":90
-
+        "strikeprice":90,
+        "closeorderprice":90
     }
     actual = calculate_dilueted_cost(put_exercised_order_data)
     expected = 89.8
@@ -74,7 +79,8 @@ def test_calculate_dilute_cost():
         "volume":1,
         "end_state":"exercised",
         "preimum":20,
-        "strikeprice":90
+        "strikeprice":90,
+        "closeorderprice":90
 
     }
     actual = calculate_dilueted_cost(put_exercised_order_data)
@@ -86,12 +92,13 @@ def main():
     test_calculate_dilute_cost()
     put_fxi_order = {
         "cur_diluted_cost":33.59,
-        "cur_position":712,
+        "cur_position":112,
         "type":"put",
         "volume":1,
-        "end_state":"exercised",
-        "preimum":115.32,
-        "strikeprice":36
+        "end_state":"filled",
+        "preimum":48,
+        "strikeprice":32.5,
+        "closeorderprice":6.03
     }
     di = calculate_dilueted_cost(put_fxi_order)
     print(di)
