@@ -1,14 +1,9 @@
 """
+This script calculated the breakeven price or diluted cost
+for the spot equity you owned
 
 Author: Xu Shen <xs286@cornell.edu>
-
 """
-# TODO calculate breakeven price
-# Diluted price the price you can break even when you close
-# For status call exercised, call not exercised, put exercised and put not exercised
-# (持有期内买入总金额 - 持有期内期权总收入)/持有数量
-# Find low p/b and high volatility stocks
-
 import pytest
 
 class DilutedCostCalculator:
