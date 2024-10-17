@@ -94,14 +94,14 @@ def test_calculate_filled_order():
         "type":"put",
         "volume":-1,
         "end_state":"exercised",
-        "premium":100,
+        "premium":10,
         "strikeprice":90,
-        "closeorderprice":10
+        "closeorderprice":9
     }
     calculator = DilutedCostCalculator(put_filled_order_data)
     actual = calculator.calculate()
     print(actual)
-    expected = 100-(100-10)/100
+    expected = (100-(10-9))/100
     assert actual == expected
 
 def test_calculate_dilute_cost():
