@@ -6,6 +6,7 @@ config.ini
 shiyao
 leanplan.md
 READMEprivate.md
-*.ods
+*.ods#
 Ideas.md
 Ideas.pdf
+*.ods
