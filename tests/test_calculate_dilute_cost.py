@@ -104,7 +104,7 @@ def test_calculate_dilute_cost():
     
 def main():
     test_calculate_dilute_cost()
-    put_fxi_order = {
+    to_calculate_order = {
         "cur_diluted_cost":33.89,
         "cur_position":612,
         "type":"put",
@@ -114,7 +114,7 @@ def main():
         "strikeprice":36,
         "closeorderprice":0
     }
-    calculator = DilutedCostCalculator(put_fxi_order)
+    calculator = DilutedCostCalculator(to_calculate_order)
     di = calculator.calculate()
 
 if __name__ == '__main__':
