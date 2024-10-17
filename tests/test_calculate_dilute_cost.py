@@ -15,12 +15,13 @@ class DilutedCostCalculator:
         self.cur_position_after_option_change = data["cur_position"]
         self.premium = data["premium"]
         self.strikeprice = data["strikeprice"]
-        self.volume = abs(data["volume"])  # Ensure volume is positive
+        self.volume = data["volume"]  # Ensure volume is positive
         self.option_type = data["type"]
         self.closeprice = data["closeorderprice"]
 
     def calculate(self):
         if self.volume < 0:
+            self.volume = abs(self.volume)
             return self._calculate_new_diluted_cost()
         return None  # or some default value if volume is not negative
 
