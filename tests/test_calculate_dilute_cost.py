@@ -7,7 +7,6 @@
 
 import pytest
 
-
 class DilutedCostCalculator:
     def __init__(self, data):
         self.status_end_state = data["end_state"]
@@ -57,50 +56,6 @@ class DilutedCostCalculator:
             return (self.cur_diluted_cost * (self.cur_position_after_option_change + exercised_shares) -
                     self.strikeprice * exercised_shares)
 
-# Usage
-def calculate_diluted_cost(data):
-    calculator = DilutedCostCalculator(data)
-    return calculator.calculate()
-
-
-def calculate_dilueted_cost(x):
-    status_end_state = x["end_state"]
-    cur_diluted_cost = x["cur_diluted_cost"]
-    cur_position_after_option_change = x["cur_position"]
-    preimum = x["premium"]
-    strikeprice = x["strikeprice"]
-    volume = x["volume"]
-    type = x["type"]
-    closeprice = x["closeorderprice"]
-
-    if volume < 0:
-        volume = abs(volume)
-        if status_end_state == "filled":
-            new_diluted_cost = cur_diluted_cost - (preimum - closeprice) / cur_position_after_option_change
-            
-        if status_end_state == "not_exercised":
-            if cur_position_after_option_change == 0:
-                new_diluted_cost = -preimum
-            else:
-                new_diluted_cost = cur_diluted_cost - preimum / cur_position_after_option_change
-
-        elif status_end_state == "exercised":
-            if cur_position_after_option_change == 0:
-                new_diluted_cost = strikeprice - preimum / (volume * 100)
-            else:
-                if type == "put":
-                    exercised_shares = volume * 100
-                    total_buy_cost = strikeprice * exercised_shares + cur_diluted_cost * (
-                        cur_position_after_option_change - exercised_shares) 
-                    new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
-                elif type == "call":
-                    exercised_shares = volume * 100
-                    total_buy_cost = cur_diluted_cost * (cur_position_after_option_change 
-                        + exercised_shares) - strikeprice * exercised_shares
-                    new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
-
-    return new_diluted_cost
-
 def test_calculate_dilute_cost():
     not_exercised_order_data = {
         "cur_diluted_cost":100,
@@ -112,7 +67,8 @@ def test_calculate_dilute_cost():
         "strikeprice":90,
         "closeorderprice":0
     } 
-    actual = calculate_dilueted_cost(not_exercised_order_data)                                                         
+    calculator = DilutedCostCalculator(not_exercised_order_data)
+    actual = calculator.calculate()                                                        
     expected = 99.9
     assert actual == expected  
 
@@ -126,7 +82,8 @@ def test_calculate_dilute_cost():
         "strikeprice":90,
         "closeorderprice":90
     }
-    actual = calculate_dilueted_cost(put_exercised_order_data)
+    calculator = DilutedCostCalculator(put_exercised_order_data)
+    actual = calculator.calculate()
     expected = 89.8
     assert actual == expected
 
@@ -141,10 +98,10 @@ def test_calculate_dilute_cost():
         "closeorderprice":90
 
     }
-    actual = calculate_dilueted_cost(put_exercised_order_data)
+    calculator = DilutedCostCalculator(put_exercised_order_data)
+    actual = calculator.calculate()
     expected = 96.6
     assert actual == expected
-
     
 def main():
     test_calculate_dilute_cost()
@@ -158,9 +115,6 @@ def main():
         "strikeprice":36,
         "closeorderprice":0
     }
-    di = calculate_dilueted_cost(put_fxi_order)
-    print(di)
-
     calculator = DilutedCostCalculator(put_fxi_order)
     di = calculator.calculate()
     print(di)
