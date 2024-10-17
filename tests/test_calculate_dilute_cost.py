@@ -98,9 +98,9 @@ def test_calculate_filled_order():
         "strikeprice":90,
         "closeorderprice":10
     }
-
     calculator = DilutedCostCalculator(put_filled_order_data)
     actual = calculator.calculate()
+    print(actual)
     expected = 100-(100-10)/100
     assert actual == expected
 
