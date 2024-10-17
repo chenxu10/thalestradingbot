@@ -101,7 +101,7 @@ def test_calculate_filled_order():
     calculator = DilutedCostCalculator(put_filled_order_data)
     actual = calculator.calculate()
     print(actual)
-    expected = (100-(10-9))/100
+    expected = (100 - 10 + 9)/100
     print(expected)
     assert actual == expected
 
