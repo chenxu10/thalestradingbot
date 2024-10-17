@@ -14,7 +14,7 @@ class DilutedCostCalculator:
         self.cur_position_after_option_change = data["cur_position"]
         self.premium = data["premium"]
         self.strikeprice = data["strikeprice"]
-        self.volume = data["volume"]  # Ensure volume is positive
+        self.volume = data["volume"]
         self.option_type = data["type"]
         self.closeprice = data["closeorderprice"]
 
