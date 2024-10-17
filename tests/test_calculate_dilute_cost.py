@@ -29,13 +29,13 @@ def test_calculate_filled_order():
         "type":"put",
         "volume":-1,
         "end_state":"filled",
-        "premium":10,
+        "premium":100,
         "strikeprice":90,
         "closeorderprice":9
     }
     calculator = csdc.DilutedCostCalculator(put_filled_order_data)
     actual = calculator.calculate()
-    expected = (100 - 10 + 9)/100
+    expected = (100 * 100 - 100 + 9)/100
     assert actual == expected
 
 def test_calculate_dilute_cost():
