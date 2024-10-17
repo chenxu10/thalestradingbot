@@ -17,29 +17,32 @@ def calculate_dilueted_cost(x):
     type = x["type"]
     closeprice = x["closeorderprice"]
 
-    if status_end_state == "filled":
-        new_diluted_cost = cur_diluted_cost - (preimum - closeprice) / cur_position_after_option_change
-        
-    if status_end_state == "not_exercised":
-        if cur_position_after_option_change == 0:
-            new_diluted_cost = -preimum
-        else:
-            new_diluted_cost = cur_diluted_cost - preimum / cur_position_after_option_change
+    if volume < 0:
+        print("calculating short option strategy diluted cost...")
+        volume = abs(volume)
+        if status_end_state == "filled":
+            new_diluted_cost = cur_diluted_cost - (preimum - closeprice) / cur_position_after_option_change
+            
+        if status_end_state == "not_exercised":
+            if cur_position_after_option_change == 0:
+                new_diluted_cost = -preimum
+            else:
+                new_diluted_cost = cur_diluted_cost - preimum / cur_position_after_option_change
 
-    elif status_end_state == "exercised":
-        if cur_position_after_option_change == 0:
-            new_diluted_cost = strikeprice - preimum / (volume * 100)
-        else:
-            if type == "put":
-                exercised_shares = volume * 100
-                total_buy_cost = strikeprice * exercised_shares + cur_diluted_cost * (
-                    cur_position_after_option_change - exercised_shares) 
-                new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
-            elif type == "call":
-                exercised_shares = volume * 100
-                total_buy_cost = cur_diluted_cost * (cur_position_after_option_change 
-                    + exercised_shares) - strikeprice * exercised_shares
-                new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
+        elif status_end_state == "exercised":
+            if cur_position_after_option_change == 0:
+                new_diluted_cost = strikeprice - preimum / (volume * 100)
+            else:
+                if type == "put":
+                    exercised_shares = volume * 100
+                    total_buy_cost = strikeprice * exercised_shares + cur_diluted_cost * (
+                        cur_position_after_option_change - exercised_shares) 
+                    new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
+                elif type == "call":
+                    exercised_shares = volume * 100
+                    total_buy_cost = cur_diluted_cost * (cur_position_after_option_change 
+                        + exercised_shares) - strikeprice * exercised_shares
+                    new_diluted_cost = (total_buy_cost - preimum) / cur_position_after_option_change
 
     return new_diluted_cost
 
@@ -48,7 +51,7 @@ def test_calculate_dilute_cost():
         "cur_diluted_cost":100,
         "cur_position":200,
         "type":"call",
-        "volume":1,
+        "volume":-1,
         "end_state":"not_exercised",
         "preimum":20,
         "strikeprice":90,
@@ -62,7 +65,7 @@ def test_calculate_dilute_cost():
         "cur_diluted_cost":float('-inf'),
         "cur_position":0,
         "type":"put",
-        "volume":1,
+        "volume":-1,
         "end_state":"exercised",
         "preimum":20,
         "strikeprice":90,
@@ -76,7 +79,7 @@ def test_calculate_dilute_cost():
         "cur_diluted_cost":100,
         "cur_position":300,
         "type":"put",
-        "volume":1,
+        "volume":-1,
         "end_state":"exercised",
         "preimum":20,
         "strikeprice":90,
@@ -94,7 +97,7 @@ def main():
         "cur_diluted_cost":33.89,
         "cur_position":612,
         "type":"put",
-        "volume":1,
+        "volume":-1,
         "end_state":"exercised",
         "preimum":115.32,
         "strikeprice":36,
