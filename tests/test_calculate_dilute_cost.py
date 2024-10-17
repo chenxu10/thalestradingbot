@@ -91,14 +91,14 @@ def test_calculate_dilute_cost():
 def main():
     test_calculate_dilute_cost()
     put_fxi_order = {
-        "cur_diluted_cost":32.6,
-        "cur_position":112,
+        "cur_diluted_cost":32.23,
+        "cur_position":312,
         "type":"put",
-        "volume":1,
-        "end_state":"filled",
-        "preimum":48,
-        "strikeprice":32.5,
-        "closeorderprice":6.03
+        "volume":2,
+        "end_state":"exercised",
+        "preimum":158.64,
+        "strikeprice":35.5,
+        "closeorderprice":0
     }
     di = calculate_dilueted_cost(put_fxi_order)
     print(di)
