@@ -32,7 +32,7 @@ class DilutedCostCalculator:
             return self._calculate_exercised_diluted_cost()
 
     def _calculate_filled_diluted_cost(self):
-        return self.cur_diluted_cost - (self.premium - self.closeprice) / self.cur_position_after_option_change
+        return self.cur_diluted_cost - self.premium + self.closeprice / self.cur_position_after_option_change
 
     def _calculate_not_exercised_diluted_cost(self):
         if self.cur_position_after_option_change == 0:
