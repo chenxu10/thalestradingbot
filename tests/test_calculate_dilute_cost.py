@@ -94,7 +94,7 @@ def test_calculate_filled_order():
         "cur_position":100,
         "type":"put",
         "volume":-1,
-        "end_state":"exercised",
+        "end_state":"filled",
         "premium":10,
         "strikeprice":90,
         "closeorderprice":9
