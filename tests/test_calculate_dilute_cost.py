@@ -1,4 +1,8 @@
+"""
 
+Author: Xu Shen <xs286@cornell.edu>
+
+"""
 # TODO calculate breakeven price
 # Diluted price the price you can break even when you close
 # For status call exercised, call not exercised, put exercised and put not exercised
