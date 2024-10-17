@@ -88,7 +88,17 @@ def test_calculate_exercised_order():
     assert actual == expected
 
 def test_calculate_filled_order():
-    pass
+    put_exercised_order_data = {
+        "cur_diluted_cost":100,
+        "cur_position":300,
+        "type":"put",
+        "volume":-1,
+        "end_state":"exercised",
+        "premium":20,
+        "strikeprice":90,
+        "closeorderprice":90
+
+    }
 
 def test_calculate_dilute_cost():
     put_exercised_order_data = {
