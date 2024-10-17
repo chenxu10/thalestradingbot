@@ -26,7 +26,7 @@ class DilutedCostCalculator:
     def _calculate_new_diluted_cost(self):
         if self.status_end_state == "filled":
             return self._calculate_filled_diluted_cost()
-        elif self.status_end_state == "not_exercised":
+        elif self.status_end_state == "expired":
             return self._calculate_not_exercised_diluted_cost()
         elif self.status_end_state == "exercised":
             return self._calculate_exercised_diluted_cost()
@@ -55,22 +55,24 @@ class DilutedCostCalculator:
             return (self.cur_diluted_cost * (self.cur_position_after_option_change + exercised_shares) -
                     self.strikeprice * exercised_shares)
 
-def test_calculate_dilute_cost():
-    not_exercised_order_data = {
+
+def test_calculate_expired_order():
+    expired_order_data = {
         "cur_diluted_cost":100,
         "cur_position":200,
         "type":"call",
         "volume":-1,
-        "end_state":"not_exercised",
+        "end_state":"expired",
         "premium":20,
         "strikeprice":90,
         "closeorderprice":0
     } 
-    calculator = DilutedCostCalculator(not_exercised_order_data)
+    calculator = DilutedCostCalculator(expired_order_data)
     actual = calculator.calculate()                                                        
     expected = 99.9
     assert actual == expected  
 
+def test_calculate_dilute_cost():
     put_exercised_order_data = {
         "cur_diluted_cost":float('-inf'),
         "cur_position":0,
