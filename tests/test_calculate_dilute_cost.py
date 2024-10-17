@@ -55,7 +55,6 @@ class DilutedCostCalculator:
             return (self.cur_diluted_cost * (self.cur_position_after_option_change + exercised_shares) -
                     self.strikeprice * exercised_shares)
 
-
 def test_calculate_expired_order():
     expired_order_data = {
         "cur_diluted_cost":100,
@@ -72,8 +71,8 @@ def test_calculate_expired_order():
     expected = 99.9
     assert actual == expected  
 
-def test_calculate_dilute_cost():
-    put_exercised_order_data = {
+def test_calculate_exercised_order():
+    exercised_order_data = {
         "cur_diluted_cost":float('-inf'),
         "cur_position":0,
         "type":"put",
@@ -83,11 +82,12 @@ def test_calculate_dilute_cost():
         "strikeprice":90,
         "closeorderprice":90
     }
-    calculator = DilutedCostCalculator(put_exercised_order_data)
+    calculator = DilutedCostCalculator(exercised_order_data)
     actual = calculator.calculate()
     expected = 89.8
     assert actual == expected
 
+def test_calculate_dilute_cost():
     put_exercised_order_data = {
         "cur_diluted_cost":100,
         "cur_position":300,
