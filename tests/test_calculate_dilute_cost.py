@@ -165,22 +165,5 @@ def main():
     di = calculator.calculate()
     print(di)
 
-
-
-    put_exercised_order_data = {
-        "cur_diluted_cost":float('-inf'),
-        "cur_position":0,
-        "type":"put",
-        "volume":-1,
-        "end_state":"exercised",
-        "premium":20,
-        "strikeprice":90,
-        "closeorderprice":90
-    }
-    calculator = DilutedCostCalculator(put_exercised_order_data)
-    di = calculator.calculate()
-    print(di)
-
-
 if __name__ == '__main__':
     main()
