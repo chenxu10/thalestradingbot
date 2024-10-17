@@ -88,15 +88,15 @@ def test_calculate_exercised_order():
     assert actual == expected
 
 def test_calculate_filled_order():
-    put_exercised_order_data = {
+    put_filled_order_data = {
         "cur_diluted_cost":100,
-        "cur_position":300,
+        "cur_position":100,
         "type":"put",
         "volume":-1,
         "end_state":"exercised",
-        "premium":20,
+        "premium":100,
         "strikeprice":90,
-        "closeorderprice":90
+        "closeorderprice":10
 
     }
 
