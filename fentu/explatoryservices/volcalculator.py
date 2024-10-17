@@ -97,7 +97,7 @@ class VolatilityFacade:
         print(self.daily_returns.tail(10))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("FXI")
+    volatility = VolatilityFacade("TLT")
     #volatility.show_today_return()
     #print(volatility.get_past_five_days("FXI"))
     #print(volatility.find_worst_k_months(k=20))
