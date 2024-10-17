@@ -91,7 +91,7 @@ def test_calculate_dilute_cost():
 def main():
     test_calculate_dilute_cost()
     put_fxi_order = {
-        "cur_diluted_cost":33.59,
+        "cur_diluted_cost":32.6,
         "cur_position":112,
         "type":"put",
         "volume":1,
