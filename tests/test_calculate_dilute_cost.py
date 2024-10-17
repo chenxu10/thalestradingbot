@@ -102,6 +102,7 @@ def test_calculate_filled_order():
     actual = calculator.calculate()
     print(actual)
     expected = (100-(10-9))/100
+    print(expected)
     assert actual == expected
 
 def test_calculate_dilute_cost():
