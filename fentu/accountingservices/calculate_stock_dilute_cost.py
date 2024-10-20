@@ -36,8 +36,7 @@ class DilutedCostCalculator:
             return self._calculate_exercised_diluted_cost()
     
     def _calculate_long_filled_diluted_cost(self):
-        total_buy_cost = self.cur_diluted_cost * self.cur_position_after_option_change
-        + self.premium
+        total_buy_cost = self.cur_diluted_cost * self.cur_position_after_option_change + self.premium
         print(total_buy_cost)
         print(self.cur_position_after_option_change)
         print(total_buy_cost/self.cur_position_after_option_change)
