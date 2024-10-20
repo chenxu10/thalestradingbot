@@ -62,7 +62,7 @@ def main():
         "cur_position":612,
         "type":"put",
         "volume":9,
-        "end_state":"filled",
+        "end_state":"fil34.06led",
         "premium":9.7,
         "strikeprice":30,
         "closeorderprice":None
