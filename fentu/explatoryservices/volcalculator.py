@@ -98,9 +98,8 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("FXI")
-    #volatility.show_today_return()
-    #print(volatility. et_past_five_days("FXI"))
-    volatility.visualize_daily_percentage_change()
+    volatility.show_today_return()
+    #volatility.visualize_daily_percentage_change()
     #volatility.visualize_weekly_percentage_change()
     #volatility.visualize_monthly_percentage_change()
     #print(volatility.find_worst_months(threshold=-0.3))
