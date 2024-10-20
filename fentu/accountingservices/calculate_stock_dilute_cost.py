@@ -19,18 +19,28 @@ class DilutedCostCalculator:
     def calculate(self):
         if self.volume < 0:
             self.volume = abs(self.volume)
-            return self._calculate_new_diluted_cost()
-        return None  # or some default value if volume is not negative
+            return self._calculate_short_new_diluted_cost()
+        else:
+            return self._calculate_long_new_diluted_cost()
 
-    def _calculate_new_diluted_cost(self):
+    def _calculate_long_new_diluted_cost(self):
         if self.status_end_state == "filled":
-            return self._calculate_filled_diluted_cost()
+            return self._calculate_long_filled_diluted_cost()
+        
+    def _calculate_short_new_diluted_cost(self):
+        if self.status_end_state == "filled":
+            return self._calculate_short_filled_diluted_cost()
         elif self.status_end_state == "expired":
             return self._calculate_not_exercised_diluted_cost()
         elif self.status_end_state == "exercised":
             return self._calculate_exercised_diluted_cost()
+    
+    def _calculate_long_filled_diluted_cost(self):
+        total_buy_cost = self.cur_diluted_cost * self.cur_position_after_option_change
+        + self.premium
+        return total_buy_cost / self.cur_position_after_option_change
 
-    def _calculate_filled_diluted_cost(self):
+    def _calculate_short_filled_diluted_cost(self):
         total_buy_cost = self.cur_diluted_cost * self.cur_position_after_option_change - \
             self.premium + self.closeprice
         return total_buy_cost / self.cur_position_after_option_change
