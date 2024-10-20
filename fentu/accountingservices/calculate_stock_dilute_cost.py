@@ -39,6 +39,7 @@ class DilutedCostCalculator:
         total_buy_cost = self.cur_diluted_cost * self.cur_position_after_option_change
         + self.premium
         print(total_buy_cost)
+        print(self.cur_position_after_option_change)
         print(total_buy_cost/self.cur_position_after_option_change)
         return total_buy_cost / self.cur_position_after_option_change
 
