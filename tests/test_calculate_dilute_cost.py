@@ -63,7 +63,7 @@ def main():
         "type":"put",
         "volume":9,
         "end_state":"filled",
-        "premium":1000.7,
+        "premium":100000.7,
         "strikeprice":30,
         "closeorderprice":None
     }
