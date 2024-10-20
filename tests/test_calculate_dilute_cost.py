@@ -69,7 +69,5 @@ def main():
     }
     calculator = csdc.DilutedCostCalculator(to_calculate_order)
     di = calculator.calculate()
-    print(di)
-
 if __name__ == '__main__':
     main()
