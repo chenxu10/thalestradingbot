@@ -62,7 +62,7 @@ def main():
         "cur_position":612,
         "type":"put",
         "volume":9,
-        "end_state":"fil34.06led",
+        "end_state":"filled",
         "premium":9.7,
         "strikeprice":30,
         "closeorderprice":None
@@ -70,6 +70,6 @@ def main():
     calculator = csdc.DilutedCostCalculator(to_calculate_order)
     di = calculator.calculate()
     print(di)
-    
+
 if __name__ == '__main__':
     main()
