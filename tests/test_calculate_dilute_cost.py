@@ -59,7 +59,7 @@ def main():
     test_calculate_dilute_cost()
     to_calculate_order = {
         "cur_diluted_cost":95.8,
-        "cur_position":920,
+        "cur_position":820,
         "type":"call",
         "volume":-1,
         "end_state":"expired",
