@@ -94,7 +94,7 @@ class VolatilityFacade:
         return self.monthly_returns.loc[self.monthly_returns['Close']<threshold,:]
 
     def show_today_return(self):
-        print(self.daily_returns.tail(10))
+        print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("FXI")
