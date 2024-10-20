@@ -62,7 +62,7 @@ def main():
         "cur_position":920,
         "type":"call",
         "volume":-1,
-        "end_state":"exercised",
+        "end_state":"expired",
         "premium":23.32,
         "strikeprice":98.5,
         "closeorderprice":None
