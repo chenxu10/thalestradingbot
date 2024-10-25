@@ -36,27 +36,35 @@ def calculate_within_onestrd_prop(data):
     print("1 standard deviation close close price change is {}".format(std))
 
 
-def fit_with_log_normal(data):
+def fit_normal_distribution(data):
+    """Fit normal distribution and return parameters and PDF."""
+    mu, sigma = stats.norm.fit(data)
+    x = np.linspace(min(data), max(data), 100)
+    fitted_pdf = stats.norm.pdf(x, mu, sigma)
+    return x, fitted_pdf, mu, sigma
+
+def fit_lognormal_distribution(data):
+    """Fit log-normal distribution and return parameters and PDF."""
     shape, loc, scale = stats.lognorm.fit(data)
     mu = np.log(scale)  # Mean of log(X)
     sigma = shape       # Standard deviation of log(X)
     x = np.linspace(min(data), max(data), 100)
-    fitted_data = stats.lognorm.pdf(x, shape, loc, scale)
-    plt.plot(x, fitted_data, 'b-', lw=2, 
-         label=f'Log-Normal Distribution\n(μ_log={mu:.2f}, σ_log={sigma:.2f})')
-
-def fit_with_normal(close_price):
-    mu, sigma = stats.norm.fit(close_price)
-    x = np.linspace(min(close_price), max(close_price), 100)
-    fitted_data = stats.norm.pdf(x, mu, sigma)
-    plt.plot(x, fitted_data, 'y-', lw=2, label=f'Normal Distribution\n(μ={mu:.2f}, σ={sigma:.2f})')
+    fitted_pdf = stats.lognorm.pdf(x, shape, loc, scale)
+    return x, fitted_pdf, mu, sigma
 
 def histgram_plot(data):
     calculate_within_onestrd_prop(data)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
     sns.histplot(data, x='Close', kde=True, bins=50)
-    close_price = list(data['Close'])
-    fit_with_normal(close_price)
-    fit_with_log_normal(close_price)
+    x = list(data['Close'])
+    x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
+    ax1.plot(x_log, pdf_log, 'r-', lw=2, 
+            label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
+    ax1.set_title('Log-Normal Distribution Fit')
+    ax1.set_xlabel('Value')
+    ax1.set_ylabel('Density')
+    ax1.legend()
+    ax1.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
 
