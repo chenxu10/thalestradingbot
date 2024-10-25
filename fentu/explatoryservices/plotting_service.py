@@ -57,5 +57,6 @@ def histgram_plot(data):
     close_price = list(data['Close'])
     fit_with_normal(close_price)
     fit_with_log_normal(close_price)
+    plt.tight_layout()
     plt.show()
 
