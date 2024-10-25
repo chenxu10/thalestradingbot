@@ -37,7 +37,7 @@ def calculate_within_onestrd_prop(data):
 
 def histgram_plot(data):
     calculate_within_onestrd_prop(data)
-    sns.histplot(data, x='Close', kde=True, bins=30)
+    sns.histplot(data, x='Close', kde=True, bins=50)
     close_price = list(data['Close'])
     mu, sigma = stats.norm.fit(close_price)
     x = np.linspace(min(close_price), max(close_price), 100)
