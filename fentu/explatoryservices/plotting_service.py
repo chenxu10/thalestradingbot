@@ -57,7 +57,7 @@ def histgram_plot(data):
     sns.histplot(data, x='Close', kde=True, bins=50)
     x = list(data['Close'])
     # Fit and plot normal distribution
-    x_norm, pdf_norm, mu_norm, sigma_norm = fit_normal_distribution(data)
+    x_norm, pdf_norm, mu_norm, sigma_norm = fit_normal_distribution(x)
     plt.plot(x_norm, pdf_norm, 'r-', lw=2, 
             label=f'Normal Fit\n(μ={mu_norm:.2f}, σ={sigma_norm:.2f})')
     plt.tight_layout()
