@@ -4,6 +4,7 @@ import numpy as np
 import seaborn as sns
 from scipy.stats import probplot
 from scipy.stats import norm
+from scipy import stats
 import fentu.constants as const
 
 def calculate_four_moments(x):
@@ -37,4 +38,8 @@ def calculate_within_onestrd_prop(data):
 def histgram_plot(data):
     calculate_within_onestrd_prop(data)
     sns.histplot(data, x='Close', kde=True, bins=30)
+    mu, sigma = stats.norm.fit(data)
+    x = np.linspace(min(data), max(data), 100)
+    fitted_data = stats.norm.pdf(x, mu, sigma)
+    plt.plot(x, fitted_data, 'r-', lw=2, label=f'Normal Distribution\n(μ={mu:.2f}, σ={sigma:.2f})')
     plt.show()
