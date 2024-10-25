@@ -54,17 +54,12 @@ def fit_lognormal_distribution(data):
 
 def histgram_plot(data):
     calculate_within_onestrd_prop(data)
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
     sns.histplot(data, x='Close', kde=True, bins=50)
     x = list(data['Close'])
-    x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
-    ax1.plot(x_log, pdf_log, 'r-', lw=2, 
-            label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
-    ax1.set_title('Log-Normal Distribution Fit')
-    ax1.set_xlabel('Value')
-    ax1.set_ylabel('Density')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+    # Fit and plot normal distribution
+    x_norm, pdf_norm, mu_norm, sigma_norm = fit_normal_distribution(data)
+    plt.plot(x_norm, pdf_norm, 'r-', lw=2, 
+            label=f'Normal Fit\n(μ={mu_norm:.2f}, σ={sigma_norm:.2f})')
     plt.tight_layout()
     plt.show()
 
