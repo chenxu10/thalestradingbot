@@ -49,7 +49,7 @@ def fit_with_normal(close_price):
     mu, sigma = stats.norm.fit(close_price)
     x = np.linspace(min(close_price), max(close_price), 100)
     fitted_data = stats.norm.pdf(x, mu, sigma)
-    plt.plot(x, fitted_data, 'r-', lw=2, label=f'Normal Distribution\n(μ={mu:.2f}, σ={sigma:.2f})')
+    plt.plot(x, fitted_data, 'y-', lw=2, label=f'Normal Distribution\n(μ={mu:.2f}, σ={sigma:.2f})')
 
 def histgram_plot(data):
     calculate_within_onestrd_prop(data)
