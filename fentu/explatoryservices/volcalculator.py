@@ -99,8 +99,8 @@ class VolatilityFacade:
 if __name__ == "__main__":
     volatility = VolatilityFacade("TLT")
     #volatility.show_today_return()
-    #volatility.visualize_daily_percentage_change()
+    volatility.visualize_daily_percentage_change()
     #volatility.visualize_weekly_percentage_change()
-    volatility.visualize_monthly_percentage_change()
+    #volatility.visualize_monthly_percentage_change()
     #print(volatility.find_worst_months(threshold=-0.3))
     #print(volatility.find_worst_k_months(k=20))
