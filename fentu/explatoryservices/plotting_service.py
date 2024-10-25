@@ -35,6 +35,16 @@ def calculate_within_onestrd_prop(data):
     print("mean close price change is {}".format(mean))
     print("1 standard deviation close close price change is {}".format(std))
 
+
+def fit_with_log_normal(data):
+    shape, loc, scale = stats.lognorm.fit(data)
+    mu = np.log(scale)  # Mean of log(X)
+    sigma = shape       # Standard deviation of log(X)
+    x = np.linspace(min(data), max(data), 100)
+    fitted_data = stats.lognorm.pdf(x, shape, loc, scale)
+    plt.plot(x, fitted_data, 'r-', lw=2, 
+         label=f'Log-Normal Distribution\n(μ_log={mu:.2f}, σ_log={sigma:.2f})')
+
 def fit_with_normal(close_price):
     mu, sigma = stats.norm.fit(close_price)
     x = np.linspace(min(close_price), max(close_price), 100)
@@ -46,5 +56,6 @@ def histgram_plot(data):
     sns.histplot(data, x='Close', kde=True, bins=50)
     close_price = list(data['Close'])
     fit_with_normal(close_price)
+    fit_with_log_normal(close_price)
     plt.show()
 
