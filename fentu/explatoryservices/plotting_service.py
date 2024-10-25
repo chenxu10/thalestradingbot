@@ -55,7 +55,7 @@ def histgram_plot(data):
     calculate_within_onestrd_prop(data)
     sns.histplot(data, x='Close', kde=True, bins=50)
     close_price = list(data['Close'])
-    fit_with_normal(close_price)
+    #fit_with_normal(close_price)
     fit_with_log_normal(close_price)
     plt.show()
 
