@@ -2,9 +2,9 @@ import numpy as np
 
 
 def simulate_total_loss(n, avg_severity, severity_std):
-    total_loss = np.zeros(n)
+    total_losses = np.zeros(n)
     
-    print(total_loss)
+    print(total_losses)
     return 2000
 
 def test_lcm_model():
@@ -17,6 +17,6 @@ def test_lcm_model():
 
 def main():
     test_lcm_model()
-    
+
 if __name__ == '__main__':
     main()
