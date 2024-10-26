@@ -14,3 +14,9 @@ def test_lcm_model():
     total_loss = simulate_total_loss(n, avg_severity, severity_std)
     expected = 2000
     assert total_loss == expected
+
+def main():
+    test_lcm_model()
+    
+if __name__ == '__main__':
+    main()
