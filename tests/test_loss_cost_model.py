@@ -4,7 +4,6 @@
 def simulate_total_loss(n, avg_severity, severity_std):
     return 2000
 
-
 def test_lcm_model():
     n = 10000
     avg_severity = 5000
