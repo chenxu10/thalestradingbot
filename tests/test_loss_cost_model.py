@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def simulate_total_loss(n, avg_severity, severity_std):
     total_losses = np.zeros(n)
     
