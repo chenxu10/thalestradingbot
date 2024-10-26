@@ -1,7 +1,10 @@
-
+import numpy as np
 
 
 def simulate_total_loss(n, avg_severity, severity_std):
+    total_loss = np.zeros(n)
+    
+    print(total_loss)
     return 2000
 
 def test_lcm_model():
