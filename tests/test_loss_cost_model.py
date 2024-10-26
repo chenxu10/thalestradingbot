@@ -1,5 +1,5 @@
 """
-loss cost model
+loss cost model in a given writing year
 GBM to loss cost model
 build the bridge between car accidents to stock losses
 """
