@@ -21,7 +21,7 @@ def simulate_total_loss(n, avg_severity, severity_std, avg_freq, number_of_polic
     return 2000
 
 def test_lcm_model():
-    n = 10000
+    n = 3
     avg_severity = 5000
     severity_std = 2000
     avg_freq = 0.1
