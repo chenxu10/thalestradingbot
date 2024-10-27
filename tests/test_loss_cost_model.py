@@ -6,6 +6,14 @@ build the bridge between car accidents to stock losses
 
 import numpy as np
 
+def simulate_severities(avg_severity, severity_std, number_of_accidents):
+    severities = np.random.lognormal(
+                mean=np.log(avg_severity),
+                sigma=severity_std/avg_severity,
+                size=number_of_accidents)
+        
+    return severities
+
 def simulate_total_loss(n, avg_severity, severity_std, avg_freq, number_of_policies):
     total_losses = np.zeros(n)
 
@@ -13,13 +21,12 @@ def simulate_total_loss(n, avg_severity, severity_std, avg_freq, number_of_polic
         number_of_accidents = np.random.poisson(
             avg_freq * number_of_policies)
         if number_of_accidents > 0:
-            severities = np.random.lognormal(
-                mean=np.log(avg_severity),
-                sigma=severity_std/avg_severity,
-                size=number_of_accidents)
+            severities = simulate_severities(
+                avg_severity, severity_std, number_of_accidents)
             total_losses[i] = np.sum(severities)
      
     return 2000
+
 
 def test_lcm_model():
     n = 3
