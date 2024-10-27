@@ -12,7 +12,6 @@ def simulate_total_loss(n, avg_severity, severity_std, avg_freq, number_of_polic
     for i in range(n):
         number_of_accidents = np.random.poisson(
             avg_freq * number_of_policies)
-        print(number_of_accidents)
         if number_of_accidents > 0:
             severities = np.random.lognormal(
                 mean=np.log(avg_severity),
