@@ -12,9 +12,12 @@ def simulate_total_loss(n, avg_severity, severity_std, avg_freq, number_of_polic
     for i in range(n):
         number_of_accidents = np.random.poisson(
             avg_freq * number_of_policies)
-        print(number_of_accidents)
-    
-    print(total_losses)
+        severities = np.random.lognormal(
+            mean=np.log(avg_severity),
+            sigma=severity_std/avg_severity,
+            size=number_of_accidents)
+        print(severities)
+     
     return 2000
 
 def test_lcm_model():
