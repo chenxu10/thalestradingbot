@@ -2,6 +2,8 @@
 loss cost model in a given writing year
 GBM to loss cost model
 build the bridge between car accidents to stock losses
+
+TODO:Design a way decouple the numbers and severities
 """
 
 import numpy as np
