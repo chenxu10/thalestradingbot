@@ -5,6 +5,8 @@ of callspread strategy
 """
 import numpy as np
 import pytest
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from fentu.strategyservices import callspread as cs
 from unittest.mock import patch
