@@ -1,4 +1,5 @@
 from fentu.strategyservices.black_scholes_model import OptionData, BlackScholesPricer
+import matplotlib.pyplot as plt
 
 
 def test_call_pnl_base():
@@ -28,3 +29,4 @@ def test_call_pnl_base():
 
 if __name__ == '__main__':
     test_call_pnl_base()
+    plt.close('all')
