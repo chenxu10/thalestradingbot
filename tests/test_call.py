@@ -29,4 +29,3 @@ def test_call_pnl_base():
 
 if __name__ == '__main__':
     test_call_pnl_base()
-    plt.close('all')
