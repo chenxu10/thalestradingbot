@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 # Parameters
@@ -46,5 +48,4 @@ plt.legend()
 plt.grid()
 plt.xlim(70, 110)
 plt.ylim(-10, 10)
-plt.show(block=True)
-plt.close()
+plt.show()
