@@ -58,14 +58,14 @@ def test_calculate_dilute_cost():
 def main():
     test_calculate_dilute_cost()
     to_calculate_order = {
-        "cur_diluted_cost":95.64,
+        "cur_diluted_cost":95.51,
         "cur_position":850,
         "type":"call",
-        "volume":-3,
-        "end_state":"filled",
-        "premium":123.97,
-        "strikeprice":98,
-        "closeorderprice":15
+        "volume":-1,
+        "end_state":"expired",
+        "premium":43.32,
+        "strikeprice":94,
+        "closeorderprice":92.49
     }
     calculator = csdc.DilutedCostCalculator(to_calculate_order)
     di = calculator.calculate()
