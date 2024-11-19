@@ -77,7 +77,7 @@ def main():
     # Sample parameters (these should be updated with real-time data)
     current_price = 90.24  # Current market price
     coupon_rate = 2.76    # 4.75% annual coupon rate
-    maturity_date = datetime(2049, 1, 1)  # Example maturity date
+    maturity_date = datetime(2049, 5, 30)  # Example maturity date
     risk_free_rate = 0.042  # 4.50% risk-free rate
     
     # Create pricing calculator
