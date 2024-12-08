@@ -112,7 +112,7 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("TLT")
+    volatility = VolatilityFacade("UVXY")
     #print(volatility.find_worst_k_days(k=15))
     #volatility.show_today_return()
     #volatility.visualize_daily_percentage_change()
