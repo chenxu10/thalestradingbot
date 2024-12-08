@@ -75,6 +75,13 @@ class VolatilityFacade:
         ps.qq_plot(self.monthly_returns['Close'])
         ps.histgram_plot(self.monthly_returns)
 
+    def visualize_yearly_percentage_change(self):
+        """
+        This function plots out a qq plot of daily percentage change
+        """
+        ps.qq_plot(self.monthly_returns['Close'])
+        ps.histgram_plot(self.yearly_returns)
+
     def _get_monthly_returns(self, instrument):
         instrument = yf.Ticker(instrument)
         instru_hist = instrument.history(period="max")
