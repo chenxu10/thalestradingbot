@@ -18,38 +18,23 @@ class VolatilityFacade:
     This class gets daily percentage change of an instrument
     """
     def __init__(self, instrument):
-        self.daily_returns = self._get_daily_returns(instrument)
-        self.weekly_returns = self._get_weekly_returns(instrument)
-        self.monthly_returns = self._get_monthly_returns(instrument)
-        self.yearly_returns = self._get_yearly_returns(instrument)
+        self.daily_returns = self._get_returns(instrument, 1)
+        self.weekly_returns = self._get_returns(instrument, 5)
+        self.monthly_returns = self._get_returns(instrument, 21)
+        self.yearly_returns = self._get_returns(instrument, 252)
 
-    def _get_daily_returns(self, instrument):
+    def _get_returns(self, instrument, period_length):
+        """
+        Helper method to get returns for different time periods
+        Args:
+            instrument: The financial instrument ticker
+            period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
+        """
         instrument = yf.Ticker(instrument)
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']  
-        returns = prices.pct_change()[1:].reset_index()
+        returns = prices.pct_change(period_length)[period_length:].reset_index()
         return returns
-
-    def _get_weekly_returns(self, instrument):
-        instrument = yf.Ticker(instrument)
-        instru_hist = instrument.history(period="max")
-        prices = instru_hist['Close']  
-        weekly_returns = prices.pct_change(5)[5:].reset_index()
-        return weekly_returns
-    
-    def _get_monthly_returns(self, instrument):
-        instrument = yf.Ticker(instrument)
-        instru_hist = instrument.history(period="max")
-        prices = instru_hist['Close']  
-        weekly_returns = prices.pct_change(21)[21:].reset_index()
-        return weekly_returns
-
-    def _get_yearly_returns(self, instrument):
-        instrument = yf.Ticker(instrument)
-        instru_hist = instrument.history(period="max")
-        prices = instru_hist['Close']  
-        yearly_returns = prices.pct_change(252)[252:].reset_index()  # 252 trading days in a year
-        return yearly_returns
 
     def get_past_five_days(self, instrument):
         instrument = yf.Ticker(instrument)
@@ -81,13 +66,6 @@ class VolatilityFacade:
         """
         ps.qq_plot(self.monthly_returns['Close'])
         ps.histgram_plot(self.yearly_returns)
-
-    def _get_monthly_returns(self, instrument):
-        instrument = yf.Ticker(instrument)
-        instru_hist = instrument.history(period="max")
-        prices = instru_hist['Close']  
-        monthly_returns = prices.pct_change(21)[21:].reset_index()
-        return monthly_returns
 
     def visualize_daily_percentage_change(self):
         """
