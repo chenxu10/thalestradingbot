@@ -46,33 +46,38 @@ class VolatilityFacade:
         daily_volatility_calculator = DailyVolatility()
         return daily_volatility_calculator.calculate_1std_daily_volatility(self.daily_returns)
     
-    def visualize_weekly_percentage_change(self):
+    def _visualize_percentage_change(self, returns_data):
         """
-        This function plots out a qq plot of daily percentage change
+        Helper method to visualize percentage changes
+        Args:
+            returns_data: DataFrame containing the returns data to visualize
         """
-        ps.qq_plot(self.weekly_returns['Close'])
-        ps.histgram_plot(self.weekly_returns)
-    
-    def visualize_monthly_percentage_change(self):
-        """
-        This function plots out a qq plot of daily percentage change
-        """
-        ps.qq_plot(self.monthly_returns['Close'])
-        ps.histgram_plot(self.monthly_returns)
-
-    def visualize_yearly_percentage_change(self):
-        """
-        This function plots out a qq plot of daily percentage change
-        """
-        ps.qq_plot(self.monthly_returns['Close'])
-        ps.histgram_plot(self.yearly_returns)
+        ps.qq_plot(returns_data['Close'])
+        ps.histgram_plot(returns_data)
 
     def visualize_daily_percentage_change(self):
         """
-        This function plots out a qq plot of daily percentage change
+        Visualize daily percentage changes using QQ plot and histogram
         """
-        ps.qq_plot(self.daily_returns['Close'])
-        ps.histgram_plot(self.daily_returns)
+        self._visualize_percentage_change(self.daily_returns)
+    
+    def visualize_weekly_percentage_change(self):
+        """
+        Visualize weekly percentage changes using QQ plot and histogram
+        """
+        self._visualize_percentage_change(self.weekly_returns)
+    
+    def visualize_monthly_percentage_change(self):
+        """
+        Visualize monthly percentage changes using QQ plot and histogram
+        """
+        self._visualize_percentage_change(self.monthly_returns)
+
+    def visualize_yearly_percentage_change(self):
+        """
+        Visualize yearly percentage changes using QQ plot and histogram
+        """
+        self._visualize_percentage_change(self.yearly_returns)
     
     def find_worst_k_days(self,k=20):
         return self.daily_returns.sort_values('Close').head(k)
