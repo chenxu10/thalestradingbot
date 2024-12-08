@@ -21,6 +21,7 @@ class VolatilityFacade:
         self.daily_returns = self._get_daily_returns(instrument)
         self.weekly_returns = self._get_weekly_returns(instrument)
         self.monthly_returns = self._get_monthly_returns(instrument)
+        self.yearly_returns = self._get_yearly_returns(instrument)
 
     def _get_daily_returns(self, instrument):
         instrument = yf.Ticker(instrument)
@@ -42,6 +43,13 @@ class VolatilityFacade:
         prices = instru_hist['Close']  
         weekly_returns = prices.pct_change(21)[21:].reset_index()
         return weekly_returns
+
+    def _get_yearly_returns(self, instrument):
+        instrument = yf.Ticker(instrument)
+        instru_hist = instrument.history(period="max")
+        prices = instru_hist['Close']  
+        yearly_returns = prices.pct_change(252)[252:].reset_index()  # 252 trading days in a year
+        return yearly_returns
 
     def get_past_five_days(self, instrument):
         instrument = yf.Ticker(instrument)
