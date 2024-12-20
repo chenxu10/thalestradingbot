@@ -3,6 +3,8 @@ This script calculated the breakeven price or diluted cost
 for the spot equity you owned
 
 Author: Xu Shen <xs286@cornell.edu>
+
+If option exercised, cur position should be position after the exercise of options
 """
 from fentu.accountingservices import calculate_stock_dilute_cost as csdc
 
@@ -58,14 +60,14 @@ def test_calculate_dilute_cost():
 def main():
     test_calculate_dilute_cost()
     to_calculate_order = {
-        "cur_diluted_cost":95.29,
-        "cur_position":850,
-        "type":"call",
+        "cur_diluted_cost":95.31,
+        "cur_position":950,
+        "type":"put",
         "volume":-1,
         "end_state":"filled",
-        "premium":29.32,
-        "strikeprice":96,
-        "closeorderprice":14.03
+        "premium":46.33,
+        "strikeprice":93,
+        "closeorderprice":93
     }
     calculator = csdc.DilutedCostCalculator(to_calculate_order)
     di = calculator.calculate()
