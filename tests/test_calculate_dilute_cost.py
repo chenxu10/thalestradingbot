@@ -64,7 +64,7 @@ def main():
         "cur_position":950,
         "type":"put",
         "volume":-1,
-        "end_state":"filled",
+        "end_state":"exercised",
         "premium":46.33,
         "strikeprice":93,
         "closeorderprice":93
