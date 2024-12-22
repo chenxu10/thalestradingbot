@@ -101,7 +101,8 @@ class VolatilityFacade:
 if __name__ == "__main__":
     volatility = VolatilityFacade("TLT")
     prices = volatility._get_prices("TLT")
-    print(prices)
+    dec_2020_prices = prices['2020-12-01':'2020-12-31']
+    print(dec_2020_prices)
     #volatilitiy.visualize_weekly_percentage_change()
     #print(volatility.find_worst_k_days(k=15))
     #volatility.show_today_return()
