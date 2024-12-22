@@ -23,6 +23,12 @@ class VolatilityFacade:
         self.monthly_returns = self._get_returns(instrument, 21)
         self.yearly_returns = self._get_returns(instrument, 252)
 
+    def _get_prices(self, instrument):
+        instrument = yf.Ticker(instrument)
+        instru_hist = instrument.history(period="max")
+        prices = instru_hist['Close']
+        return prices
+
     def _get_returns(self, instrument, period_length):
         """
         Helper method to get returns for different time periods
@@ -30,9 +36,7 @@ class VolatilityFacade:
             instrument: The financial instrument ticker
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
-        instrument = yf.Ticker(instrument)
-        instru_hist = instrument.history(period="max")
-        prices = instru_hist['Close']  
+        prices = self._get_prices(instrument)
         returns = prices.pct_change(period_length)[period_length:].reset_index()
         return returns
 
@@ -96,7 +100,9 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("TLT")
-    volatility.visualize_weekly_percentage_change()
+    prices = volatility._get_prices("TLT")
+    print(prices)
+    #volatilitiy.visualize_weekly_percentage_change()
     #print(volatility.find_worst_k_days(k=15))
     #volatility.show_today_return()
     #volatility.visualize_daily_percentage_change()
