@@ -6,6 +6,7 @@ instruments
 import yfinance as yf
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import fentu.explatoryservices.plotting_service as ps
 
@@ -28,6 +29,41 @@ class VolatilityFacade:
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']
         return prices
+    
+    def get_calendar_year_returns(self, instrument):
+        """
+        Calculate returns for each calendar year from 2003 to present.
+        Returns a DataFrame with yearly returns where each return represents
+        buying on Jan 1st and selling on Dec 31st of the same year.
+        """
+        prices = self._get_prices(instrument)
+        
+        # Create empty list to store yearly returns
+        yearly_returns_list = []
+        
+        # Get unique years from the price data
+        years = prices.index.year.unique()
+        
+        for year in years:
+            # Get first and last trading day prices for each year
+            year_data = prices[prices.index.year == year]
+            if not year_data.empty:
+                first_price = year_data.iloc[0]
+                last_price = year_data.iloc[-1]
+                
+                # Calculate return
+                year_return = (last_price - first_price) / first_price
+                
+                yearly_returns_list.append({
+                    'Date': pd.Timestamp(f'{year}-12-31'),
+                    'Close': year_return
+                })
+        
+        # Convert to DataFrame and sort by date
+        calendar_returns = pd.DataFrame(yearly_returns_list)
+        calendar_returns = calendar_returns.sort_values('Date', ascending=False)
+        
+        return calendar_returns
 
     def _get_returns(self, instrument, period_length):
         """
@@ -101,7 +137,8 @@ class VolatilityFacade:
 if __name__ == "__main__":
     volatility = VolatilityFacade("TMF")
     print(volatility.yearly_returns)
-    volatility.visualize_yearly_percentage_change()
+    calendar_returns = volatility.get_calendar_year_returns("TMF")
+    print(calendar_returns)
     #prices = volatility._get_prices("TLT")
     #dec_2020_prices = prices['2020-12-01':'2020-12-31']
     #print(dec_2020_prices)
