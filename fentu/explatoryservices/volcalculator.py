@@ -99,7 +99,7 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("TLT")
+    volatility = VolatilityFacade("TMF")
     print(volatility.yearly_returns)
     volatility.visualize_yearly_percentage_change()
     #prices = volatility._get_prices("TLT")
