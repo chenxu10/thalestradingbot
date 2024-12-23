@@ -101,6 +101,7 @@ class VolatilityFacade:
 if __name__ == "__main__":
     volatility = VolatilityFacade("TLT")
     print(volatility.yearly_returns)
+    volatility.visualize_yearly_percentage_change()
     #prices = volatility._get_prices("TLT")
     #dec_2020_prices = prices['2020-12-01':'2020-12-31']
     #print(dec_2020_prices)
@@ -109,6 +110,5 @@ if __name__ == "__main__":
     #volatility.show_today_return()
     #volatility.visualize_daily_percentage_change()
     #volatility.visualize_monthly_percentage_change()
-    #volatility.visualize_yearly_percentage_change()
     #print(volatility.find_worst_months(threshold=-0.3))    
     #print(volatility.find_worst_k_months(k=20))
