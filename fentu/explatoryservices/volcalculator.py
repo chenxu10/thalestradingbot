@@ -135,8 +135,8 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("TMF")
-    calendar_returns = volatility.get_calendar_year_returns("TMF")
+    volatility = VolatilityFacade("TLT")
+    calendar_returns = volatility.get_calendar_year_returns("TLT")
     print(calendar_returns)
     #prices = volatility._get_prices("TLT")
     #dec_2020_prices = prices['2020-12-01':'2020-12-31']
