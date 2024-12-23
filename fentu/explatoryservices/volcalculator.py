@@ -136,7 +136,6 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("TMF")
-    print(volatility.yearly_returns)
     calendar_returns = volatility.get_calendar_year_returns("TMF")
     print(calendar_returns)
     #prices = volatility._get_prices("TLT")
