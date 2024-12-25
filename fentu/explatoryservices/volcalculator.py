@@ -23,6 +23,7 @@ class VolatilityFacade:
         self.weekly_returns = self._get_returns(instrument, 5)
         self.monthly_returns = self._get_returns(instrument, 21)
         self.yearly_returns = self._get_returns(instrument, 252)
+        self.twenty_yeat_returns = self._get_returns(instrument, 252 * 20)
 
     def _get_prices(self, instrument):
         instrument = yf.Ticker(instrument)
