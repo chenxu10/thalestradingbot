@@ -26,7 +26,8 @@ class VolatilityFacade:
 
     def _get_prices(self, instrument):
         instrument = yf.Ticker(instrument)
-        instru_hist = instrument.history(period="max")
+        instru_hist = instrument.history(start="1900-01-01",end="2004-12-23")
+        #instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']
         return prices
     
@@ -135,7 +136,7 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("UVXY")
+    volatility = VolatilityFacade("TLT")
     #calendar_returns = volatility.get_calendar_year_returns("UVXY")
     #print(calendar_returns)
     #volatility.visualize_yearly_percentage_change()
