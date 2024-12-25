@@ -136,14 +136,15 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("UVXY")
-    volatility.visualize_yearly_percentage_change()
+    calendar_returns = volatility.get_calendar_year_returns("UVXY")
+    print(calendar_returns)
+    #volatility.visualize_yearly_percentage_change()
     #volatility.visualize_weekly_percentage_change()
     #volatility.visualize_daily_percentage_change()
     # calendar_returns = volatility.get_calendar_year_returns("TLT")
     # print(calendar_returns)
 
     # volatility = VolatilityFacade("TMF")
-    # calendar_returns = volatility.get_calendar_year_returns("TMF")
     # print(calendar_returns)
 
     #prices = volatility._get_prices("TLT")
