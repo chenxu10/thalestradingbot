@@ -74,7 +74,8 @@ class VolatilityFacade:
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
         prices = self._get_prices(instrument)
-        returns = prices.pct_change(period_length)[period_length:].reset_index()
+        returns = prices.pct_change(period_length)[period_length:]
+        returns = returns[returns.index <= '2004-12-23'].reset_index()
         return returns
 
     def get_past_five_days(self, instrument):
@@ -137,6 +138,7 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("TLT")
+    volatility._get_returns("TLT",252*20)
     #calendar_returns = volatility.get_calendar_year_returns("UVXY")
     #print(calendar_returns)
     #volatility.visualize_yearly_percentage_change()
