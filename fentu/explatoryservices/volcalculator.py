@@ -74,7 +74,9 @@ class VolatilityFacade:
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
         prices = self._get_prices(instrument)
+        print(prices)
         returns = prices.pct_change(period_length)[period_length:]
+        print(returns)
         returns = returns[returns.index <= '2004-12-23'].reset_index()
         return returns
 
