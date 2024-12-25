@@ -137,7 +137,7 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("UVXY")
-    a = volatility.yearly_returns
+    a = volatility.twenty_yearly_returns
     print(a)
     #calendar_returns = volatility.get_calendar_year_returns("UVXY")
     #print(calendar_returns)
