@@ -135,13 +135,14 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("TLT")
-    calendar_returns = volatility.get_calendar_year_returns("TLT")
-    print(calendar_returns)
+    volatility = VolatilityFacade("GLD")
+    volatility.visualize_daily_percentage_change()
+    # calendar_returns = volatility.get_calendar_year_returns("TLT")
+    # print(calendar_returns)
 
-    volatility = VolatilityFacade("TMF")
-    calendar_returns = volatility.get_calendar_year_returns("TMF")
-    print(calendar_returns)
+    # volatility = VolatilityFacade("TMF")
+    # calendar_returns = volatility.get_calendar_year_returns("TMF")
+    # print(calendar_returns)
 
     #prices = volatility._get_prices("TLT")
     #dec_2020_prices = prices['2020-12-01':'2020-12-31']
@@ -149,7 +150,6 @@ if __name__ == "__main__":
     #volatilitiy.visualize_weekly_percentage_change()
     #print(volatility.find_worst_k_days(k=15))
     #volatility.show_today_return()
-    #volatility.visualize_daily_percentage_change()
     #volatility.visualize_monthly_percentage_change()
     #print(volatility.find_worst_months(threshold=-0.3))    
     #print(volatility.find_worst_k_months(k=20))
