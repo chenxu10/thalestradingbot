@@ -23,6 +23,7 @@ class VolatilityFacade:
         self.weekly_returns = self._get_returns(instrument, 5)
         self.monthly_returns = self._get_returns(instrument, 21)
         self.yearly_returns = self._get_returns(instrument, 252)
+        self.twenty_yearly_returns = self._get_returns(instrument, 252*20)
 
     def _get_prices(self, instrument):
         instrument = yf.Ticker(instrument)
@@ -136,8 +137,9 @@ class VolatilityFacade:
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("UVXY")
-    calendar_returns = volatility.get_calendar_year_returns("UVXY")
-    print(calendar_returns)
+    print(volatility.twenty_yearly_returns)
+    #calendar_returns = volatility.get_calendar_year_returns("UVXY")
+    #print(calendar_returns)
     #volatility.visualize_yearly_percentage_change()
     #volatility.visualize_weekly_percentage_change()
     #volatility.visualize_daily_percentage_change()
