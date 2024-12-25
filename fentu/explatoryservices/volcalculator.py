@@ -7,6 +7,7 @@ import yfinance as yf
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import pandas as pd
+pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
 
