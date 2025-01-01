@@ -66,6 +66,73 @@ class DilutedCostCalculator:
             return (self.cur_diluted_cost * (self.cur_position_after_option_change + exercised_shares) -
                     self.strikeprice * exercised_shares)
 
+def get_float_input(prompt):
+    """Helper function to get valid float input"""
+    while True:
+        try:
+            return float(input(prompt))
+        except ValueError:
+            print("Please enter a valid number")
+
+def get_int_input(prompt):
+    """Helper function to get valid integer input"""
+    while True:
+        try:
+            return int(input(prompt))
+        except ValueError:
+            print("Please enter a valid integer")
+
+def get_choice_input(prompt, choices):
+    """Helper function to get valid choice from list"""
+    while True:
+        value = input(prompt).lower()
+        if value in choices:
+            return value
+        print(f"Please enter one of: {', '.join(choices)}")
+
+
+def main():
+    """
+    Interactive command line interface for calculating diluted cost.
+    """
+    print("\n=== Diluted Cost Calculator ===\n")
+    
+    # Get all inputs interactively
+    to_calculate_order = {
+        "cur_diluted_cost": get_float_input("Enter current diluted cost: "),
+        
+        "cur_position": get_int_input("Enter current position (number of shares): "),
+        
+        "type": get_choice_input(
+            "Enter option type (call/put): ",
+            ['call', 'put']
+        ),
+        
+        "volume": get_int_input("Enter volume (negative for short position): "),
+        
+        "end_state": get_choice_input(
+            "Enter end state (filled/expired/exercised): ",
+            ['filled', 'expired', 'exercised']
+        ),
+        
+        "premium": get_float_input("Enter option premium: "),
+        
+        "strikeprice": get_float_input("Enter strike price: "),
+        
+        "closeorderprice": get_float_input("Enter closing order price: ")
+    }
+
+    # Calculate and display result
+    calculator = DilutedCostCalculator(to_calculate_order)
+    result = calculator.calculate()
+    
+    print("\n=== Result ===")
+    print(f"Diluted Cost: {result:.2f}")
+    
+    # Display summary of inputs
+    print("\n=== Input Summary ===")
+    for key, value in to_calculate_order.items():
+        print(f"{key}: {value}")
 
 def main():
     to_calculate_order = {
@@ -81,7 +148,6 @@ def main():
     calculator = DilutedCostCalculator(to_calculate_order)
     di = calculator.calculate()
     print(di)
-
 
 if __name__ == "__main__":
     main()
