@@ -134,20 +134,20 @@ def main():
     for key, value in to_calculate_order.items():
         print(f"{key}: {value}")
 
-def main():
-    to_calculate_order = {
-        "cur_diluted_cost":94.16,
-        "cur_position":1050,
-        "type":"call",
-        "volume":-1,
-        "end_state":"filled",
-        "premium":91.33,
-        "strikeprice":88,
-        "closeorderprice":95.67
-    }
-    calculator = DilutedCostCalculator(to_calculate_order)
-    di = calculator.calculate()
-    print(di)
+# def main():
+#     to_calculate_order = {
+#         "cur_diluted_cost":94.16,
+#         "cur_position":1050,
+#         "type":"call",
+#         "volume":-1,
+#         "end_state":"filled",
+#         "premium":91.33,
+#         "strikeprice":88,
+#         "closeorderprice":95.67
+#     }
+#     calculator = DilutedCostCalculator(to_calculate_order)
+#     di = calculator.calculate()
+#     print(di)
 
 if __name__ == "__main__":
     main()
