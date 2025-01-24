@@ -65,3 +65,4 @@ def test_generate_report_valid_inputs():
     assert "Vega:" in report
     assert "Rho:" in report
 
+test_calculate_greeks_put_option()
