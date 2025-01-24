@@ -27,6 +27,8 @@ def test_calculate_greeks_put_option():
     
     # Expected values (calculated using a standard options calculator)
     print(delta)
+    print(gamma)
+    print(theta)
     print(vega)
     # expected_delta = -0.4602  # Put delta should be negative
     # expected_gamma = 0.0196
