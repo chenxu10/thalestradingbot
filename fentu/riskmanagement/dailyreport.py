@@ -126,8 +126,6 @@ def calculate_annualized_volatility(ticker, period="1y", trading_days=252):
 # Example: Calculate sigma for UVXY
 
 def main():
-    current_price, volatility = fetch_market_data("UVXY")
-    print(volatility)
     sigma = calculate_annualized_volatility("UVXY", period="1y")
     print(f"Annualized Volatility (sigma) for UVXY: {sigma:.4f}") 
 
