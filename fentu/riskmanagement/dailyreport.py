@@ -95,11 +95,41 @@ def generate_report(ticker, strike, expiration, position_size):
     
     except Exception as e:
         return f"Error generating report: {e}" 
-    
+
+def calculate_annualized_volatility(ticker, period="1y", trading_days=252):
+    """
+    Calculate annualized volatility for a given ticker using historical price data.
+
+    Parameters:
+        ticker (str): Stock/ETF ticker symbol (e.g., "UVXY").
+        period (str): Time period for historical data (e.g., "1y" for 1 year).
+        trading_days (int): Number of trading days in a year (default is 252).
+
+    Returns:
+        float: Annualized volatility (sigma).
+    """
+    # Download historical price data
+    data = yf.download(ticker, period=period)
+    prices = data['Close'].values  # Use closing prices
+
+    # Calculate logarithmic returns
+    returns = np.log(prices[1:] / prices[:-1])
+
+    # Calculate daily volatility
+    daily_volatility = np.std(returns)
+
+    # Annualize the volatility
+    annualized_volatility = daily_volatility * np.sqrt(trading_days)
+
+    return annualized_volatility
+
+# Example: Calculate sigma for UVXY
 
 def main():
     current_price, volatility = fetch_market_data("UVXY")
     print(volatility)
+    sigma = calculate_annualized_volatility("UVXY", period="1y")
+    print(f"Annualized Volatility (sigma) for UVXY: {sigma:.4f}") 
 
 
 if __name__ == "__main__":
