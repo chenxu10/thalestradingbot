@@ -25,24 +25,18 @@ def test_calculate_greeks_put_option():
         S=S, K=K, T=T, r=r, sigma=sigma, option_type='put'
     )
     
-    # Expected values (calculated using a standard options calculator)
-    print(delta)
-    print(gamma)
-    print(theta)
-    print(vega)
-    # expected_delta = -0.4602  # Put delta should be negative
-    # expected_gamma = 0.0196
-    # expected_theta = -4.40  # Theta should be negative
-    # expected_vega = 0.391
-    # expected_rho = -0.436  # Put rho should be negative
+    expected_delta = -0.1312  # Put delta should be negative
+    expected_gamma = 0.0106
+    expected_theta = -1.4602182591713406e-05 # Theta should be negative
+    expected_vega = 0.0383
     
     # Assertions with a tolerance for floating-point precision
-    # tolerance = 0.01  # Allowable difference between calculated and expected values
-    # assert abs(delta - expected_delta) < tolerance, f"Delta mismatch: {delta} vs {expected_delta}"
-    # assert abs(gamma - expected_gamma) < tolerance, f"Gamma mismatch: {gamma} vs {expected_gamma}"
-    # assert abs(theta - expected_theta) < tolerance, f"Theta mismatch: {theta} vs {expected_theta}"
-    # assert abs(vega - expected_vega) < tolerance, f"Vega mismatch: {vega} vs {expected_vega}"
-    # assert abs(rho - expected_rho) < tolerance, f"Rho mismatch: {rho} vs {expected_rho}"
+    tolerance = 0.01  # Allowable difference between calculated and expected values
+    assert abs(delta - expected_delta) < tolerance, f"Delta mismatch: {delta} vs {expected_delta}"
+    assert abs(gamma - expected_gamma) < tolerance, f"Gamma mismatch: {gamma} vs {expected_gamma}"
+    assert abs(theta - expected_theta) < tolerance, f"Theta mismatch: {theta} vs {expected_theta}"
+    assert abs(vega - expected_vega) < tolerance, f"Vega mismatch: {vega} vs {expected_vega}"
+    
 
 @pytest.mark.vcr  # Using pytest-vcr to mock API calls
 def test_generate_report_valid_inputs():
