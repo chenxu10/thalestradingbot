@@ -18,8 +18,7 @@ def fetch_market_data(ticker):
     stock = yf.Ticker(ticker)
     data = stock.history(period="356d")
     current_price = data['Close'].iloc[-1]
-    volatility = data['Close'].std() * np.sqrt(252)  # Annualized volatility
-    return current_price, volatility
+    return current_price
 
 from py_vollib.black_scholes.greeks.analytical import delta, gamma, theta, vega, rho
 
@@ -46,8 +45,9 @@ def generate_report(ticker, strike, expiration, position_size):
     """Generate a risk exposure report for the given option position."""
     try:
         # Fetch market data
-        current_price, volatility = fetch_market_data(ticker)
-        
+        current_price = fetch_market_data(ticker)
+        volatility = calculate_annualized_volatility("UVXY", period="1y")
+         
         # Calculate time to expiration
         expiration_date = datetime.strptime(expiration, "%Y-%m-%d")
         time_to_expiration = (expiration_date - datetime.now()).days / DAYS_IN_YEAR
