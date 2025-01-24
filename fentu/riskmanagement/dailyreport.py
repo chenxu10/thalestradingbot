@@ -41,6 +41,7 @@ def calculate_greeks(S, K, T, r, sigma, option_type='put'):
         rho_val = -rho_val
     
     return delta_val, gamma_val, theta_val, vega_val, rho_val
+
 def generate_report(ticker, strike, expiration, position_size):
     """Generate a risk exposure report for the given option position."""
     try:
@@ -127,7 +128,8 @@ def calculate_annualized_volatility(ticker, period="1y", trading_days=252):
 
 def main():
     sigma = calculate_annualized_volatility("UVXY", period="1y")
-    print(f"Annualized Volatility (sigma) for UVXY: {sigma:.4f}") 
+    print(f"Annualized Volatility (sigma) for UVXY: {sigma:.4f}")
+    generate_report(UVXY_TICKER,STRIKE_PRICE,EXPIRATION_DATE,POSITION_SIZE) 
 
 
 if __name__ == "__main__":
