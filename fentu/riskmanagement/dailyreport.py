@@ -10,7 +10,7 @@ DAYS_IN_YEAR = 365
 # Inputs for the UVXY put position
 UVXY_TICKER = "UVXY"
 STRIKE_PRICE = 10  # Example strike price
-EXPIRATION_DATE = "2025-02-15"  # Example expiration date
+EXPIRATION_DATE = "2025-02-28"  # Example expiration date
 POSITION_SIZE = 1  # Negative for short, positive for long
 
 def fetch_market_data(ticker):
