@@ -129,7 +129,8 @@ def calculate_annualized_volatility(ticker, period="1y", trading_days=252):
 def main():
     sigma = calculate_annualized_volatility("UVXY", period="1y")
     print(f"Annualized Volatility (sigma) for UVXY: {sigma:.4f}")
-    generate_report(UVXY_TICKER,STRIKE_PRICE,EXPIRATION_DATE,POSITION_SIZE) 
+    report = generate_report(UVXY_TICKER,STRIKE_PRICE,EXPIRATION_DATE,POSITION_SIZE) 
+    print(report)
 
 
 if __name__ == "__main__":
