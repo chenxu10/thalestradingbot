@@ -55,6 +55,7 @@ def fit_lognormal_distribution(data):
     return x, fitted_pdf, mu, sigma
 
 def histgram_plot(data):
+    print("histgram_plot data looks like", data)
     calculate_within_onestrd_prop(data)
     sns.histplot(data, x='Close', kde=True, bins=50)
     x = list(data['Close'])   
