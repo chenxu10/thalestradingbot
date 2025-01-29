@@ -31,7 +31,7 @@ def qq_plot(x):
     return fig
 
 def calculate_within_onestrd_prop(data):
-    close = data['Close']
+    close = data
     mean = close.mean()
     std = close.std()
     print("mean close price change is {}".format(mean))
