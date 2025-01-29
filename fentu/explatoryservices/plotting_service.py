@@ -8,12 +8,14 @@ from scipy import stats
 import fentu.constants as const
 
 def calculate_four_moments(x):
+    """Calculate the four moments of the data"""
     mean = x.mean()
     std = x.std()
-    mad = x.mad()
+    # Calculate MAD manually since .mad() is deprecated
+    mad = (x - x.mean()).abs().mean()
     skew = x.skew()
     kurtosis = x.kurtosis()
-    return mean, mad, std, skew, kurtosis
+    return mean, std, mad, skew, kurtosis
 
 def qq_plot(x):
     fig = probplot(x, plot=plt)
