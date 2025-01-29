@@ -139,19 +139,12 @@ if __name__ == "__main__":
     volatility.visualize_weekly_percentage_change()
     #volatility.visualize_yearly_percentage_change()
     #volatility.visualize_daily_percentage_change()
-    # calendar_returns = volatility.get_calendar_year_returns("TLT")
-    # print(calendar_returns)
 
-    # volatility = VolatilityFacade("TMF")
-    # print(calendar_returns)
-
-    #prices = volatility._get_prices("TLT")
-    #dec_2020_prices = prices['2020-12-01':'2020-12-31']
-    #print(dec_2020_prices)
-    #print(volatility.find_worst_k_days(k=15))
     #volatility.show_today_return()
-    #volatility.visualize_monthly_percentage_change()
+    #print(volatility.find_worst_k_days(k=15))
     #print(volatility.find_worst_months(threshold=-0.3))    
     #print(volatility.find_worst_k_months(k=20))
+    
+    # Calendar year Return Check
     calendar_returns = volatility.get_calendar_year_returns("UVXY")
     print(calendar_returns)
