@@ -28,6 +28,7 @@ class VolatilityFacade:
     def _get_prices(self, instrument):
         instrument = yf.Ticker(instrument)
         instru_hist = instrument.history(period="max")
+        print(instru_hist)
         prices = instru_hist['Close']
         return prices
     
