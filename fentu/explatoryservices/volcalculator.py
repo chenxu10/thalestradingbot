@@ -94,6 +94,7 @@ class VolatilityFacade:
         Args:
             returns_data: DataFrame containing the returns data to visualize
         """
+        print(returns_data)
         ps.qq_plot(returns_data['Close'])
         ps.histgram_plot(returns_data)
 
