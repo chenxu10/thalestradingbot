@@ -12,7 +12,7 @@ import fentu.explatoryservices.plotting_service as ps
 
 class DailyVolatility:
     def calculate_1std_daily_volatility(self, daily_returns):
-        return daily_returns['Close'].std()
+        return daily_returns['Close'].std()  
 
 class VolatilityFacade:
     """
