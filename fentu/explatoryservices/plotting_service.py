@@ -57,11 +57,8 @@ def fit_lognormal_distribution(data):
 def histgram_plot(data):
     print("histgram_plot data looks like", data.sample(2))
     calculate_within_onestrd_prop(data)
-    # Plot histogram directly from Series
-    sns.histplot(data=data, kde=True, bins=50)
-    
-    # Convert Series to list for distribution fitting
-    x = list(data)
+    sns.histplot(data, x='Close', kde=True, bins=50)
+    x = list(data['Close'])   
     x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
     plt.plot(x_log, pdf_log, 'g--', lw=2, 
             label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
