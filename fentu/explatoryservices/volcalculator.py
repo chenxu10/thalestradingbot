@@ -6,6 +6,7 @@ import yfinance as yf
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
@@ -145,6 +146,17 @@ class VolatilityFacade:
 
     def show_today_return(self):
         print(self.daily_returns.tail(20))
+
+class TailRiskVolatility(VolatilityCalculator):
+    """Simple tail risk calculator focusing on worst returns"""
+    def __init__(self, tail_percent=5):
+        self.tail_percent = tail_percent
+    
+    def calculate_volatility(self, returns_data):
+        returns = returns_data['Close'].values
+        # Focus on worst n% of returns
+        worst_returns = np.sort(returns)[:int(len(returns) * self.tail_percent/100)]
+        return np.std(worst_returns)
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("TQQQ")
