@@ -10,9 +10,21 @@ pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
 
+class VolatilityCalculator:
+    """Base class for different volatility calculation strategies"""
+    def calculate_volatility(self, returns_data):
+        raise NotImplementedError
+
+class StandardDeviationVolatility(VolatilityCalculator):
+    def calculate_volatility(self, returns_data):
+        return returns_data['Close'].std()
+
 class DailyVolatility:
+    def __init__(self, calculator: VolatilityCalculator = None):
+        self.calculator = calculator or StandardDeviationVolatility()
+    
     def calculate_1std_daily_volatility(self, daily_returns):
-        return daily_returns['Close'].std()  
+        return self.calculator.calculate_volatility(daily_returns)
 
 class VolatilityFacade:
     """
@@ -23,6 +35,7 @@ class VolatilityFacade:
         self.weekly_returns = self._get_returns(instrument, 5)
         self.monthly_returns = self._get_returns(instrument, 21)
         self.yearly_returns = self._get_returns(instrument, 252)
+        self.daily_volatility = DailyVolatility()
 
     def _get_prices(self, instrument):
         instrument = yf.Ticker(instrument)
@@ -83,8 +96,7 @@ class VolatilityFacade:
         return prices.tail(5)
     
     def calculate_daily_volatility(self):
-        daily_volatility_calculator = DailyVolatility()
-        return daily_volatility_calculator.calculate_1std_daily_volatility(self.daily_returns)
+        return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
     
     def _visualize_percentage_change(self, returns_data):
         """
