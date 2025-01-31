@@ -18,9 +18,7 @@ class VolatilityCalculator:
 class StandardDeviationVolatility(VolatilityCalculator):
     def calculate_volatility(self, returns_data):
         # Handle both Series and DataFrame inputs
-        if isinstance(returns_data, pd.Series):
-            return returns_data.std()
-        return returns_data['Close'].std()
+        return returns_data.std()
 
 class DailyVolatility:
     def __init__(self, calculator: VolatilityCalculator = None):
