@@ -151,7 +151,8 @@ if __name__ == "__main__":
     volatility = VolatilityFacade("TLT")
     #volatility.visualize_weekly_percentage_change()
     #volatility.calculate_daily_volatility()
-    volatility.visualize_yearly_percentage_change()
+    volatility.visualize_monthly_percentage_change()
+    #volatility.visualize_yearly_percentage_change()
     #volatility.visualize_daily_percentage_change()
 
     #volatility.show_today_return()
