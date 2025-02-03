@@ -148,10 +148,10 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("TQQQ")
-    volatility.visualize_weekly_percentage_change()
-    volatility.calculate_daily_volatility()
-    #volatility.visualize_yearly_percentage_change()
+    volatility = VolatilityFacade("TLT")
+    #volatility.visualize_weekly_percentage_change()
+    #volatility.calculate_daily_volatility()
+    volatility.visualize_yearly_percentage_change()
     #volatility.visualize_daily_percentage_change()
 
     #volatility.show_today_return()
@@ -160,5 +160,5 @@ if __name__ == "__main__":
     #print(volatility.find_worst_k_months(k=20))
     
     # Calendar year Return Check
-    calendar_returns = volatility.get_calendar_year_returns("UVXY")
-    print(calendar_returns)
+    #calendar_returns = volatility.get_calendar_year_returns("UVXY")
+    #print(calendar_returns)
