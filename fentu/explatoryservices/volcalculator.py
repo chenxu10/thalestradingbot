@@ -148,7 +148,7 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("TQQQ")
+    volatility = VolatilityFacade("YINN")
     volatility.visualize_weekly_percentage_change()
     #volatility.calculate_daily_volatility()
     #volatility.visualize_monthly_percentage_change()
