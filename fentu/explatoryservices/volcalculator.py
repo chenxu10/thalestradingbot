@@ -149,11 +149,19 @@ class VolatilityFacade:
     def show_today_return(self):
         print(self.daily_returns.tail(20))
 
-def black_scholes_put(S, K, T, r, sigma):
-    """经典BSM看跌期权定价公式"""
-    d1 = (np.log(S/K) + (r + sigma**2/2)*T) / (sigma*np.sqrt(T))
-    d2 = d1 - sigma*np.sqrt(T)
-    put_price = K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
+def black_scholes_put(asset_price, strike_price, time_to_expiration, risk_free_rate, volatility):
+    """Calculate European put option price using Black-Scholes-Merton model
+    
+    Args:
+        asset_price: Current price of the underlying asset
+        strike_price: Option strike price
+        time_to_expiration: Time to expiration in years
+        risk_free_rate: Annual risk-free interest rate
+        volatility: Annualized volatility of underlying asset
+    """
+    d1 = (np.log(asset_price/strike_price) + (risk_free_rate + volatility**2/2)*time_to_expiration) / (volatility*np.sqrt(time_to_expiration))
+    d2 = d1 - volatility*np.sqrt(time_to_expiration)
+    put_price = strike_price*np.exp(-risk_free_rate*time_to_expiration)*norm.cdf(-d2) - asset_price*norm.cdf(-d1)
     return put_price
 
 def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
