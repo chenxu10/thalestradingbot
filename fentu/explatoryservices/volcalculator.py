@@ -150,20 +150,43 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 def black_scholes_put(S, K, T, r, sigma):
-    """改进版BS公式，添加中间变量输出"""
-    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    """经典BSM看跌期权定价公式"""
+    d1 = (np.log(S/K) + (r + sigma**2/2)*T) / (sigma*np.sqrt(T))
     d2 = d1 - sigma*np.sqrt(T)
-    
     put_price = K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
-    
-    # 添加调试信息输出
-    debug_info = {
-        'd1': d1,
-        'd2': d2,
-        'intrinsic_value': max(K - S, 0),
-        'time_value': put_price - max(K - S, 0)
-    }
     return put_price
+
+def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
+    """
+    Taleb Result3 改进的OTM Put定价公式
+    核心改进：
+    1. 波动率微笑调整
+    2. 流动性溢价
+    3. 跳跃风险补偿
+    """
+    # 基础波动率调整（波动率微笑）
+    moneyness = K/S
+    vol_smile_adj = 0.4 * (1 - moneyness)  # 虚值程度越大波动率越高
+    
+    # 流动性调整（bid-ask spread补偿）
+    liquidity_premium = liquidity_adj * np.sqrt(1/T) if T > 0 else 0
+    
+    # 合成波动率
+    effective_vol = sigma + vol_smile_adj + liquidity_premium
+    
+    # 跳跃风险补偿（短期期权更敏感）
+    jump_adj = jump_risk * (1 / max(T, 1/365)) ** 0.5  # 时间越短跳跃影响越大
+    
+    # 调整后的定价计算
+    d1 = (np.log(S/K) + (r + effective_vol**2/2)*T) / (effective_vol*np.sqrt(T))
+    d2 = d1 - effective_vol*np.sqrt(T)
+    
+    base_price = K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
+    
+    # 加入肥尾补偿
+    tail_risk_adj = 0.2 * base_price * jump_adj
+    
+    return base_price + tail_risk_adj
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("TQQQ")
