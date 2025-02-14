@@ -159,9 +159,13 @@ def black_scholes_put(asset_price, strike_price, time_to_expiration, risk_free_r
         risk_free_rate: Annual risk-free interest rate
         volatility: Annualized volatility of underlying asset
     """
+    # N(d1)代表资产价格相对于执行价格的“有利程度”，用于计算预期收益的现值
     d1 = (np.log(asset_price/strike_price) + (risk_free_rate + volatility**2/2)*time_to_expiration) / (volatility*np.sqrt(time_to_expiration))
+    # N(d2)代表标的到期时，标的资产价格高于行权价的概率，用于计算执行价格的贴现值
     d2 = d1 - volatility*np.sqrt(time_to_expiration)
-    put_price = strike_price*np.exp(-risk_free_rate*time_to_expiration)*norm.cdf(-d2) - asset_price*norm.cdf(-d1)
+    prob_asset_price_above_strike = norm.cdf(-d2)
+    prob_delta_hedging = norm.cdf(-d1)
+    put_price = strike_price*np.exp(-risk_free_rate*time_to_expiration)*prob_asset_price_above_strike - asset_price*prob_delta_hedging
     return put_price
 
 def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
