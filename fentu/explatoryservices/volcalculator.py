@@ -9,6 +9,8 @@ import pandas as pd
 pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
+import numpy as np
+from scipy.stats import norm
 
 class VolatilityCalculator:
     """Base class for different volatility calculation strategies"""
@@ -146,6 +148,22 @@ class VolatilityFacade:
 
     def show_today_return(self):
         print(self.daily_returns.tail(20))
+
+def black_scholes_put(S, K, T, r, sigma):
+    """改进版BS公式，添加中间变量输出"""
+    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    d2 = d1 - sigma*np.sqrt(T)
+    
+    put_price = K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
+    
+    # 添加调试信息输出
+    debug_info = {
+        'd1': d1,
+        'd2': d2,
+        'intrinsic_value': max(K - S, 0),
+        'time_value': put_price - max(K - S, 0)
+    }
+    return put_price
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("TQQQ")
