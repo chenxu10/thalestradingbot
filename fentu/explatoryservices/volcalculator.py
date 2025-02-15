@@ -135,16 +135,16 @@ class VolatilityFacade:
         self._visualize_percentage_change(self.yearly_returns)
     
     def find_worst_k_days(self,k=20):
-        return self.daily_returns.sort_values('Close').head(k)
+        return self.daily_returns.sort_values().head(k)
     
     def find_worst_k_months(self,k=3):
-        return self.monthly_returns.sort_values('Close').head(k)
+        return self.monthly_returns.sort_values().head(k)
 
     def find_worst_weeks(self,threshold=-0.1):
-        return self.weekly_returns.loc[self.weekly_returns['Close']<threshold,:]
+        return self.weekly_returns.loc[self.weekly_returns < threshold]
     
     def find_worst_months(self,threshold=-0.2):
-        return self.monthly_returns.loc[self.monthly_returns['Close']<threshold,:]
+        return self.monthly_returns.loc[self.monthly_returns < threshold]
 
     def show_today_return(self):
         print(self.daily_returns.tail(20))
@@ -233,7 +233,7 @@ if __name__ == "__main__":
     #volatility.show_today_return()
     #print(volatility.find_worst_k_days(k=15))
     #print(volatility.find_worst_months(threshold=-0.3))    
-    #print(volatility.find_worst_k_months(k=20))
+    print(volatility.find_worst_k_months(k=20))
     
     # Calendar year Return Check
     #calendar_returns = volatility.get_calendar_year_returns("UVXY")
