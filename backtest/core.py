@@ -143,6 +143,19 @@ def backtest_strategy(tqqq_data, spy_data):
     
     return report
 
+def calculate_historical_volatility(df, price_col='Adj Close'):
+    """
+    Calculate 30-day historical volatility for given price series
+    :param df: DataFrame containing price data
+    :param price_col: Name of column containing price values
+    :return: DataFrame with '30d_vol' column added and NaN rows removed
+    """
+    df['30d_vol'] = (
+        df[price_col].pct_change()
+        .rolling(30, min_periods=1).std() 
+        * np.sqrt(252)  # Annualize
+    )
+    return df.dropna()
 
 def main():
     # 用yahoo finance去直接真实世界下载数据
@@ -150,11 +163,7 @@ def main():
     start_date = '2010-01-01'
     tqqq_data = yf.download('TQQQ', start=start_date)
     spy_data = yf.download('SPY', start=start_date)
-    tqqq_data['30d_vol'] = tqqq_data['Adj Close'].pct_change().rolling(30, min_periods=1).std() * np.sqrt(252)
-    tqqq_data = tqqq_data.dropna()
-    
-    # 下载SPY数据并与TQQQ时间对齐
-    
+    tqqq_data = calculate_historical_volatility(tqqq_data)   
     report = backtest_strategy(tqqq_data, spy_data)
     print(report["benchmark_returns"])
 
