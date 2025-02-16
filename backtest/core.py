@@ -21,6 +21,11 @@ def calculate_iv(ticker, date):
     except:
         return np.nan
 
+def calculate_max_drawdown(returns):
+    """计算最大回撤"""
+    peak = returns.expanding().max()
+    return (returns / peak - 1).min()
+
 def backtest_strategy(tqqq_data, spy_data):
     """
     回测核心逻辑
@@ -137,8 +142,3 @@ def backtest_strategy(tqqq_data, spy_data):
     }
     
     return report
-
-def calculate_max_drawdown(returns):
-    """计算最大回撤"""
-    peak = returns.expanding().max()
-    return (returns / peak - 1).min()
