@@ -143,7 +143,7 @@ def backtest_strategy(tqqq_data, spy_data):
     
     return report
 
-def calculate_historical_volatility(df, price_col='Adj Close'):
+def add_historical_volatility_column(df, price_col='Adj Close'):
     """
     Calculate 30-day historical volatility for given price series
     :param df: DataFrame containing price data
@@ -161,7 +161,7 @@ def main():
     start_date = '2020-01-01'
     tqqq_data = yf.download('TQQQ', start=start_date)
     spy_data = yf.download('SPY', start=start_date)
-    tqqq_data = calculate_historical_volatility(tqqq_data)   
+    tqqq_data = add_historical_volatility_column(tqqq_data)   
     report = backtest_strategy(tqqq_data, spy_data)
     print(report["benchmark_returns"])
 
