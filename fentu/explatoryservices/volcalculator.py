@@ -231,9 +231,9 @@ if __name__ == "__main__":
     #volatility.visualize_daily_percentage_change()
 
     #volatility.show_today_return()
-    #print(volatility.find_worst_k_days(k=15))
+    print(volatility.find_worst_k_days(k=1))
     #print(volatility.find_worst_months(threshold=-0.3))    
-    print(volatility.find_worst_k_months(k=30))
+    #print(volatility.find_worst_k_months(k=30))
     
     # Calendar year Return Check
     #calendar_returns = volatility.get_calendar_year_returns("UVXY")
