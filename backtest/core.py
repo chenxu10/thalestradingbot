@@ -142,3 +142,20 @@ def backtest_strategy(tqqq_data, spy_data):
     }
     
     return report
+
+
+def main():
+    # 用yahoo finance去直接真实世界下载数据
+    # 下载TQQQ数据并计算30日波动率
+    tqqq_data = yf.download('TQQQ', start='2010-01-01')
+    tqqq_data['30d_vol'] = tqqq_data['Adj Close'].pct_change().rolling(30, min_periods=1).std() * np.sqrt(252)
+    tqqq_data = tqqq_data.dropna()
+    
+    # 下载SPY数据并与TQQQ时间对齐
+    spy_data = yf.download('SPY', start=tqqq_data.index[0].strftime('%Y-%m-%d'))
+    
+    report = backtest_strategy(tqqq_data, spy_data)
+    print(report["benchmark_returns"])
+
+if __name__ == "__main__":
+    main()
