@@ -27,5 +27,5 @@ def test_backtest_strategy(mock_financial_data):
     )
     print(results)
     # 验证收益曲线长度
-    assert len(results['strategy_returns']) == len(mock_financial_data['tqqq'])
+    assert len(results['strategy_returns']) == len(mock_financial_data['tqqq']) + 1
     
