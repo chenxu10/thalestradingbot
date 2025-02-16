@@ -158,8 +158,6 @@ def calculate_historical_volatility(df, price_col='Adj Close'):
     return df.dropna()
 
 def main():
-    # 用yahoo finance去直接真实世界下载数据
-    # 下载TQQQ数据并计算30日波动率
     start_date = '2020-01-01'
     tqqq_data = yf.download('TQQQ', start=start_date)
     spy_data = yf.download('SPY', start=start_date)
