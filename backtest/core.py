@@ -68,11 +68,16 @@ def backtest_strategy(tqqq_data, spy_data):
         elapsed_months = min(i // 4, 4)  # 每周调整一次
         target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
         
-        # 期权交易逻辑
-        if shares < target_shares:  # 吸货阶段：卖出put
-            strike = price * (1 - STRIKE_OFFSET)
+        def calculate_option_params(price, iv, strike_offset_modifier):
+            """Calculate option parameters for both put/call selling"""
+            strike = price * (1 + strike_offset_modifier * STRIKE_OFFSET)
             premium_rate = iv / np.sqrt(52) * BASE_PREMIUM_RATIO
             premium = price * premium_rate
+            return strike, premium
+        
+        # 期权交易逻辑
+        if shares < target_shares:  # 吸货阶段：卖出put
+            strike, premium = calculate_option_params(price, iv, -1)
             cash += premium
             
             # 购买保护性put（使用期权收入的40%）
@@ -89,9 +94,7 @@ def backtest_strategy(tqqq_data, spy_data):
                 total_cost += shares_to_buy * strike - premium  # 计算等效成本
                 
         else:  # 超额阶段：卖出call
-            strike = price * (1 + STRIKE_OFFSET)
-            premium_rate = iv / np.sqrt(52) * BASE_PREMIUM_RATIO
-            premium = price * premium_rate
+            strike, premium = calculate_option_params(price, iv, 1)
             cash += premium
             
             # 检查行权
