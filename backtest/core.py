@@ -68,15 +68,11 @@ def backtest_strategy(tqqq_data, spy_data):
         elapsed_months = min(i // 4, 4)  # 每周调整一次
         target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
         
-        def operate_sell_put(price, iv):
+        # 期权交易逻辑
+        if shares < target_shares:  # 吸货阶段：卖出put
             strike = price * (1 - STRIKE_OFFSET)
             premium_rate = iv / np.sqrt(52) * BASE_PREMIUM_RATIO
             premium = price * premium_rate
-            return strike, premium
-            
-        # 期权交易逻辑
-        if shares < target_shares:  # 吸货阶段：卖出put
-            strike, premium = operate_sell_put(price, iv)
             cash += premium
             
             # 购买保护性put（使用期权收入的40%）
