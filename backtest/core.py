@@ -31,7 +31,6 @@ def backtest_strategy(tqqq_data, spy_data):
     cash = INITIAL_CAPITAL
     shares = 0
     portfolio = pd.Series(index=tqqq_data.index, dtype=float)
-    strike_price = None
     weekly_dates = pd.date_range(start=tqqq_data.index[0], end=tqqq_data.index[-1], freq='W-FRI')
     
     # 保护性put跟踪
