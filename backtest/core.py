@@ -5,7 +5,7 @@ from datetime import timedelta
 
 # 策略参数
 INITIAL_CAPITAL = 50000  # 初始资金5万美金
-RISK_RESERVE = 15000     # 风险准备金
+RISK_RESERVE = 10000     # 风险准备金
 TARGET_DELTA = 33000     # 目标delta值
 MONTHLY_TARGET = 8325    # 月建仓目标
 STRIKE_OFFSET = 0.05     # 执行价偏移5%
