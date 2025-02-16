@@ -128,7 +128,6 @@ def backtest_strategy(tqqq_data, spy_data):
         'benchmark_returns': spy_returns,
         'equivalent_cost': equivalent_cost,
         'max_drawdown': calculate_max_drawdown(strategy_returns),
-        'sharpe_ratio': calculate_sharpe_ratio(strategy_returns),
         'put_protection_cost': put_protection_cost,
         'equivalent_cost_history': equivalent_cost_history,
         'put_protection_history': put_protection_history,
@@ -143,8 +142,3 @@ def calculate_max_drawdown(returns):
     """计算最大回撤"""
     peak = returns.expanding().max()
     return (returns / peak - 1).min()
-
-def calculate_sharpe_ratio(returns):
-    """计算年化夏普比率"""
-    excess_returns = returns.pct_change().dropna() - 0.03/252  # 假设无风险利率3%
-    return excess_returns.mean() / excess_returns.std() * np.sqrt(252) 
