@@ -33,6 +33,11 @@ def calculate_option_params(price, iv, strike_offset_modifier):
     premium = price * premium_rate
     return strike, premium
     
+def calculate_target_shares_to_build(week_index, price):
+    elapsed_months = min(week_index // 4, 4)  # 每周调整一次
+    target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
+    return target_shares
+    
 def backtest_strategy(tqqq_data, spy_data):
     """
     回测核心逻辑
@@ -78,11 +83,9 @@ def backtest_strategy(tqqq_data, spy_data):
                 iv = tqqq_data.loc[date, '30d_vol']
                 
             # 动态调整目标持仓（4个月建仓期）
-            elapsed_months = min(i // 4, 4)  # 每周调整一次
-            print("elapsed months",elapsed_months)
-            target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
-            print("target shares", target_shares)
-            
+
+            target_shares = calculate_target_shares_to_build(i, price)
+
             # 期权交易逻辑
             if shares < target_shares:  # 吸货阶段：卖出put
                 strike, premium = calculate_option_params(price, iv, -1)
@@ -146,6 +149,7 @@ def backtest_strategy(tqqq_data, spy_data):
     }
     
     return report
+
 
 def add_historical_volatility_column(df, price_col='Adj Close'):
     """
