@@ -166,6 +166,7 @@ def main():
     report = backtest_strategy(tqqq_data, spy_data)
     print(report["benchmark_returns"])
     print(report["benchmark_returns"].iloc[1])
-
+    assert abs(report["benchmark_returns"].iloc[1] - 0.992428) <= 0.0001
+    
 if __name__ == "__main__":
     main()
