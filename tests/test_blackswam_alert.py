@@ -117,13 +117,6 @@ def test_data_validation():
     assert fetcher.get_previous_close("QQQ") > 0
 
 def test_sms_notifier():
-    # 测试用例将：
-    # 1. 验证是否调用网关的send方法
-    # 2. 验证参数格式（号码、消息长度）
-    # 3. 测试异常处理（网络错误等）
-    # 不实际调用任何外部API
-    
-    # 新增模拟网关
     class MockSMSGateway:
         def __init__(self):
             self.sent_messages = []
@@ -132,15 +125,12 @@ def test_sms_notifier():
             self.sent_messages.append((recipient, message))
             return True
     
-    # 创建测试依赖
     mock_gateway = MockSMSGateway()
     notifier = SMSNotifier(sms_gateway=mock_gateway)  # 这里会失败，因为当前SMSNotifier没有sms_gateway参数
     
-    # 执行测试
     test_message = "Test message"
     notifier.send_sms(test_message)
-    
-    # 验证调用记录
+
     assert len(mock_gateway.sent_messages) == 1, "网关应该被调用一次"
     assert mock_gateway.sent_messages[0][0] == "+1234567890", "收件人号码不正确"
     assert mock_gateway.sent_messages[0][1] == test_message, "消息内容不匹配"
