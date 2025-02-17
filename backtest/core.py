@@ -26,6 +26,13 @@ def calculate_max_drawdown(returns):
     peak = returns.expanding().max()
     return (returns / peak - 1).min()
 
+def calculate_option_params(price, iv, strike_offset_modifier):
+    """Calculate option parameters for both put/call selling"""
+    strike = price * (1 + strike_offset_modifier * STRIKE_OFFSET)
+    premium_rate = iv / np.sqrt(52) * BASE_PREMIUM_RATIO
+    premium = price * premium_rate
+    return strike, premium
+    
 def backtest_strategy(tqqq_data, spy_data):
     """
     回测核心逻辑
@@ -72,12 +79,6 @@ def backtest_strategy(tqqq_data, spy_data):
         elapsed_months = min(i // 4, 4)  # 每周调整一次
         target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
         
-        def calculate_option_params(price, iv, strike_offset_modifier):
-            """Calculate option parameters for both put/call selling"""
-            strike = price * (1 + strike_offset_modifier * STRIKE_OFFSET)
-            premium_rate = iv / np.sqrt(52) * BASE_PREMIUM_RATIO
-            premium = price * premium_rate
-            return strike, premium
         
         # 期权交易逻辑
         if shares < target_shares:  # 吸货阶段：卖出put
