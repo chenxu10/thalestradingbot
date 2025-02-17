@@ -64,6 +64,8 @@ def backtest_strategy(tqqq_data, spy_data):
     
     for i, date in enumerate(weekly_dates):
         if date in tqqq_data.index:
+            # date 2025-01-24 00:00:000
+            # tqqq index DatetimeIndex([2020-01-06,2020-01-07,2020-01-08])
             print("date",date)
             print("tqqq index", tqqq_data.index)
             # 当前价格和可用资金
