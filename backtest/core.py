@@ -66,7 +66,6 @@ def backtest_strategy(tqqq_data, spy_data):
     
     # 成本跟踪
     total_cost = 0
-    equivalent_cost = 0
     
     # 历史记录跟踪
     equivalent_cost_history = pd.Series(index=weekly_dates)
@@ -81,17 +80,10 @@ def backtest_strategy(tqqq_data, spy_data):
         if date in tqqq_data.index:
             # date 2025-01-24 00:00:000
             # tqqq index DatetimeIndex([2020-01-06,2020-01-07,2020-01-08])
-            # 当前价格和可用资金
             price = tqqq_data.loc[date, 'Adj Close']
             available_cash = max(cash - RISK_RESERVE, 0)
             
-            # 计算目标持仓
-            iv = calculate_iv(tqqq_ticker, date)
-            if np.isnan(iv):
-                iv = tqqq_data.loc[date, '30d_vol']
-                
-            # 动态调整目标持仓（4个月建仓期）
-
+            iv = calculate_implied_volatility(tqqq_data, tqqq_ticker, date)
             target_shares = calculate_target_shares_to_build(i, price)
 
             # 期权交易逻辑
@@ -125,8 +117,7 @@ def backtest_strategy(tqqq_data, spy_data):
                     total_cost -= shares_to_sell * strike - premium  # 调整等效成本
                     
             # 更新等效成本
-            if shares > 0:
-                equivalent_cost = total_cost / shares
+            equivalent_cost = update_equivalent_cost(shares, total_cost)
                 
             # 计算当日净值（包含保护性put价值）
             portfolio.loc[date] = shares * price + cash + put_protection_value
@@ -157,6 +148,18 @@ def backtest_strategy(tqqq_data, spy_data):
     }
     
     return report
+
+def update_equivalent_cost(shares, total_cost):
+    equivalent_cost = 0
+    if shares > 0:
+        equivalent_cost = total_cost / shares
+    return equivalent_cost
+
+def calculate_implied_volatility(tqqq_data, tqqq_ticker, date):
+    iv = calculate_iv(tqqq_ticker, date)
+    if np.isnan(iv):
+        iv = tqqq_data.loc[date, '30d_vol']
+    return iv
 
 
 
