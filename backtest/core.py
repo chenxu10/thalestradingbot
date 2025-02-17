@@ -63,67 +63,64 @@ def backtest_strategy(tqqq_data, spy_data):
     tqqq_ticker = yf.Ticker('TQQQ')
     
     for i, date in enumerate(weekly_dates):
-        if date not in tqqq_data.index:
-            continue
+        if date in tqqq_data.index:
+            # 当前价格和可用资金
+            price = tqqq_data.loc[date, 'Adj Close']
+            available_cash = max(cash - RISK_RESERVE, 0)
             
-        # 当前价格和可用资金
-        price = tqqq_data.loc[date, 'Adj Close']
-        available_cash = max(cash - RISK_RESERVE, 0)
-        
-        # 计算目标持仓
-        iv = calculate_iv(tqqq_ticker, date)
-        if np.isnan(iv):
-            iv = tqqq_data.loc[date, '30d_vol']
-            
-        # 动态调整目标持仓（4个月建仓期）
-        elapsed_months = min(i // 4, 4)  # 每周调整一次
-        target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
-        
-        
-        # 期权交易逻辑
-        if shares < target_shares:  # 吸货阶段：卖出put
-            strike, premium = calculate_option_params(price, iv, -1)
-            cash += premium
-            
-            # 购买保护性put（使用期权收入的40%）
-            put_cost = premium * PUT_PROTECTION_RATIO
-            put_protection_cost += put_cost
-            cash -= put_cost
-            
-            # 检查行权
-            next_week = date + timedelta(days=7)
-            if next_week in tqqq_data.index and tqqq_data.loc[next_week, 'Low'] < strike:
-                shares_to_buy = available_cash // strike
-                shares += shares_to_buy
-                cash -= shares_to_buy * strike
-                total_cost += shares_to_buy * strike - premium  # 计算等效成本
+            # 计算目标持仓
+            iv = calculate_iv(tqqq_ticker, date)
+            if np.isnan(iv):
+                iv = tqqq_data.loc[date, '30d_vol']
                 
-        else:  # 超额阶段：卖出call
-            strike, premium = calculate_option_params(price, iv, 1)
-            cash += premium
+            # 动态调整目标持仓（4个月建仓期）
+            elapsed_months = min(i // 4, 4)  # 每周调整一次
+            target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
             
-            # 检查行权
-            next_week = date + timedelta(days=7)
-            if next_week in tqqq_data.index and tqqq_data.loc[next_week, 'High'] > strike:
-                shares_to_sell = min(shares - target_shares, available_cash//strike)
-                shares -= shares_to_sell
-                cash += shares_to_sell * strike
-                total_cost -= shares_to_sell * strike - premium  # 调整等效成本
+            # 期权交易逻辑
+            if shares < target_shares:  # 吸货阶段：卖出put
+                strike, premium = calculate_option_params(price, iv, -1)
+                cash += premium
                 
-        # 更新等效成本
-        if shares > 0:
-            equivalent_cost = total_cost / shares
+                # 购买保护性put（使用期权收入的40%）
+                put_cost = premium * PUT_PROTECTION_RATIO
+                put_protection_cost += put_cost
+                cash -= put_cost
+                
+                # 检查行权
+                next_week = date + timedelta(days=7)
+                if next_week in tqqq_data.index and tqqq_data.loc[next_week, 'Low'] < strike:
+                    shares_to_buy = available_cash // strike
+                    shares += shares_to_buy
+                    cash -= shares_to_buy * strike
+                    total_cost += shares_to_buy * strike - premium  # 计算等效成本
+                    
+            else:  # 超额阶段：卖出call
+                strike, premium = calculate_option_params(price, iv, 1)
+                cash += premium
+                
+                # 检查行权
+                next_week = date + timedelta(days=7)
+                if next_week in tqqq_data.index and tqqq_data.loc[next_week, 'High'] > strike:
+                    shares_to_sell = min(shares - target_shares, available_cash//strike)
+                    shares -= shares_to_sell
+                    cash += shares_to_sell * strike
+                    total_cost -= shares_to_sell * strike - premium  # 调整等效成本
+                    
+            # 更新等效成本
+            if shares > 0:
+                equivalent_cost = total_cost / shares
+                
+            # 计算当日净值（包含保护性put价值）
+            portfolio.loc[date] = shares * price + cash + put_protection_value
             
-        # 计算当日净值（包含保护性put价值）
-        portfolio.loc[date] = shares * price + cash + put_protection_value
-        
-        # 历史记录跟踪
-        equivalent_cost_history[date] = equivalent_cost
-        put_protection_history[date] = put_cost if shares < target_shares else 0
-        cash_history[date] = cash
-        shares_history[date] = shares
-        price_history[date] = price
-        
+            # 历史记录跟踪
+            equivalent_cost_history[date] = equivalent_cost
+            put_protection_history[date] = put_cost if shares < target_shares else 0
+            cash_history[date] = cash
+            shares_history[date] = shares
+            price_history[date] = price
+
     # 计算基准回报
     spy_returns = spy_data['Adj Close'].pct_change().add(1).cumprod()
     strategy_returns = portfolio.ffill().pct_change().add(1).cumprod()
