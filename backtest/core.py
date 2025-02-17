@@ -44,6 +44,7 @@ def backtest_strategy(tqqq_data, spy_data):
     shares = 0
     portfolio = pd.Series(index=tqqq_data.index, dtype=float)
     weekly_dates = pd.date_range(start=tqqq_data.index[0], end=tqqq_data.index[-1], freq='W-FRI')
+    # ['2020-01-10,'2020-01-17','2020-01-24']
     print("weekly_dates", weekly_dates)
     
     # 保护性put跟踪
@@ -78,7 +79,9 @@ def backtest_strategy(tqqq_data, spy_data):
                 
             # 动态调整目标持仓（4个月建仓期）
             elapsed_months = min(i // 4, 4)  # 每周调整一次
+            print("elapsed months",elapsed_months)
             target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
+            print("target shares", target_shares)
             
             # 期权交易逻辑
             if shares < target_shares:  # 吸货阶段：卖出put
