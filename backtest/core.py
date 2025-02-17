@@ -64,6 +64,8 @@ def backtest_strategy(tqqq_data, spy_data):
     
     for i, date in enumerate(weekly_dates):
         if date in tqqq_data.index:
+            print("date",date)
+            print("tqqq index", tqqq_data.index)
             # 当前价格和可用资金
             price = tqqq_data.loc[date, 'Adj Close']
             available_cash = max(cash - RISK_RESERVE, 0)
