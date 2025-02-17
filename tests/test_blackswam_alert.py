@@ -137,9 +137,9 @@ def test_sms_notifier():
         invalid_notifier.send_sms("test message")
 
 if __name__ == "__main__":
-    #test_black_swan_event()
-    test_sms_notifier()
-    #test_data_validation()
+    test_black_swan_event()
+    #test_sms_notifier()
+    test_data_validation()
     # 生产环境执行
-    # detector = BlackSwanDetector()
-    # print(detector.send_alert())
+    detector = BlackSwanDetector()
+    print(detector.send_alert())
