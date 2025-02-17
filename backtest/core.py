@@ -164,6 +164,7 @@ def main():
     spy_data = yf.download('SPY', start=start_date)
     tqqq_data = add_historical_volatility_column(tqqq_data)   
     report = backtest_strategy(tqqq_data, spy_data)
+    print(report["benchmark_returns"])
     print(report["benchmark_returns"].iloc[1])
 
 if __name__ == "__main__":
