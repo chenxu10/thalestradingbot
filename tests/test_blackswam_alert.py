@@ -21,13 +21,50 @@ class TwilioSMSGateway:
         except Exception as e:
             raise RuntimeError(f"Twilio短信发送失败: {str(e)}")
 
+class EmailNotifier:
+    """邮件通知服务抽象层"""
+    
+    def __init__(self, email_gateway=None):
+        self.sender = "alerts@quant.com"  # 应来自配置文件
+        self.receiver = "your@email.com"  # 改为你的邮箱
+        self.email_gateway = email_gateway or SMTPEmailGateway()  # 默认使用SMTP
+        
+    def send_email(self, subject: str, message: str) -> bool:
+        # 防御性检查
+        assert len(subject) <= 100, "邮件主题过长"
+        assert len(message) <= 1000, "邮件内容过长"
+        assert "@" in self.receiver, "邮箱格式错误"
+        
+        return self.email_gateway.send(
+            sender=self.sender,
+            receiver=self.receiver,
+            subject=subject,
+            message=message
+        )
+
+class SMTPEmailGateway:
+    """真实邮件网关实现"""
+    def __init__(self):
+        import smtplib
+        self.server = smtplib.SMTP('smtp.example.com', 587)  # 替换为真实SMTP服务器
+        self.server.starttls()
+        self.server.login("user@example.com", "password")  # 从环境变量获取
+    
+    def send(self, sender: str, receiver: str, subject: str, message: str) -> bool:
+        try:
+            email_body = f"Subject: {subject}\n\n{message}"
+            self.server.sendmail(sender, receiver, email_body)
+            return True
+        except Exception as e:
+            raise RuntimeError(f"邮件发送失败: {str(e)}")
+
 class BlackSwanDetector:
     """黑天鹅事件检测器，使用策略模式便于扩展"""
     
     def __init__(self, threshold: float = -0.07):
         self.threshold = threshold
         self.symbol = "QQQ"
-        self.notifier = SMSNotifier()
+        self.notifier = EmailNotifier()
         self.data_fetcher = MarketDataFetcher()
         
     def _calculate_drop(self) -> float:
@@ -53,13 +90,13 @@ class BlackSwanDetector:
             
             if price_drop <= self.threshold:
                 message = f"Black Swam Detected: {self.symbol} dropped {price_drop*100:.2f}%"
-                self.notifier.send_sms(message)
+                self.notifier.send_email("黑天鹅事件警报", message)
                 return message
                 
             return "Nothing worth noting in history, do not fooled by randomness, stick to strategy"
             
         except Exception as e:
-            self.notifier.send_sms(f"Alert system error: {str(e)}")
+            self.notifier.send_email(f"Alert system error: {str(e)}", f"Alert system error: {str(e)}")
             raise
 
 class MarketDataFetcher:
@@ -99,21 +136,6 @@ class MarketDataFetcher:
         except Exception as e:
             raise RuntimeError(f"前收盘价获取失败: {str(e)}") from e
 
-class SMSNotifier:
-    """短信通知服务抽象层"""
-    
-    def __init__(self, sms_gateway=None):
-        self.recipient = "+1234567890"  # 应来自配置文件
-        self.sms_gateway = sms_gateway or TwilioSMSGateway()  # 默认使用Twilio
-        
-    def send_sms(self, message: str) -> bool:
-        # 防御性检查
-        assert len(message) <= 160, "短信内容不得超过160字符"
-        assert self.recipient.startswith("+"), "国际号码格式错误"
-        
-
-        return self.sms_gateway.send(self.recipient, message)
-
 # 测试用例增强
 def test_normal_market():
     detector = BlackSwanDetector()
@@ -136,28 +158,34 @@ def test_data_validation():
     assert fetcher.get_realtime_price("QQQ") > 0
     assert fetcher.get_previous_close("QQQ") > 0
 
-def test_sms_notifier():
-    class MockSMSGateway:
+def test_email_notifier():
+    class MockEmailGateway:
         def __init__(self):
-            self.sent_messages = []
+            self.sent_emails = []
         
-        def send(self, recipient: str, message: str) -> bool:
-            self.sent_messages.append((recipient, message))
+        def send(self, sender, receiver, subject, message):
+            self.sent_emails.append({
+                "sender": sender,
+                "receiver": receiver,
+                "subject": subject,
+                "message": message
+            })
             return True
     
-    mock_gateway = MockSMSGateway()
-    notifier = SMSNotifier(sms_gateway=mock_gateway)  # 这里会失败，因为当前SMSNotifier没有sms_gateway参数
+    mock_gateway = MockEmailGateway()
+    notifier = EmailNotifier(email_gateway=mock_gateway)
     
-    test_message = "Test message"
-    notifier.send_sms(test_message)
-
-    assert len(mock_gateway.sent_messages) == 1, "网关应该被调用一次"
-    assert mock_gateway.sent_messages[0][0] == "+1234567890", "收件人号码不正确"
-    assert mock_gateway.sent_messages[0][1] == test_message, "消息内容不匹配"
+    test_subject = "市场警报"
+    test_message = "测试内容"
+    notifier.send_email(test_subject, test_message)
+    
+    assert len(mock_gateway.sent_emails) == 1
+    assert mock_gateway.sent_emails[0]['receiver'] == "your@email.com"
+    assert test_subject in mock_gateway.sent_emails[0]['subject']
 
 if __name__ == "__main__":
     #test_black_swan_event()
-    test_sms_notifier()
+    test_email_notifier()
     #test_data_validation()
     # 生产环境执行
     #detector = BlackSwanDetector()
