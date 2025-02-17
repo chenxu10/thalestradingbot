@@ -37,7 +37,15 @@ def calculate_target_shares_to_build(week_index, price):
     elapsed_months = min(week_index // 4, 4)  # 每周调整一次
     target_shares = min((elapsed_months+1)*MONTHLY_TARGET / price, TARGET_DELTA/price)
     return target_shares
-    
+
+def calculate_portofolio_strategy_returns(portfolio):
+    strategy_returns = portfolio.ffill().pct_change().add(1).cumprod()
+    return strategy_returns
+
+def calculate_spi_returns(spy_data):
+    spy_returns = spy_data['Adj Close'].pct_change().add(1).cumprod()
+    return spy_returns
+
 def backtest_strategy(tqqq_data, spy_data):
     """
     回测核心逻辑
@@ -131,8 +139,8 @@ def backtest_strategy(tqqq_data, spy_data):
             price_history[date] = price
 
     # 计算基准回报
-    spy_returns = spy_data['Adj Close'].pct_change().add(1).cumprod()
-    strategy_returns = portfolio.ffill().pct_change().add(1).cumprod()
+    spy_returns = calculate_spi_returns(spy_data)
+    strategy_returns = calculate_portofolio_strategy_returns(portfolio)
     
     # 生成报告
     report = {
@@ -149,6 +157,7 @@ def backtest_strategy(tqqq_data, spy_data):
     }
     
     return report
+
 
 
 def add_historical_volatility_column(df, price_col='Adj Close'):
