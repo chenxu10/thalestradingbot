@@ -44,6 +44,7 @@ def backtest_strategy(tqqq_data, spy_data):
     shares = 0
     portfolio = pd.Series(index=tqqq_data.index, dtype=float)
     weekly_dates = pd.date_range(start=tqqq_data.index[0], end=tqqq_data.index[-1], freq='W-FRI')
+    print("weekly_dates", weekly_dates)
     
     # 保护性put跟踪
     put_protection_cost = 0
@@ -66,8 +67,6 @@ def backtest_strategy(tqqq_data, spy_data):
         if date in tqqq_data.index:
             # date 2025-01-24 00:00:000
             # tqqq index DatetimeIndex([2020-01-06,2020-01-07,2020-01-08])
-            print("date",date)
-            print("tqqq index", tqqq_data.index)
             # 当前价格和可用资金
             price = tqqq_data.loc[date, 'Adj Close']
             available_cash = max(cash - RISK_RESERVE, 0)
