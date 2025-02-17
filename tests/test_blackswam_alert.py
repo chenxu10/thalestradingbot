@@ -1,26 +1,5 @@
 import pandas as pd
 
-# 在SMSNotifier类上方添加Twilio网关实现
-class TwilioSMSGateway:
-    """Twilio短信服务实现"""
-    def __init__(self):
-        from twilio.rest import Client  # 需要安装twilio包
-        # 以下信息应从环境变量获取
-        self.client = Client("ACCOUNT_SID", "AUTH_TOKEN")  # 替换为实际账户信息
-        self.twilio_number = "+1234567890"  # Twilio提供的号码
-    
-    def send(self, recipient: str, message: str) -> bool:
-        """实际发送短信"""
-        try:
-            self.client.messages.create(
-                body=message,
-                from_=self.twilio_number,
-                to=recipient
-            )
-            return True
-        except Exception as e:
-            raise RuntimeError(f"Twilio短信发送失败: {str(e)}")
-
 class EmailNotifier:
     """邮件通知服务抽象层"""
     
