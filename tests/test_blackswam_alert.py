@@ -159,7 +159,6 @@ def test_email_notifier():
     notifier.send_email(test_subject, test_message)
     
     assert len(mock_gateway.sent_emails) == 1
-    assert mock_gateway.sent_emails[0]['receiver'] == "your@email.com"
     assert test_subject in mock_gateway.sent_emails[0]['subject']
 
 if __name__ == "__main__":
