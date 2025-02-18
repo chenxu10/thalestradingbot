@@ -142,9 +142,8 @@ def test_data_validation():
     fetcher = MarketDataFetcher()
     realtime_price = fetcher.get_realtime_price("QQQ")
     previous_price = fetcher.get_previous_close("QQQ")
-    print(realtime_price)
-    print(previous_price)
-    print()
+    relative_change = (realtime_price - previous_price) / previous_price
+    print(f"relative change is{relative_change}")
     # 验证价格数据假设
     assert realtime_price > 0
     assert previous_price > 0
