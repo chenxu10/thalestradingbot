@@ -180,8 +180,8 @@ def add_historical_volatility_column(df, price_col='Adj Close'):
 def main():
     start_date = '2020-01-01'
     tqqq_data = yf.download('TQQQ', start=start_date)
-    tqqq_data = add_historical_volatility_column(tqqq_data)   
     print(tqqq_data)
+    tqqq_data = add_historical_volatility_column(tqqq_data)   
     tqqq_ticker = yf.Ticker('TQQQ')
     iv = calculate_implied_volatility(tqqq_data, tqqq_ticker, '2025-02-10')
     
