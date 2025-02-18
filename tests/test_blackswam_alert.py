@@ -140,11 +140,14 @@ def test_black_swan_event():
 
 def test_data_validation():
     fetcher = MarketDataFetcher()
-    print(fetcher.get_realtime_price("QQQ"))
-    print(fetcher.get_previous_close("QQQ"))
+    realtime_price = fetcher.get_realtime_price("QQQ")
+    previous_price = fetcher.get_previous_close("QQQ")
+    print(realtime_price)
+    print(previous_price)
+    print()
     # 验证价格数据假设
-    assert fetcher.get_realtime_price("QQQ") > 0
-    assert fetcher.get_previous_close("QQQ") > 0
+    assert realtime_price > 0
+    assert previous_price > 0
 
 def test_email_notifier():
     # Temporarily set environment variables for this test
@@ -180,7 +183,7 @@ def test_email_notifier():
     del os.environ['EMAIL_RECEIVER']
 
 if __name__ == "__main__":
-    pass
+    test_data_validation()
     #test_black_swan_event()
     #test_email_notifier()
     #test_data_validation()
@@ -189,5 +192,5 @@ if __name__ == "__main__":
     #print(detector.send_alert())
     
     #SMTP has authetication error
-    notifier = EmailNotifier(email_gateway=SMTPEmailGateway())
-    notifier.send_email("hello world","hello world")
+    #notifier = EmailNotifier(email_gateway=SMTPEmailGateway())
+    #notifier.send_email("hello world","hello world")
