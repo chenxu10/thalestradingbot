@@ -7,6 +7,7 @@ class EmailNotifier:
     def __init__(self, email_gateway=None):
         self.sender = os.getenv("EMAIL_SENDER", "alerts@quant.com")  # 从.env获取，保留默认值
         self.receiver = os.getenv("EMAIL_RECEIVER", "your@email.com")  # 从.env获取，保留默认值
+        print(f"{self.receiver} is the receiver...")
         self.email_gateway = email_gateway or SMTPEmailGateway()  # 默认使用SMTP
         
     def send_email(self, subject: str, message: str) -> bool:
