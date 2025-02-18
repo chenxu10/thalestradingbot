@@ -139,6 +139,9 @@ class VolatilityFacade:
     
     def find_worst_k_months(self,k=3):
         return self.monthly_returns.sort_values().head(k)
+    
+    def find_worst_k_years(self,k=3):
+        return self.yearly_returns.sort_values().head(k)
 
     def find_worst_weeks(self,threshold=-0.1):
         return self.weekly_returns.loc[self.weekly_returns < threshold]
