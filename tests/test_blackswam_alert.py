@@ -1,11 +1,12 @@
 import pandas as pd
+import os
 
 class EmailNotifier:
     """邮件通知服务抽象层"""
     
     def __init__(self, email_gateway=None):
-        self.sender = "alerts@quant.com"  # 应来自配置文件
-        self.receiver = "your@email.com"  # 改为你的邮箱
+        self.sender = os.getenv("EMAIL_SENDER", "alerts@quant.com")  # 从.env获取，保留默认值
+        self.receiver = os.getenv("EMAIL_RECEIVER", "your@email.com")  # 从.env获取，保留默认值
         self.email_gateway = email_gateway or SMTPEmailGateway()  # 默认使用SMTP
         
     def send_email(self, subject: str, message: str) -> bool:
@@ -25,7 +26,7 @@ class SMTPEmailGateway:
     """真实邮件网关实现"""
     def __init__(self):
         import smtplib
-        self.server = smtplib.SMTP('smtp.example.com', 587)  # 替换为真实SMTP服务器
+        self.server = smtplib.SMTP('smtp.gmail.com', 587)  # 替换为真实SMTP服务器
         self.server.starttls()
         self.server.login("user@example.com", "password")  # 从环境变量获取
     
@@ -163,8 +164,9 @@ def test_email_notifier():
 
 if __name__ == "__main__":
     #test_black_swan_event()
-    test_email_notifier()
+    #test_email_notifier()
     #test_data_validation()
     # 生产环境执行
     #detector = BlackSwanDetector()
     #print(detector.send_alert())
+    notifier = EmailNotifier(email_gateway=SMTPEmailGateway)
