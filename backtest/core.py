@@ -180,12 +180,17 @@ def add_historical_volatility_column(df, price_col='Adj Close'):
 def main():
     start_date = '2020-01-01'
     tqqq_data = yf.download('TQQQ', start=start_date)
-    spy_data = yf.download('SPY', start=start_date)
     tqqq_data = add_historical_volatility_column(tqqq_data)   
-    report = backtest_strategy(tqqq_data, spy_data)
-    print(report["benchmark_returns"])
-    print(report["benchmark_returns"].iloc[1])
-    assert abs(report["benchmark_returns"].iloc[1] - 0.992428) <= 0.0001
+    tqqq_ticker = yf.Ticker('TQQQ')
+    iv = calculate_implied_volatility(tqqq_data, tqqq_ticker, '2025-02-10')
+    print(iv)
+    
+
+    # spy_data = yf.download('SPY', start=start_date)
+    # report = backtest_strategy(tqqq_data, spy_data)
+    # print(report["benchmark_returns"])
+    # print(report["benchmark_returns"].iloc[1])
+    # assert abs(report["benchmark_returns"].iloc[1] - 0.992428) <= 0.0001
     
 if __name__ == "__main__":
     main()
