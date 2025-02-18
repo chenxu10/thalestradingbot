@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env file
+
 import pandas as pd
 import os
 
@@ -29,7 +32,11 @@ class SMTPEmailGateway:
         import smtplib
         self.server = smtplib.SMTP('smtp.gmail.com', 587)  # 替换为真实SMTP服务器
         self.server.starttls()
-        self.server.login("user@example.com", "password")  # 从环境变量获取
+        # 改为交互式输入密码
+        self.server.login(
+            os.getenv("EMAIL_SENDER"), 
+            input("Enter SMTP password for email alerts: ")
+        )
     
     def send(self, sender: str, receiver: str, subject: str, message: str) -> bool:
         try:
@@ -140,6 +147,11 @@ def test_data_validation():
     assert fetcher.get_previous_close("QQQ") > 0
 
 def test_email_notifier():
+    # Temporarily set environment variables for this test
+    import os
+    os.environ['EMAIL_SENDER'] = 'test@example.com'
+    os.environ['EMAIL_RECEIVER'] = 'test@example.com'
+    
     class MockEmailGateway:
         def __init__(self):
             self.sent_emails = []
@@ -162,12 +174,20 @@ def test_email_notifier():
     
     assert len(mock_gateway.sent_emails) == 1
     assert test_subject in mock_gateway.sent_emails[0]['subject']
+    
+    # Clean up environment variables after test
+    del os.environ['EMAIL_SENDER']
+    del os.environ['EMAIL_RECEIVER']
 
 if __name__ == "__main__":
+    pass
     #test_black_swan_event()
     #test_email_notifier()
     #test_data_validation()
     # 生产环境执行
     #detector = BlackSwanDetector()
     #print(detector.send_alert())
-    notifier = EmailNotifier(email_gateway=SMTPEmailGateway)
+    
+    #SMTP has authetication error
+    #notifier = EmailNotifier(email_gateway=SMTPEmailGateway())
+    #notifier.send_email("hello world","hello world")
