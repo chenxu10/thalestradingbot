@@ -184,8 +184,10 @@ def main():
     tqqq_data = add_historical_volatility_column(tqqq_data)   
     tqqq_ticker = yf.Ticker('TQQQ')
     iv = calculate_implied_volatility(tqqq_data, tqqq_ticker, '2025-02-10')
-    
-    # strike, premium = calculate_option_params(price, iv, -1)
+    price = tqqq_data.loc['2025-02-14', 'Adj Close']
+    strike, premium = calculate_option_params(price, iv, -1)
+    print(strike)
+    print(premium)
     # print(iv)
     
 
