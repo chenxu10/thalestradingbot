@@ -189,5 +189,5 @@ if __name__ == "__main__":
     #print(detector.send_alert())
     
     #SMTP has authetication error
-    #notifier = EmailNotifier(email_gateway=SMTPEmailGateway())
-    #notifier.send_email("hello world","hello world")
+    notifier = EmailNotifier(email_gateway=SMTPEmailGateway())
+    notifier.send_email("hello world","hello world")
