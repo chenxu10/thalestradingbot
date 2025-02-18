@@ -181,9 +181,12 @@ def main():
     start_date = '2020-01-01'
     tqqq_data = yf.download('TQQQ', start=start_date)
     tqqq_data = add_historical_volatility_column(tqqq_data)   
+    print(tqqq_data)
     tqqq_ticker = yf.Ticker('TQQQ')
     iv = calculate_implied_volatility(tqqq_data, tqqq_ticker, '2025-02-10')
-    print(iv)
+    
+    # strike, premium = calculate_option_params(price, iv, -1)
+    # print(iv)
     
 
     # spy_data = yf.download('SPY', start=start_date)
