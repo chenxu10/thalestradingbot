@@ -167,6 +167,9 @@ def black_scholes_put(
         time_to_expiration: Time to expiration in years
         risk_free_rate: Annual risk-free interest rate
         volatility: Annualized volatility of underlying asset
+
+    Eurodollar futures traded at the Chicago Mercan-tile Exchange are often 
+    used to determine a benchmark interest rate.
     """
     # Calculate d1 component for option pricing
     log_price_ratio = np.log(asset_price / strike_price)
@@ -226,18 +229,19 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     return base_price + tail_risk_adj
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("QQQ")
+    pass
+    #volatility = VolatilityFacade("QQQ")
     #volatility.visualize_weekly_percentage_change()
     #volatility.calculate_daily_volatility()
     #volatility.visualize_monthly_percentage_change()
-    volatility.visualize_yearly_percentage_change()
+    #volatility.visualize_yearly_percentage_change()
     #volatility.visualize_daily_percentage_change()
 
     #volatility.show_today_return()
     #print(volatility.find_worst_k_days(k=20))
     #print(volatility.find_worst_months(threshold=-0.3))    
     #print(volatility.find_worst_k_months(k=30))
-    print(volatility.find_worst_k_years(k=3))
+    #print(volatility.find_worst_k_years(k=3))
     # Calendar year Return Check
     #calendar_returns = volatility.get_calendar_year_returns("UVXY")
     #print(calendar_returns)
