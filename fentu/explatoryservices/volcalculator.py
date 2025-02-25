@@ -230,7 +230,7 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
 
 if __name__ == "__main__":
     volatility = VolatilityFacade("QQQ")
-    #volatility.visualize_weekly_percentage_change()
+    volatility.visualize_weekly_percentage_change()
     #volatility.calculate_daily_volatility()
     #volatility.visualize_monthly_percentage_change()
     #volatility.visualize_yearly_percentage_change()
