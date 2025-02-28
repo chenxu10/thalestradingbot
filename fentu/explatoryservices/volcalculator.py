@@ -234,7 +234,7 @@ if __name__ == "__main__":
     print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
     #volatility.visualize_weekly_percentage_change()
-    volatility.calculate_daily_volatility()
+    #volatility.calculate_daily_volatility()
     #volatility.visualize_monthly_percentage_change()
     #volatility.visualize_yearly_percentage_change()
 
