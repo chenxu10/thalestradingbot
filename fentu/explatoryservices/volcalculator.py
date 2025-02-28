@@ -229,12 +229,13 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     return base_price + tail_risk_adj
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("YINN")
+    volatility = VolatilityFacade("TQQQ")
+    print(volatility.daily_returns)
+    #volatility.visualize_daily_percentage_change()
     #volatility.visualize_weekly_percentage_change()
     #volatility.calculate_daily_volatility()
     #volatility.visualize_monthly_percentage_change()
     #volatility.visualize_yearly_percentage_change()
-    volatility.visualize_daily_percentage_change()
 
     #volatility.show_today_return()
     #print(volatility.find_worst_k_days(k=20))
