@@ -231,7 +231,7 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
 if __name__ == "__main__":
     volatility = VolatilityFacade("SPX")
     volatility.visualize_weekly_percentage_change()
-    print(volatility._get_prices("SPX"))
+    print(max(volatility._get_prices("SPX")))
     #print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
     #volatility.calculate_daily_volatility()
