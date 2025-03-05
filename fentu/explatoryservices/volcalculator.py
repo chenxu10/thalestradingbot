@@ -228,12 +228,32 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     
     return base_price + tail_risk_adj
 
-if __name__ == "__main__":
+#Define a function to histgram plot empircial distribution of SPX in the past twenty years of monthly return
+def histgram_plot_spx_monthly_return():
     volatility = VolatilityFacade("SPX")
-    #volatility.visualize_weekly_percentage_change()
+    volatility.visualize_monthly_percentage_change()
+    # use mle method to fit the distribution of SPX monthly return using t-distribution 
+    # and plot the dash line of the fitted distribution
+    # Get monthly returns
+    monthly_returns = volatility.monthly_returns
     
-    # Want to know the earliest date of SPX price recorded
-    print(yf.Ticker("SPX").history('max').head(2))
+    # Fit distribution using MLE
+    from scipy.stats import t
+    # Fit the distribution
+    params = t.fit(monthly_returns)
+    # Plot the histogram
+    plt.hist(monthly_returns, bins=30, density=True, alpha=0.6, color='g')
+    # Plot the fitted distribution
+    x = np.linspace(monthly_returns.min(), monthly_returns.max(), 100)
+    pdf = t.pdf(x, *params)
+    plt.plot(x, pdf, 'k-', linewidth=2)
+    plt.show()
+    
+
+if __name__ == "__main__":
+    histgram_plot_spx_monthly_return()
+    #volatility = VolatilityFacade("SPX")
+    #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
     #volatility.calculate_daily_volatility()
