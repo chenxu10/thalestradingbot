@@ -266,8 +266,8 @@ def histgram_plot_left_tail_monthly_return(ticker):
     
 
 if __name__ == "__main__":
-    histgram_plot_left_tail_monthly_return("SPX")
-    #volatility = VolatilityFacade("SPX")
+    #histgram_plot_left_tail_monthly_return("SPX")
+    volatility = VolatilityFacade("SPX")
     #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
@@ -276,7 +276,7 @@ if __name__ == "__main__":
     #volatility.visualize_yearly_percentage_change()
 
     #volatility.show_today_return()
-    #print(volatility.find_worst_k_days(k=20))
+    print(volatility.find_worst_k_days(k=5))
     #print(volatility.find_worst_months(threshold=-0.3))    
     #print(volatility.find_worst_k_months(k=30))
     #print(volatility.find_worst_k_years(k=3))
