@@ -242,7 +242,7 @@ def histgram_plot_spx_monthly_return(ticker):
     params = t.fit(monthly_returns)
     
     # Plot the histogram of only negative returns
-    plt.hist(negative_returns, bins=50, density=True, alpha=0.6, color='r', 
+    plt.hist(negative_returns, bins=100, density=True, alpha=0.6, color='r', 
              label='Negative Monthly Returns')
     
     # Plot the fitted distribution but only for the left tail
