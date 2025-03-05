@@ -235,7 +235,7 @@ def histgram_plot_spx_monthly_return(ticker):
     print(monthly_returns)
     
     # Filter to only include negative returns (left tail)
-    negative_returns = monthly_returns[monthly_returns < 0.1]
+    negative_returns = monthly_returns[monthly_returns < 0]
     
     # Fit distribution using MLE on all data to maintain statistical accuracy
     from scipy.stats import t
