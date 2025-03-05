@@ -231,12 +231,11 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
 #Define a function to histgram plot empircial distribution of SPX in the past twenty years of monthly return
 def histgram_plot_spx_monthly_return():
     volatility = VolatilityFacade("SPX")
-    volatility.visualize_monthly_percentage_change()
     # use mle method to fit the distribution of SPX monthly return using t-distribution 
     # and plot the dash line of the fitted distribution
     # Get monthly returns
     monthly_returns = volatility.monthly_returns
-    
+    print(monthly_returns)
     # Fit distribution using MLE
     from scipy.stats import t
     # Fit the distribution
