@@ -233,7 +233,7 @@ if __name__ == "__main__":
     #volatility.visualize_weekly_percentage_change()
     
     # Want to know the earliest date of SPX price recorded
-    print(yf.Ticker("SPX").history('max').tail(5))
+    print(yf.Ticker("SPX").history('max').head(2))
     #print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
     #volatility.calculate_daily_volatility()
