@@ -229,7 +229,7 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     return base_price + tail_risk_adj
 
 #Define a function to histgram plot empircial distribution of SPX in the past twenty years of monthly return
-def histgram_plot_spx_monthly_return(ticker):
+def histgram_plot_left_tail_monthly_return(ticker):
     volatility = VolatilityFacade(ticker)
     monthly_returns = volatility.monthly_returns
     print(monthly_returns)
@@ -262,7 +262,7 @@ def histgram_plot_spx_monthly_return(ticker):
     
 
 if __name__ == "__main__":
-    histgram_plot_spx_monthly_return("SPX")
+    histgram_plot_left_tail_monthly_return("SPX")
     #volatility = VolatilityFacade("SPX")
     #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
