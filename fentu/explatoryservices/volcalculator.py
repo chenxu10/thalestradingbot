@@ -235,12 +235,11 @@ def histgram_plot_left_tail_monthly_return(ticker):
     print(monthly_returns)
     
     # Filter to only include negative returns (left tail)
-    #negative_returns = monthly_returns[monthly_returns < 0]
-    negative_returns = monthly_returns
+    negative_returns = monthly_returns[monthly_returns < 0]
     
-    # Fit distribution using MLE on all data to maintain statistical accuracy
+    # Fit distribution using MLE on negative returns only
     from scipy.stats import t
-    params = t.fit(monthly_returns)
+    params = t.fit(negative_returns)
     
     # Plot the histogram of only negative returns
     plt.hist(negative_returns, bins=100, density=True, alpha=0.6, color='r', 
