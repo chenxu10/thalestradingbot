@@ -230,6 +230,9 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
 
 #Define a function to histgram plot empircial distribution of SPX in the past twenty years of monthly return
 def histgram_plot_left_tail_monthly_return(ticker):
+    """
+    TODO:Want to see the tail extension
+    """
     volatility = VolatilityFacade(ticker)
     monthly_returns = volatility.monthly_returns
     print(monthly_returns)
