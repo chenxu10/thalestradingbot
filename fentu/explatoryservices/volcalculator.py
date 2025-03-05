@@ -262,6 +262,7 @@ def histgram_plot_left_tail_monthly_return(ticker):
     plt.grid(alpha=0.3)
     plt.tight_layout()
     plt.show()
+    plt.close()
     
 
 if __name__ == "__main__":
