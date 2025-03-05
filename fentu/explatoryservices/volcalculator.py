@@ -246,7 +246,7 @@ def histgram_plot_spx_monthly_return(ticker):
              label='Negative Monthly Returns')
     
     # Plot the fitted distribution but only for the left tail
-    x = np.linspace(monthly_returns.min(), -0.1, 100)  # Only plot up to 0
+    x = np.linspace(monthly_returns.min(), 0.1, 100)  # Only plot up to 0
     pdf = t.pdf(x, *params)
     plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
     
