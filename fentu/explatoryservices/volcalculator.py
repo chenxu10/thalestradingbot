@@ -262,7 +262,7 @@ def histgram_plot_spx_monthly_return(ticker):
     
 
 if __name__ == "__main__":
-    histgram_plot_spx_monthly_return("TQQQ")
+    histgram_plot_spx_monthly_return("SPX")
     #volatility = VolatilityFacade("SPX")
     #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
