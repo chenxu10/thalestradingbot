@@ -229,28 +229,40 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     return base_price + tail_risk_adj
 
 #Define a function to histgram plot empircial distribution of SPX in the past twenty years of monthly return
-def histgram_plot_spx_monthly_return():
-    volatility = VolatilityFacade("SPX")
-    # use mle method to fit the distribution of SPX monthly return using t-distribution 
-    # and plot the dash line of the fitted distribution
-    # Get monthly returns
+def histgram_plot_spx_monthly_return(ticker):
+    volatility = VolatilityFacade(ticker)
     monthly_returns = volatility.monthly_returns
     print(monthly_returns)
-    # Fit distribution using MLE
+    
+    # Filter to only include negative returns (left tail)
+    negative_returns = monthly_returns[monthly_returns < 0]
+    
+    # Fit distribution using MLE on all data to maintain statistical accuracy
     from scipy.stats import t
-    # Fit the distribution
     params = t.fit(monthly_returns)
-    # Plot the histogram
-    plt.hist(monthly_returns, bins=30, density=True, alpha=0.6, color='g')
-    # Plot the fitted distribution
-    x = np.linspace(monthly_returns.min(), monthly_returns.max(), 100)
+    
+    # Plot the histogram of only negative returns
+    plt.hist(negative_returns, bins=50, density=True, alpha=0.6, color='r', 
+             label='Negative Monthly Returns')
+    
+    # Plot the fitted distribution but only for the left tail
+    x = np.linspace(monthly_returns.min(), -0.1, 100)  # Only plot up to 0
     pdf = t.pdf(x, *params)
-    plt.plot(x, pdf, 'k-', linewidth=2)
+    plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
+    
+    # Add title and labels
+    plt.title(f'Left Tail Distribution of {ticker} Monthly Returns')
+    plt.xlabel('Monthly Return')
+    plt.ylabel('Density')
+    plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
     plt.show()
     
 
 if __name__ == "__main__":
-    histgram_plot_spx_monthly_return()
+    histgram_plot_spx_monthly_return("SPX")
     #volatility = VolatilityFacade("SPX")
     #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
