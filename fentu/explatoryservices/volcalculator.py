@@ -253,9 +253,6 @@ class LeftTailWeeklyReturnPlotter:
             # Generate samples from t-distribution using the fitted parameters
 
             simulated_returns = t.rvs(*params, size=sample_size)
-
-            simulated_returns = t.rvs(*params, size=sample_size)
-            # Find the minimum return in this simulation
             min_weekly_returns.append(np.min(simulated_returns))
 
         expected_worst_weekly_returns = np.mean(min_weekly_returns)
@@ -263,6 +260,9 @@ class LeftTailWeeklyReturnPlotter:
         return expected_worst_weekly_returns
     
     def plot(self):
+        # Get the expected worst weekly return from simulation
+        expected_worst = self.simulate_by_t_distribution_to_get_expected_minimal()
+        
         params = self.fit_t_distribution_parameters()
         x = np.linspace(self.left_tail_weekly_returns.min(), 0.1, 100)  # Only plot up to 0
         pdf = t.pdf(x, *params)
@@ -275,6 +275,14 @@ class LeftTailWeeklyReturnPlotter:
             color='r', 
             label='Negative Weekly Returns')
         plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
+        
+        # Add the expected worst weekly return as a dot
+        plt.plot(expected_worst, t.pdf(expected_worst, *params), 'bo', markersize=10, 
+                 label=f'Expected Worst Return: {expected_worst:.2%}')
+        
+        # Add a vertical line at the expected worst return
+        plt.axvline(x=expected_worst, color='blue', linestyle='--', alpha=0.5)
+        
         plt.title(f'Left Tail Distribution of {self.ticker} Monthly Returns')
         plt.xlabel('Weekly Return')
         plt.ylabel('Density')
