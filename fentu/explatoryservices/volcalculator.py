@@ -243,9 +243,8 @@ class LeftTailWeeklyReturnPlotter:
         params = t.fit(self.left_tail_weekly_returns)
         x = np.linspace(self.left_tail_weekly_returns.min(), 0.1, 100)  # Only plot up to 0
         pdf = t.pdf(x, *params)
-        plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
         
-        # Add title and labels
+        plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
         plt.title(f'Left Tail Distribution of {self.ticker} Monthly Returns')
         plt.xlabel('Monthly Return')
         plt.ylabel('Density')
