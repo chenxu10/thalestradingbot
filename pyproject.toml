@@ -15,3 +15,11 @@ yfinance = "^0.2.54"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+# Ignore the testfun directory during test collection
+norecursedirs = ["tests/testfun"]
