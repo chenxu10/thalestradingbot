@@ -309,7 +309,7 @@ if __name__ == "__main__":
     #plot_extended_tail_distribution("SPY")
     volatility = VolatilityFacade("TQQQ")
     print(volatility.find_worst_k_weeks())
-    #volatility.visualize_weekly_percentage_change()
+    volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
     #volatility.calculate_daily_volatility()
