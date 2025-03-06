@@ -266,7 +266,7 @@ def histgram_plot_left_tail_monthly_return(ticker):
     
 
 if __name__ == "__main__":
-    histgram_plot_left_tail_monthly_return("SPX")
+    histgram_plot_left_tail_monthly_return("SPY")
     #volatility = VolatilityFacade("SPX")
     #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
