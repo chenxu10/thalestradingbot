@@ -254,7 +254,7 @@ class LeftTailWeeklyReturnPlotter:
             density=True, 
             alpha=0.6, 
             color='r', 
-            label='Negative Monthly Returns')
+            label='Negative Weekly Returns')
         plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
         plt.title(f'Left Tail Distribution of {self.ticker} Monthly Returns')
         plt.xlabel('Weekly Return')
