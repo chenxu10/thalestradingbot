@@ -143,6 +143,9 @@ class VolatilityFacade:
     def find_worst_k_years(self,k=3):
         return self.yearly_returns.sort_values().head(k)
 
+    def find_worst_k_weeks(self,k=3):
+        return self.yearly_returns.sort_values().head(k)
+
     def find_worst_weeks(self,threshold=-0.1):
         return self.weekly_returns.loc[self.weekly_returns < threshold]
     
@@ -303,7 +306,8 @@ if __name__ == "__main__":
     ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
     #plot_extended_tail_distribution("SPY")
-    #volatility = VolatilityFacade("SPX")
+    volatility = VolatilityFacade("TQQQ")
+    volatility.find_worst_k_weeks()
     #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
