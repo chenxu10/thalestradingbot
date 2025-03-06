@@ -350,7 +350,7 @@ def plot_extended_tail_distribution(ticker, confidence_levels=[0.01, 0.001, 0.00
     plt.close()
 
 if __name__ == "__main__":
-    histgram_plot_left_tail_monthly_return("SPY")
+    histgram_plot_left_tail_monthly_return("TQQQ")
     #plot_extended_tail_distribution("SPY")
     #volatility = VolatilityFacade("SPX")
     #volatility.visualize_weekly_percentage_change()
