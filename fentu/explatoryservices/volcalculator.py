@@ -264,7 +264,8 @@ class LeftTailWeeklyReturnPlotter:
         expected_worst = self.simulate_by_t_distribution_to_get_expected_minimal()
         
         params = self.fit_t_distribution_parameters()
-        x = np.linspace(self.left_tail_weekly_returns.min(), 0.1, 100)  # Only plot up to 0
+        historical_worst = self.left_tail_weekly_returns.min()
+        x = np.linspace(historical_worst, 0.1, 100)  # Only plot up to 0
         pdf = t.pdf(x, *params)
         
         plt.hist(
@@ -283,7 +284,7 @@ class LeftTailWeeklyReturnPlotter:
         # Add a vertical line at the expected worst return
         plt.axvline(x=expected_worst, color='blue', linestyle='--', alpha=0.5)
         
-        plt.title(f'Left Tail Distribution of {self.ticker} Monthly Returns')
+        plt.title(f'Left Tail Distribution of {self.ticker} Weekly Returns')
         plt.xlabel('Weekly Return')
         plt.ylabel('Density')
         plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
