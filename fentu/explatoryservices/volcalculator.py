@@ -243,6 +243,25 @@ class LeftTailWeeklyReturnPlotter:
         params = t.fit(self.left_tail_weekly_returns)
         return params
     
+    def simulate_by_t_distribution_to_get_expected_minimal(self):
+        params = self.fit_t_distribution_parameters()
+        n_times = 10000
+        sample_size = len(self.left_tail_weekly_returns)
+        
+        min_weekly_returns = []
+        for _ in range(n_times):
+            # Generate samples from t-distribution using the fitted parameters
+
+            simulated_returns = t.rvs(*params, size=sample_size)
+
+            simulated_returns = t.rvs(*params, size=sample_size)
+            # Find the minimum return in this simulation
+            min_weekly_returns.append(np.min(simulated_returns))
+
+        expected_worst_weekly_returns = np.mean(min_weekly_returns)
+        assert expected_worst_weekly_returns < -0.4
+        return expected_worst_weekly_returns
+    
     def plot(self):
         params = self.fit_t_distribution_parameters()
         x = np.linspace(self.left_tail_weekly_returns.min(), 0.1, 100)  # Only plot up to 0
