@@ -261,60 +261,7 @@ class LeftTailWeeklyReturnPlotter:
         plt.tight_layout()
         plt.show()
         plt.close()
-
-#Define a function to histgram plot empircial distribution of SPX in the past twenty years of monthly return
-def histgram_plot_left_tail_monthly_return(ticker):
-    """
-    TODO:Want to see the tail extension
-    """
-    volatility = VolatilityFacade(ticker)
-    print(monthly_returns)
-    
-    # Filter to only include negative returns (left tail)
-    negative_returns = monthly_returns[monthly_returns < 0]
-    plt.hist(negative_returns, bins=100, density=True, alpha=0.6, color='r', 
-             label='Negative Monthly Returns')
-    
-    # Plot the fitted distribution but only for the left tail
-    x = np.linspace(monthly_returns.min(), 0.1, 100)  # Only plot up to 0
-    pdf = t.pdf(x, *params)
-    plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
-    
-    # Add title and labels
-    plt.title(f'Left Tail Distribution of {ticker} Monthly Returns')
-    plt.xlabel('Monthly Return')
-    plt.ylabel('Density')
-    plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
-    plt.legend()
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
-    plt.show()
-    plt.close()
-    
-    # Fit distribution using MLE on negative returns only
-    from scipy.stats import t
-    params = t.fit(negative_returns)
-    
-    # Plot the histogram of only negative returns
-    plt.hist(negative_returns, bins=100, density=True, alpha=0.6, color='r', 
-             label='Negative Monthly Returns')
-    
-    # Plot the fitted distribution but only for the left tail
-    x = np.linspace(monthly_returns.min(), 0.1, 100)  # Only plot up to 0
-    pdf = t.pdf(x, *params)
-    plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
-    
-    # Add title and labels
-    plt.title(f'Left Tail Distribution of {ticker} Monthly Returns')
-    plt.xlabel('Monthly Return')
-    plt.ylabel('Density')
-    plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
-    plt.legend()
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
-    plt.show()
-    plt.close()
-    
+   
 
 def plot_extended_tail_distribution(ticker, confidence_levels=[0.01, 0.001, 0.0001]):
     """
