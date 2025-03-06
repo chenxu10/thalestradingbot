@@ -239,8 +239,12 @@ class LeftTailWeeklyReturnPlotter:
         negative_returns = weekly_returns[weekly_returns < 0]
         return negative_returns
 
-    def plot(self):
+    def fit_t_distribution_parameters(self):
         params = t.fit(self.left_tail_weekly_returns)
+        return params
+    
+    def plot(self):
+        params = self.fit_t_distribution_parameters()
         x = np.linspace(self.left_tail_weekly_returns.min(), 0.1, 100)  # Only plot up to 0
         pdf = t.pdf(x, *params)
         
@@ -261,6 +265,7 @@ class LeftTailWeeklyReturnPlotter:
         plt.tight_layout()
         plt.show()
         plt.close()
+
    
 
 def plot_extended_tail_distribution(ticker, confidence_levels=[0.01, 0.001, 0.0001]):
