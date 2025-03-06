@@ -10,7 +10,7 @@ pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
 import numpy as np
-from scipy.stats import norm
+from scipy.stats import norm, t
 
 class VolatilityCalculator:
     """Base class for different volatility calculation strategies"""
@@ -228,17 +228,62 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     
     return base_price + tail_risk_adj
 
+class LeftTailWeeklyReturnPlotter:
+    def __init__(self, ticker):
+        self.ticker = ticker
+        self.left_tail_weekly_returns = self.get_left_tail_weekly_returns()
+
+    def get_left_tail_weekly_returns(self):
+        volatility = VolatilityFacade(self.ticker)
+        weekly_returns = volatility.weekly_returns
+        negative_returns = weekly_returns[weekly_returns < 0]
+        return negative_returns
+
+    def plot(self):
+        params = t.fit(self.left_tail_weekly_returns)
+        x = np.linspace(self.left_tail_weekly_returns.min(), 0.1, 100)  # Only plot up to 0
+        pdf = t.pdf(x, *params)
+        plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
+        
+        # Add title and labels
+        plt.title(f'Left Tail Distribution of {self.ticker} Monthly Returns')
+        plt.xlabel('Monthly Return')
+        plt.ylabel('Density')
+        plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
+        plt.legend()
+        plt.grid(alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+        plt.close()
+
 #Define a function to histgram plot empircial distribution of SPX in the past twenty years of monthly return
 def histgram_plot_left_tail_monthly_return(ticker):
     """
     TODO:Want to see the tail extension
     """
     volatility = VolatilityFacade(ticker)
-    monthly_returns = volatility.monthly_returns
     print(monthly_returns)
     
     # Filter to only include negative returns (left tail)
     negative_returns = monthly_returns[monthly_returns < 0]
+    plt.hist(negative_returns, bins=100, density=True, alpha=0.6, color='r', 
+             label='Negative Monthly Returns')
+    
+    # Plot the fitted distribution but only for the left tail
+    x = np.linspace(monthly_returns.min(), 0.1, 100)  # Only plot up to 0
+    pdf = t.pdf(x, *params)
+    plt.plot(x, pdf, 'k-', linewidth=2, label='Fitted t-distribution (left tail)')
+    
+    # Add title and labels
+    plt.title(f'Left Tail Distribution of {ticker} Monthly Returns')
+    plt.xlabel('Monthly Return')
+    plt.ylabel('Density')
+    plt.axvline(x=0, color='black', linestyle='--', alpha=0.5)
+    plt.legend()
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+    plt.close()
     
     # Fit distribution using MLE on negative returns only
     from scipy.stats import t
@@ -350,7 +395,9 @@ def plot_extended_tail_distribution(ticker, confidence_levels=[0.01, 0.001, 0.00
     plt.close()
 
 if __name__ == "__main__":
-    histgram_plot_left_tail_monthly_return("TQQQ")
+    ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
+    ltweekplotter.plot()
+    #histgram_plot_left_tail_monthly_return("TQQQ")
     #plot_extended_tail_distribution("SPY")
     #volatility = VolatilityFacade("SPX")
     #volatility.visualize_weekly_percentage_change()
