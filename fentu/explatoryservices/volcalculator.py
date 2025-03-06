@@ -298,6 +298,7 @@ class LeftTailWeeklyReturnPlotter:
         plt.grid(alpha=0.3)
         plt.tight_layout()
         plt.show()
+        plt.savefig("figures/historical_min_vs_expected_min.jpg")
         plt.close()
  
 
