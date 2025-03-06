@@ -281,7 +281,7 @@ class LeftTailWeeklyReturnPlotter:
         # Add the expected worst weekly return as a dot
         plt.plot(expected_worst, t.pdf(expected_worst, *params), 'bo', markersize=10, 
                  label=f'Expected Worst Return: {expected_worst:.2%}')
-        plt.plot(historical_worst, t.pdf(historical_worst, *params), 'yellow', markersize=10, 
+        plt.plot(historical_worst, t.pdf(historical_worst, *params), 'lightblue', markersize=10, 
                  label=f'Historical Worst Return: {historical_worst:.2%}')
         
         # Add a vertical line at the expected worst return
