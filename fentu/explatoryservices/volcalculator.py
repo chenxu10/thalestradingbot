@@ -334,7 +334,7 @@ if __name__ == "__main__":
     pnl_deep = (100 + 3*(S0*np.exp((r+0.5*sigma**2)*T) - K_buy)) * prob_otm_assign
     
     pnl_exp = pnl_deep + pnl_assign_range + pnl_in_1std
-    print("pnl expectation is {}".format(pnl_deep))
+    print("pnl expectation is {}".format(pnl_exp))
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
