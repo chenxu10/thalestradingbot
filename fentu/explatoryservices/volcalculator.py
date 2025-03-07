@@ -331,6 +331,8 @@ if __name__ == "__main__":
     pnl_assign_range = (70-83) * (prob_assign2 - prob_otm_assign) * 100 + 100
     print("pnl assign range is {}".format(pnl_assign_range))
 
+    print(S0*np.exp((r+0.5*sigma**2)*T))
+
     pnl_deep = (100 + 3*(S0*np.exp((r+0.5*sigma**2)*T) - K_buy)*100) * prob_otm_assign
     print("pnl_deep is {}".format(pnl_deep)) 
     
