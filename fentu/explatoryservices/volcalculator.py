@@ -316,7 +316,7 @@ if __name__ == "__main__":
     
     probability_larger_than_K1 = black_scholes_prob(S0,K1,T,r,sigma)
     E1 = 8 + (83.5 - 83) * probability_larger_than_K1
-    print(E1)
+    print("Scenario 1 without any risk gain is {}".format(E1))
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
