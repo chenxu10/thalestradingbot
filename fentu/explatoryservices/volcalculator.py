@@ -334,6 +334,7 @@ if __name__ == "__main__":
     # Calculate option prices
     call_atm = black_scholes_call(S0, K_sell, T, r, sigma)
     call_otm = black_scholes_call(S0, K_buy, T, r, sigma)
+    print(call_otm)
     
     # Net premium after hedging
     net_premium = premium2 - 3*call_otm
