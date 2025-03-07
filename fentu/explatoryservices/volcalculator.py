@@ -321,7 +321,7 @@ if __name__ == "__main__":
 
     probability_larger_than_K2 = black_scholes_prob(S0, K2, T, r, sigma)
     print(probability_larger_than_K2)
-    E2 = 0
+    E2 = 100 * (1 - probability_larger_than_K2)
     print("Scenario 2 take 1std to 2std risk exposure is {}".format(E2))
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
