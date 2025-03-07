@@ -328,10 +328,11 @@ if __name__ == "__main__":
 
     prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
     prob_otm_assign = black_scholes_prob(S0, K_buy, T, r, sigma)
-    print(prob_otm_assign)
     pnl_assign_range = (70-83) * (prob_assign2 - prob_otm_assign) + 100
     print(pnl_assign_range)
 
+    pnl_deep = (100 + 3*(S0*np.exp((r+0.5*sigma**2)*T) - K_buy)) * prob_otm_assign
+    print(pnl_deep)
     
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
