@@ -325,6 +325,9 @@ if __name__ == "__main__":
     pnl_in_1std = 100 * (1 - probability_larger_than_K_sell)
     print("Scenario 2 take 1std to 2std risk exposure is {}".format(pnl_in_1std))
 
+
+    # The key is you should make the prob_assign_2 and prob_otm_assign correct using t-disribution
+    # to estimate again
     prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
     prob_otm_assign = black_scholes_prob(S0, K_buy, T, r, sigma)
     print("heizhang is {}".format(prob_assign2 - prob_otm_assign))
