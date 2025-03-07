@@ -331,7 +331,8 @@ if __name__ == "__main__":
     pnl_assign_range = (70-83) * (prob_assign2 - prob_otm_assign) * 100 + 100
     print("pnl assign range is {}".format(pnl_assign_range))
 
-    pnl_deep = (100 + 3*(S0*np.exp((r+0.5*sigma**2)*T) - K_buy)*100) * prob_otm_assign 
+    pnl_deep = (100 + 3*(S0*np.exp((r+0.5*sigma**2)*T) - K_buy)*100) * prob_otm_assign
+    print("pnl_deep is {}".format(pnl_deep)) 
     
     pnl_exp = pnl_deep + pnl_assign_range + pnl_in_1std
     print("pnl expectation is {}".format(pnl_exp))
