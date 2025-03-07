@@ -309,7 +309,8 @@ def black_scholes_prob(S, K, T, r, sigma):
 if __name__ == "__main__":
     S0 = 66
     K1 = 83.5
-    K2 = 70
+    K_sell = 70
+    K_buy = 76
     sigma = 0.65  # TQQQ波动率
     T = 1/52
     r = 0.05  # 无风险利率
@@ -319,11 +320,16 @@ if __name__ == "__main__":
     print("Scenario 1 without any risk gain is {}".format(E1))
 
 
-    probability_larger_than_K2 = black_scholes_prob(S0, K2,T, r, sigma)
-    print(probability_larger_than_K2)
+    probability_larger_than_K_sell = black_scholes_prob(S0, K_sell,T, r, sigma)
+    print(probability_larger_than_K_sell)
     # 70 - 76 
-    E2 = 100 * (1 - probability_larger_than_K2)
+    E2 = 100 * (1 - probability_larger_than_K_sell)
     print("Scenario 2 take 1std to 2std risk exposure is {}".format(E2))
+
+    prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
+    prob_otm_assign = black_scholes_prob(S0, K_buy, T, r, sigma)
+    pnl_assign_range = (100 - (K_buy - K_sell)) * (prob_assign2 - prob_otm_assign)
+    print(pnl_assign_range)
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
