@@ -302,14 +302,28 @@ class LeftTailWeeklyReturnPlotter:
         plt.close()
  
 
+def black_scholes_prob(S, K, T, r, sigma):
+    d2 = (np.log(S/K) + (r - 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
+    return norm.cdf(d2)
+
 if __name__ == "__main__":
-    ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
-    ltweekplotter.plot()
+    S0 = 66
+    K1 = 83.5
+    K2 = 70
+    sigma = 0.65  # TQQQ波动率
+    T = 1/52
+    r = 0.05  # 无风险利率
+    
+    probability_larger_than_K1 = black_scholes_prob(S0,K1,T,r,sigma)
+    E1 = 8 + (83.5 - 83) * probability_larger_than_K1
+    print(E1)
+    # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
+    # ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
     #plot_extended_tail_distribution("SPY")
-    volatility = VolatilityFacade("TQQQ")
-    print(volatility.find_worst_k_weeks())
-    volatility.visualize_weekly_percentage_change()
+    # volatility = VolatilityFacade("TQQQ")
+    # print(volatility.find_worst_k_weeks())
+    # volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
     #volatility.visualize_daily_percentage_change()
     #volatility.calculate_daily_volatility()
