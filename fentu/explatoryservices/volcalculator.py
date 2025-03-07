@@ -319,7 +319,6 @@ if __name__ == "__main__":
     E1 = 8 + (83.5 - 83) * probability_larger_than_K1
     print("Scenario 1 without any risk gain is {}".format(E1))
 
-
     probability_larger_than_K_sell = black_scholes_prob(S0, K_sell,T, r, sigma)
     print(probability_larger_than_K_sell)
     # 70 - 76 
