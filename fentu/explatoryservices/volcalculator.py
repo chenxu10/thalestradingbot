@@ -323,8 +323,8 @@ if __name__ == "__main__":
     probability_larger_than_K_sell = black_scholes_prob(S0, K_sell,T, r, sigma)
     print(probability_larger_than_K_sell)
     # 70 - 76 
-    E2 = 100 * (1 - probability_larger_than_K_sell)
-    print("Scenario 2 take 1std to 2std risk exposure is {}".format(E2))
+    pnl_in_1std = 100 * (1 - probability_larger_than_K_sell)
+    print("Scenario 2 take 1std to 2std risk exposure is {}".format(pnl_in_1std))
 
     prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
     prob_otm_assign = black_scholes_prob(S0, K_buy, T, r, sigma)
@@ -332,8 +332,9 @@ if __name__ == "__main__":
     print(pnl_assign_range)
 
     pnl_deep = (100 + 3*(S0*np.exp((r+0.5*sigma**2)*T) - K_buy)) * prob_otm_assign
-    print(pnl_deep)
     
+    pnl_exp = pnl_deep + pnl_assign_range + pnl_in_1std
+    print("pnl expectation is {}".format(pnl_deep))
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
