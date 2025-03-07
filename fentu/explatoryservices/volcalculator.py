@@ -306,13 +306,6 @@ def black_scholes_prob(S, K, T, r, sigma):
     d2 = (np.log(S/K) + (r - 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
     return norm.cdf(d2)
 
-def black_scholes_call(S, K, T, r, sigma):
-    """Calculate European call option price using Black-Scholes model"""
-    d1 = (np.log(S/K) + (r + 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
-    d2 = d1 - sigma*np.sqrt(T)
-    call_price = S*norm.cdf(d1) - K*np.exp(-r*T)*norm.cdf(d2)
-    return call_price
-
 if __name__ == "__main__":
     S0 = 66
     K1 = 83.5
@@ -326,19 +319,11 @@ if __name__ == "__main__":
     print("Scenario 1 without any risk gain is {}".format(E1))
 
 
-    # Strategy 2: Sell ATM Call + Buy OTM Calls
-    K_sell = S0          # ATM strike at 66.04
-    K_buy = 76.0         # 2 std dev OTM strike
-    premium2 = 270.0     # Premium from selling ATM call
-    
-    # Calculate option prices
-    call_atm = black_scholes_call(S0, K_sell, T, r, sigma)
-    call_otm = black_scholes_call(S0, K_buy, T, r, sigma)
-    print(call_otm)
-    
-    # Net premium after hedging
-    net_premium = premium2 - 3*call_otm
-    print(net_premium)
+    probability_larger_than_K2 = black_scholes_prob(S0, K2,T, r, sigma)
+    print(probability_larger_than_K2)
+    # 70 - 76 
+    E2 = 100 * (1 - probability_larger_than_K2)
+    print("Scenario 2 take 1std to 2std risk exposure is {}".format(E2))
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
