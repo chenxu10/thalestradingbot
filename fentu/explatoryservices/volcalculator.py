@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
     print(S0*np.exp((r+0.5*sigma**2)*T))
 
-    pnl_deep = (100 + 3*(S0*np.exp((r+0.5*sigma**2)*T) - K_buy)*100) * prob_otm_assign
+    pnl_deep = (100 + 3*(80 - K_buy)*100) * prob_otm_assign
     print("pnl_deep is {}".format(pnl_deep)) 
     
     pnl_exp = pnl_deep + pnl_assign_range + pnl_in_1std
