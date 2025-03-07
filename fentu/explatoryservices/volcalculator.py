@@ -328,8 +328,11 @@ if __name__ == "__main__":
 
     prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
     prob_otm_assign = black_scholes_prob(S0, K_buy, T, r, sigma)
+    print(prob_otm_assign)
     pnl_assign_range = (70-83) * (prob_assign2 - prob_otm_assign) + 100
     print(pnl_assign_range)
+
+    
     # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     # ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
