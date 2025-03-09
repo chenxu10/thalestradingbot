@@ -307,40 +307,40 @@ def black_scholes_prob(S, K, T, r, sigma):
     return norm.cdf(d2)
 
 if __name__ == "__main__":
-    S0 = 66
-    K1 = 83.5
-    K_sell = 70
-    K_buy = 76
-    sigma = 0.65  # TQQQ波动率
-    T = 1/52
-    r = 0.05  # 无风险利率
+    # S0 = 66
+    # K1 = 83.5
+    # K_sell = 70
+    # K_buy = 76
+    # sigma = 0.65  # TQQQ波动率
+    # T = 1/52
+    # r = 0.05  # 无风险利率
     
-    probability_larger_than_K1 = black_scholes_prob(S0,K1,T,r,sigma)
-    E1 = 8 + (83.5 - 83) * probability_larger_than_K1
-    print("Scenario 1 without any risk gain is {}".format(E1))
+    # probability_larger_than_K1 = black_scholes_prob(S0,K1,T,r,sigma)
+    # E1 = 8 + (83.5 - 83) * probability_larger_than_K1
+    # print("Scenario 1 without any risk gain is {}".format(E1))
 
-    probability_larger_than_K_sell = black_scholes_prob(S0, K_sell,T, r, sigma)
-    print(probability_larger_than_K_sell)
-    # 70 - 76 
-    pnl_in_1std = 100 * (1 - probability_larger_than_K_sell)
-    print("Scenario 2 take 1std to 2std risk exposure is {}".format(pnl_in_1std))
+    # probability_larger_than_K_sell = black_scholes_prob(S0, K_sell,T, r, sigma)
+    # print(probability_larger_than_K_sell)
+    # # 70 - 76 
+    # pnl_in_1std = 100 * (1 - probability_larger_than_K_sell)
+    # print("Scenario 2 take 1std to 2std risk exposure is {}".format(pnl_in_1std))
 
 
-    # The key is you should make the prob_assign_2 and prob_otm_assign correct using t-disribution
-    # to estimate again
-    prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
-    prob_otm_assign = black_scholes_prob(S0, K_buy, T, r, sigma)
-    print("heizhang is {}".format(prob_assign2 - prob_otm_assign))
-    pnl_assign_range = (70-83) * (prob_assign2 - prob_otm_assign) * 100 + 100
-    print("pnl assign range is {}".format(pnl_assign_range))
+    # # The key is you should make the prob_assign_2 and prob_otm_assign correct using t-disribution
+    # # to estimate again
+    # prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
+    # prob_otm_assign = black_scholes_prob(S0, K_buy, T, r, sigma)
+    # print("heizhang is {}".format(prob_assign2 - prob_otm_assign))
+    # pnl_assign_range = (70-83) * (prob_assign2 - prob_otm_assign) * 100 + 100
+    # print("pnl assign range is {}".format(pnl_assign_range))
 
-    pnl_deep = (100 + 3*(80 - K_buy)*100) * prob_otm_assign
-    print("pnl_deep is {}".format(pnl_deep)) 
+    # pnl_deep = (100 + 3*(80 - K_buy)*100) * prob_otm_assign
+    # print("pnl_deep is {}".format(pnl_deep)) 
     
-    pnl_exp = pnl_deep + pnl_assign_range + pnl_in_1std
-    print("pnl expectation is {}".format(pnl_exp))
-    # ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
-    # ltweekplotter.plot()
+    # pnl_exp = pnl_deep + pnl_assign_range + pnl_in_1std
+    # print("pnl expectation is {}".format(pnl_exp))
+    ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
+    ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
     #plot_extended_tail_distribution("SPY")
     # volatility = VolatilityFacade("TQQQ")
