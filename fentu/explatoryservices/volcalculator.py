@@ -339,11 +339,12 @@ if __name__ == "__main__":
     
     # pnl_exp = pnl_deep + pnl_assign_range + pnl_in_1std
     # print("pnl expectation is {}".format(pnl_exp))
-    ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
-    ltweekplotter.plot()
+    #ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
+    #ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
     #plot_extended_tail_distribution("SPY")
-    # volatility = VolatilityFacade("TQQQ")
+    volatility = VolatilityFacade("TMF")
+    volatility.visualize_weekly_percentage_change()
     # print(volatility.find_worst_k_weeks())
     # volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
