@@ -231,6 +231,36 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     
     return base_price + tail_risk_adj
 
+class RightWeeklyReturn:
+    def __init__(self, ticker):
+        self.ticker = ticker
+        self.right_weekly_returns = self.get_right_tail_weekly_returns()
+
+    def get_right_tail_weekly_returns(self):
+        volatility = VolatilityFacade(self.ticker)
+        weekly_returns = volatility.weekly_returns
+        positive_returns = weekly_returns[weekly_returns > 0]
+        return positive_returns
+
+    def fit_t_distribution_parameters(self):
+        params = t.fit(self.right_weekly_returns)
+        return params
+
+    def simulate_by_t_distribution_to_get_one_std(self):
+        params = self.fit_t_distribution_parameters()
+        n_times = 10000
+        sample_size = len(self.right_weekly_returns)
+        
+        one_std_weekly_returns = []
+        for _ in range(n_times):
+            # Generate samples from t-distribution using the fitted parameters
+
+            simulated_returns = t.rvs(*params, size=sample_size)
+            one_std_weekly_returns.append(np.std(simulated_returns))
+
+        expected_one_std_weekly_returns = np.mean(one_std_weekly_returns)
+        return expected_one_std_weekly_returns
+
 class LeftTailWeeklyReturnPlotter:
     def __init__(self, ticker):
         self.ticker = ticker
@@ -307,6 +337,7 @@ def black_scholes_prob(S, K, T, r, sigma):
     return norm.cdf(d2)
 
 if __name__ == "__main__":
+    # Left tail check
     # S0 = 66
     # K1 = 83.5
     # K_sell = 70
@@ -326,6 +357,10 @@ if __name__ == "__main__":
     # print("Scenario 2 take 1std to 2std risk exposure is {}".format(pnl_in_1std))
 
 
+    
+    rightwr = RightWeeklyReturn("TQQQ")
+    print(rightwr.simulate_by_t_distribution_to_get_one_std())
+
     # # The key is you should make the prob_assign_2 and prob_otm_assign correct using t-disribution
     # # to estimate again
     # prob_assign2 = black_scholes_prob(S0, K_sell, T, r, sigma)
@@ -343,8 +378,12 @@ if __name__ == "__main__":
     #ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
     #plot_extended_tail_distribution("SPY")
-    volatility = VolatilityFacade("TMF")
-    volatility.visualize_weekly_percentage_change()
+    
+    
+    
+    
+    #volatility = VolatilityFacade("TMF")
+    #volatility.visualize_weekly_percentage_change()
     # print(volatility.find_worst_k_weeks())
     # volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
