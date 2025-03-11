@@ -375,13 +375,10 @@ if __name__ == "__main__":
     #ltweekplotter = LeftTailWeeklyReturnPlotter("TQQQ")
     #ltweekplotter.plot()
     #histgram_plot_left_tail_monthly_return("TQQQ")
-    #plot_extended_tail_distribution("SPY")
-    
-    
-    
-    
-    #volatility = VolatilityFacade("TMF")
-    #volatility.visualize_weekly_percentage_change()
+    #plot_extended_tail_distribution("SPY")   
+   
+    volatility = VolatilityFacade("TQQQ")
+    volatility.visualize_weekly_percentage_change()
     # print(volatility.find_worst_k_weeks())
     # volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns)
