@@ -193,16 +193,10 @@ if __name__ == "__main__":
     
     print(f"Expected standard deviation of weekly returns: {expected_std:.4f}")
     print(f"Historical standard deviation of weekly returns: {historical_std:.4f}")
-    
-    # Calculate 0.9 quantile standard deviation through simulation
-    quantile_std = right_tail_analyzer.get_half_standard_deviation()
-    print(f"\nStandard deviation values:")
-    print(f"Expected full std: {expected_std:.4f}")
-    print(f"Expected 0.9 quantile std (from simulation): {quantile_std:.4f}")
-    print(f"Historical std: {historical_std:.4f}")
-    print(f"Ratio (Historical/0.9 quantile): {historical_std/quantile_std:.4f}")
+
     
     # Find the crossover point where expected_std < historical_std
+    # Find the gaogu under 0.29
     print("\nSearching for crossover point...")
     crossover_q, crossover_std, hist_std = right_tail_analyzer.find_crossover_quantile(
         start=0.25, end=1.5, step=0.05)
