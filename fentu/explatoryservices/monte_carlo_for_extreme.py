@@ -205,7 +205,7 @@ if __name__ == "__main__":
     # Find the crossover point where expected_std < historical_std
     print("\nSearching for crossover point...")
     crossover_q, crossover_std, hist_std = right_tail_analyzer.find_crossover_quantile(
-        start=0.18, end=1.5, step=0.05)
+        start=0.19, end=1.5, step=0.05)
     
     if crossover_q is not None:
         print(f"\nCrossover found at quantile {crossover_q:.2f}")
