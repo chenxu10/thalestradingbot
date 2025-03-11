@@ -129,16 +129,6 @@ if __name__ == "__main__":
     historical_std = np.std(right_tail_analyzer.returns)
     print(f"Historical standard deviation of weekly returns: {historical_std:.4f}")
     
-    # Calculate and compare 0.5std values
-    half_expected_std = 0.5 * expected_std
-    half_historical_std = 0.5 * historical_std
-    
-    print(f"\nComparing 0.5std values:")
-    print(f"Expected 0.5std: {half_expected_std:.4f}")
-    print(f"Historical 0.5std: {half_historical_std:.4f}")
-    print(f"Difference: {half_historical_std - half_expected_std:.4f}")
-    print(f"Ratio (Historical/Expected): {half_historical_std/half_expected_std:.4f}")
-    
     # Analyze left tail (negative) returns
     #left_tail_analyzer = LeftTailWeeklyReturnAnalyzer(ticker)
     #expected_min = left_tail_analyzer.get_expected_minimum()
