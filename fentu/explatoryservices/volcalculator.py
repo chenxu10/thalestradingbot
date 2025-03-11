@@ -131,8 +131,7 @@ class VolatilityFacade:
     def visualize_yearly_percentage_change(self):
         """Visualize yearly percentage changes using QQ plot and histogram"""
         self.visualize_percentage_change('yearly')
-    def sd():
-        pass
+
     def find_worst_returns(self, period='daily', k=None, threshold=None):
         """
         Find worst returns for a specific period either by count (k) or threshold
@@ -189,49 +188,6 @@ class VolatilityFacade:
         """Show recent daily returns"""
         print(self.daily_returns.tail(20))
 
-def black_scholes_put(
-        asset_price,
-        strike_price,
-        time_to_expiration,
-        risk_free_rate,
-        volatility
-):
-    """Calculate European put option price using Black-Scholes-Merton model
-    
-    Args:
-        asset_price: Current price of the underlying asset
-        strike_price: Option strike price
-        time_to_expiration: Time to expiration in years
-        risk_free_rate: Annual risk-free interest rate
-        volatility: Annualized volatility of underlying asset
-
-    Eurodollar futures traded at the Chicago Mercan-tile Exchange are often 
-    used to determine a benchmark interest rate.
-    """
-    # Calculate d1 component for option pricing
-    log_price_ratio = np.log(asset_price / strike_price)
-    risk_adjusted_return = (risk_free_rate + 0.5 * volatility**2)
-    d1_numerator = log_price_ratio + risk_adjusted_return * time_to_expiration
-    d1_denominator = volatility * np.sqrt(time_to_expiration)
-    d1 = d1_numerator / d1_denominator
-
-    # d2 is derived from d1 with volatility time adjustment
-    d2 = d1 - volatility * np.sqrt(time_to_expiration)
-
-    # Probability calculations for option exercise and delta hedging
-    prob_asset_price_above_strike = norm.cdf(-d2)
-    prob_delta_hedging = norm.cdf(-d1)
-
-    # Calculate put price components
-    discounted_strike = (
-        strike_price
-        * np.exp(-risk_free_rate * time_to_expiration)
-        * prob_asset_price_above_strike
-    )
-    asset_price_component = asset_price * prob_delta_hedging
-
-    put_price = discounted_strike - asset_price_component
-    return put_price
 
 if __name__ == "__main__":   
     ticker = "TQQQ"
