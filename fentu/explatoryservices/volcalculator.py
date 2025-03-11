@@ -231,92 +231,79 @@ def taleb_result3_put(S, K, T, r, sigma, liquidity_adj=0.0, jump_risk=0.0):
     
     return base_price + tail_risk_adj
 
-class WeeklyReturnAnalyzer:
-    """Base class for analyzing weekly returns distributions"""
+class RightWeeklyReturn:
     def __init__(self, ticker):
         self.ticker = ticker
-        self.returns = self._get_returns()
-        
-    def _get_returns(self):
-        """Get the specific tail of weekly returns based on subclass implementation"""
+        self.right_weekly_returns = self.get_right_tail_weekly_returns()
+
+    def get_right_tail_weekly_returns(self):
         volatility = VolatilityFacade(self.ticker)
         weekly_returns = volatility.weekly_returns
-        return self._filter_returns(weekly_returns)
-    
-    def _filter_returns(self, weekly_returns):
-        """Filter returns based on tail type - to be implemented by subclasses"""
-        raise NotImplementedError
-        
+        positive_returns = weekly_returns[weekly_returns > 0]
+        return positive_returns
+
     def fit_t_distribution_parameters(self):
-        """Fit t-distribution to the returns data"""
-        params = t.fit(self.returns)
+        params = t.fit(self.right_weekly_returns)
+        return params
+
+    def simulate_by_t_distribution_to_get_one_std(self):
+        params = self.fit_t_distribution_parameters()
+        n_times = 10000
+        sample_size = len(self.right_weekly_returns)
+        
+        one_std_weekly_returns = []
+        for _ in range(n_times):
+            # Generate samples from t-distribution using the fitted parameters
+
+            simulated_returns = t.rvs(*params, size=sample_size)
+            one_std_weekly_returns.append(np.std(simulated_returns))
+
+        expected_one_std_weekly_returns = np.mean(one_std_weekly_returns)
+        return expected_one_std_weekly_returns
+
+class LeftTailWeeklyReturnPlotter:
+    def __init__(self, ticker):
+        self.ticker = ticker
+        self.left_tail_weekly_returns = self.get_left_tail_weekly_returns()
+
+    def get_left_tail_weekly_returns(self):
+        volatility = VolatilityFacade(self.ticker)
+        weekly_returns = volatility.weekly_returns
+        negative_returns = weekly_returns[weekly_returns < 0]
+        return negative_returns
+
+    def fit_t_distribution_parameters(self):
+        params = t.fit(self.left_tail_weekly_returns)
         return params
     
-    def simulate_t_distribution(self, n_times=10000):
-        """Simulate returns using fitted t-distribution"""
+    def simulate_by_t_distribution_to_get_expected_minimal(self):
         params = self.fit_t_distribution_parameters()
-        sample_size = len(self.returns)
+        n_times = 10000
+        sample_size = len(self.left_tail_weekly_returns)
         
-        simulated_stats = []
+        min_weekly_returns = []
         for _ in range(n_times):
+            # Generate samples from t-distribution using the fitted parameters
+
             simulated_returns = t.rvs(*params, size=sample_size)
-            # Statistic calculation to be implemented by subclasses
-            stat = self._calculate_statistic(simulated_returns)
-            simulated_stats.append(stat)
-            
-        expected_value = np.mean(simulated_stats)
-        return expected_value
-    
-    def _calculate_statistic(self, returns):
-        """Calculate desired statistic from returns - to be implemented by subclasses"""
-        raise NotImplementedError
+            min_weekly_returns.append(np.min(simulated_returns))
 
-
-class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
-    """Analyzes the right (positive) tail of weekly returns distribution"""
-    
-    def _filter_returns(self, weekly_returns):
-        """Filter for positive returns (right tail)"""
-        return weekly_returns[weekly_returns > 0]
-    
-    def _calculate_statistic(self, returns):
-        """Calculate standard deviation for right tail distribution"""
-        return np.std(returns)
-    
-    def get_expected_standard_deviation(self):
-        """Get the expected standard deviation from simulated right tail returns"""
-        return self.simulate_t_distribution()
-
-
-class LeftTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
-    """Analyzes the left (negative) tail of weekly returns distribution"""
-    
-    def _filter_returns(self, weekly_returns):
-        """Filter for negative returns (left tail)"""
-        return weekly_returns[weekly_returns < 0]
-    
-    def _calculate_statistic(self, returns):
-        """Calculate minimum value for left tail distribution"""
-        return np.min(returns)
-    
-    def get_expected_minimum(self):
-        """Get the expected minimum from simulated left tail returns"""
-        return self.simulate_t_distribution()
+        expected_worst_weekly_returns = np.mean(min_weekly_returns)
+        assert expected_worst_weekly_returns < -0.4
+        return expected_worst_weekly_returns
     
     def plot(self):
-        """Plot the left tail distribution with expected minimum value"""
         # Get the expected worst weekly return from simulation
-        expected_worst = self.get_expected_minimum()
+        expected_worst = self.simulate_by_t_distribution_to_get_expected_minimal()
         
         params = self.fit_t_distribution_parameters()
-        historical_worst = self.returns.min()
-        print(f"Historical worst return: {historical_worst:.2%}")
-        
-        x = np.linspace(historical_worst, 0.1, 100)  # Only plot up to 0.1
+        historical_worst = self.left_tail_weekly_returns.min()
+        print(historical_worst)
+        x = np.linspace(historical_worst, 0.1, 100)  # Only plot up to 0
         pdf = t.pdf(x, *params)
         
         plt.hist(
-            self.returns, 
+            self.left_tail_weekly_returns, 
             bins=100, 
             density=True, 
             alpha=0.6, 
@@ -343,40 +330,28 @@ class LeftTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
         plt.show()
         plt.savefig("figures/historical_min_vs_expected_min.jpg")
         plt.close()
+ 
 
 def black_scholes_prob(S, K, T, r, sigma):
     d2 = (np.log(S/K) + (r - 0.5*sigma**2)*T) / (sigma*np.sqrt(T))
     return norm.cdf(d2)
 
-if __name__ == "__main__":
-    ticker = "TQQQ"
-    
-    # Analyze right tail (positive) returns
-    right_tail_analyzer = RightTailWeeklyReturnAnalyzer(ticker)
-    expected_std = right_tail_analyzer.get_expected_standard_deviation()
-    print(f"Expected standard deviation of positive weekly returns: {expected_std:.4f}")
-    
-    # Analyze left tail (negative) returns
-    left_tail_analyzer = LeftTailWeeklyReturnAnalyzer(ticker)
-    expected_min = left_tail_analyzer.get_expected_minimum()
-    print(f"Expected minimum weekly return: {expected_min:.2%}")
-    
-    # Visualize the left tail distribution
-    left_tail_analyzer.plot()
-    
-    # Analyze overall volatility
-    volatility = VolatilityFacade(ticker)
+if __name__ == "__main__":   
+    volatility = VolatilityFacade("TQQQ")
     volatility.visualize_weekly_percentage_change()
-    
-    # Uncomment any of the following lines to see additional analyses
     # print(volatility.find_worst_k_weeks())
-    # volatility.visualize_daily_percentage_change()
-    # print(volatility.calculate_daily_volatility())
-    # volatility.visualize_monthly_percentage_change()
-    # volatility.visualize_yearly_percentage_change()
-    # print(volatility.find_worst_k_days(k=5))
-    # print(volatility.find_worst_months(threshold=-0.3))
-    # print(volatility.find_worst_k_months(k=30))
-    # print(volatility.find_worst_k_years(k=3))
-    # calendar_returns = volatility.get_calendar_year_returns(ticker)
-    # print(calendar_returns)
+    # volatility.visualize_weekly_percentage_change()
+    #print(volatility.daily_returns)
+    #volatility.visualize_daily_percentage_change()
+    #volatility.calculate_daily_volatility()
+    #volatility.visualize_monthly_percentage_change()
+    #volatility.visualize_yearly_percentage_change()
+
+    #volatility.show_today_return()
+    #print(volatility.find_worst_k_days(k=5))
+    #print(volatility.find_worst_months(threshold=-0.3))    
+    #print(volatility.find_worst_k_months(k=30))
+    #print(volatility.find_worst_k_years(k=3))
+    # Calendar year Return Check
+    #calendar_returns = volatility.get_calendar_year_returns("UVXY")
+    #print(calendar_returns)
