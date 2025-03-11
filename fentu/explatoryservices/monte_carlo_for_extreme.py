@@ -78,7 +78,7 @@ class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
         
         # Sort the simulated standard deviations and find the 0.5 quantile
         simulated_stds.sort()
-        half_std_index = int(0.5 * len(simulated_stds))
+        half_std_index = int(0.3 * len(simulated_stds))
         return simulated_stds[half_std_index]
 
 
