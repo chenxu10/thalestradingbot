@@ -5,7 +5,7 @@ from fentu.explatoryservices.volcalculator import VolatilityFacade
 
 def find_std_crossover_point(ticker, start=0.1, end=1.5, step=0.05, n_times=10000, filter_returns=None):
     """
-    Find the quantile where the expected standard deviation crosses below historical standard deviation.
+    Find all quantiles where the expected standard deviation crosses below historical standard deviation.
     
     Args:
         ticker (str): The stock ticker symbol
@@ -16,14 +16,14 @@ def find_std_crossover_point(ticker, start=0.1, end=1.5, step=0.05, n_times=1000
         filter_returns (callable, optional): Function to filter returns data
         
     Returns:
-        tuple: (crossover_quantile, expected_std, historical_std)
-              If no crossover is found, returns (None, None, historical_std)
+        list: List of tuples (quantile, expected_std, historical_std) for all crossover points
+              If no crossover is found, returns empty list
     """
     analyzer = RightTailWeeklyReturnAnalyzer(ticker)
     if filter_returns:
         analyzer.returns = filter_returns(analyzer.returns)
     
-    return analyzer.find_crossover_quantile(start, end, step, n_times)
+    return analyzer.find_all_crossover_quantiles(start, end, step, n_times)
 
 
 class WeeklyReturnAnalyzer:
@@ -107,9 +107,38 @@ class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
         quantile_index = int(quantile * len(simulated_stds))
         return simulated_stds[quantile_index]
     
+    def find_all_crossover_quantiles(self, start=0.1, end=1.5, step=0.05, n_times=10000):
+        """
+        Find all quantiles where the expected standard deviation is less than historical standard deviation.
+        
+        Args:
+            start (float): Starting quantile for search
+            end (float): Ending quantile for search
+            step (float): Step size for quantile increments
+            n_times (int): Number of simulations for each quantile
+            
+        Returns:
+            list: List of tuples (quantile, expected_std, historical_std) for all crossover points
+                 If no crossover is found, returns empty list
+        """
+        historical_std = np.std(self.returns)
+        crossover_points = []
+        
+        # Calculate standard deviations at various quantiles
+        quantiles = np.arange(start, end + step, step)
+        for q in quantiles:
+            expected_std = self.get_quantile_standard_deviation(q, n_times)
+            print(f"Quantile {q:.2f}: Expected Std = {expected_std:.4f}, Historical Std = {historical_std:.4f}")
+            
+            # Check if this quantile crosses the threshold
+            if expected_std < historical_std:
+                crossover_points.append((q, expected_std, historical_std))
+        
+        return crossover_points
+    
     def find_crossover_quantile(self, start=0.1, end=1.5, step=0.05, n_times=10000):
         """
-        Find the quantile where the expected standard deviation crosses below historical standard deviation.
+        Find the first quantile where the expected standard deviation crosses below historical standard deviation.
         
         Args:
             start (float): Starting quantile for search
@@ -122,13 +151,11 @@ class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
                   If no crossover is found, returns (None, None, historical_std)
         """
         historical_std = np.std(self.returns)
-        results = []
         
         # Calculate standard deviations at various quantiles
         quantiles = np.arange(start, end + step, step)
         for q in quantiles:
             expected_std = self.get_quantile_standard_deviation(q, n_times)
-            results.append((q, expected_std))
             print(f"Quantile {q:.2f}: Expected Std = {expected_std:.4f}, Historical Std = {historical_std:.4f}")
             
             # Check if we've crossed the threshold
@@ -217,17 +244,16 @@ if __name__ == "__main__":
     print(f"Expected standard deviation of weekly returns: {expected_std:.4f}")
     print(f"Historical standard deviation of weekly returns: {historical_std:.4f}")
 
-    # Find the crossover point where expected_std < historical_std
-    # Using the standalone function
-    print("\nSearching for crossover point...")
-    crossover_q, crossover_std, hist_std = find_std_crossover_point(
-        ticker, start=0, end=3, step=0.05)
+    # Find all crossover points where expected_std < historical_std
+    print("\nSearching for all crossover points...")
+    crossover_points = find_std_crossover_point(ticker, start=0, end=0.95, step=0.05)
     
-    if crossover_q is not None:
-        print(f"\nCrossover found at quantile {crossover_q:.2f}")
-        print(f"At this quantile, expected std ({crossover_std:.4f}) < historical std ({hist_std:.4f})")
+    if crossover_points:
+        print(f"\nFound {len(crossover_points)} crossover points:")
+        for q, exp_std, hist_std in crossover_points:
+            print(f"Quantile {q:.2f}: Expected Std = {exp_std:.4f}, Historical Std = {hist_std:.4f}")
     else:
-        print("\nNo crossover found in the specified range.")
+        print("\nNo crossover points found in the specified range.")
     
     # Analyze left tail (negative) returns
     #left_tail_analyzer = LeftTailWeeklyReturnAnalyzer(ticker)
