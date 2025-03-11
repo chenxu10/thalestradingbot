@@ -60,13 +60,16 @@ class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
         """Get the expected standard deviation from simulated right tail returns"""
         return self.simulate_t_distribution()
     
-    def get_half_standard_deviation(self, n_times=10000):
+    def get_quantile_standard_deviation(self, quantile, n_times=10000):
         """
-        Calculate 0.5std through simulation.
+        Calculate a specific quantile of standard deviation through simulation.
         
-        Instead of multiplying the full standard deviation by 0.5,
-        this method simulates returns and calculates the 0.5 quantile
-        of the empirical standard deviation distribution.
+        Args:
+            quantile (float): The quantile to find (between 0 and 1)
+            n_times (int): Number of simulations to run
+            
+        Returns:
+            float: The standard deviation at the specified quantile
         """
         params = self.fit_t_distribution_parameters()
         sample_size = len(self.returns)
@@ -76,10 +79,51 @@ class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
             simulated_returns = t.rvs(*params, size=sample_size)
             simulated_stds.append(np.std(simulated_returns))
         
-        # Sort the simulated standard deviations and find the 0.5 quantile
+        # Sort the simulated standard deviations and find the specified quantile
         simulated_stds.sort()
-        half_std_index = int(0.9 * len(simulated_stds))
-        return simulated_stds[half_std_index]
+        quantile_index = int(quantile * len(simulated_stds))
+        return simulated_stds[quantile_index]
+    
+    def find_crossover_quantile(self, start=0.1, end=1.5, step=0.05, n_times=10000):
+        """
+        Find the quantile where the expected standard deviation crosses below historical standard deviation.
+        
+        Args:
+            start (float): Starting quantile for search
+            end (float): Ending quantile for search
+            step (float): Step size for quantile increments
+            n_times (int): Number of simulations for each quantile
+            
+        Returns:
+            tuple: (crossover_quantile, expected_std, historical_std)
+                  If no crossover is found, returns (None, None, historical_std)
+        """
+        historical_std = np.std(self.returns)
+        results = []
+        
+        # Calculate standard deviations at various quantiles
+        quantiles = np.arange(start, end + step, step)
+        for q in quantiles:
+            expected_std = self.get_quantile_standard_deviation(q, n_times)
+            results.append((q, expected_std))
+            print(f"Quantile {q:.2f}: Expected Std = {expected_std:.4f}, Historical Std = {historical_std:.4f}")
+            
+            # Check if we've crossed the threshold
+            if expected_std < historical_std:
+                return q, expected_std, historical_std
+        
+        # If we reached here, no crossover was found
+        return None, None, historical_std
+    
+    def get_half_standard_deviation(self, n_times=10000):
+        """
+        Calculate 0.5std through simulation.
+        
+        Instead of multiplying the full standard deviation by 0.5,
+        this method simulates returns and calculates the 0.5 quantile
+        of the empirical standard deviation distribution.
+        """
+        return self.get_quantile_standard_deviation(0.9, n_times)
 
 
 class LeftTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
@@ -145,18 +189,29 @@ if __name__ == "__main__":
     # Analyze right tail (positive) returns
     right_tail_analyzer = RightTailWeeklyReturnAnalyzer(ticker)
     expected_std = right_tail_analyzer.get_expected_standard_deviation()
-    print(f"Expected standard deviation of weekly returns: {expected_std:.4f}")
-
     historical_std = np.std(right_tail_analyzer.returns)
+    
+    print(f"Expected standard deviation of weekly returns: {expected_std:.4f}")
     print(f"Historical standard deviation of weekly returns: {historical_std:.4f}")
     
-    # Calculate 0.5 standard deviation through simulation
-    half_std = right_tail_analyzer.get_half_standard_deviation()
+    # Calculate 0.9 quantile standard deviation through simulation
+    quantile_std = right_tail_analyzer.get_half_standard_deviation()
     print(f"\nStandard deviation values:")
     print(f"Expected full std: {expected_std:.4f}")
-    print(f"Expected 0.5 quantile std (from simulation): {half_std:.4f}")
+    print(f"Expected 0.9 quantile std (from simulation): {quantile_std:.4f}")
     print(f"Historical std: {historical_std:.4f}")
-    print(f"Ratio (Historical/0.5 quantile): {historical_std/half_std:.4f}")
+    print(f"Ratio (Historical/0.9 quantile): {historical_std/quantile_std:.4f}")
+    
+    # Find the crossover point where expected_std < historical_std
+    print("\nSearching for crossover point...")
+    crossover_q, crossover_std, hist_std = right_tail_analyzer.find_crossover_quantile(
+        start=0.1, end=1.5, step=0.05)
+    
+    if crossover_q is not None:
+        print(f"\nCrossover found at quantile {crossover_q:.2f}")
+        print(f"At this quantile, expected std ({crossover_std:.4f}) < historical std ({hist_std:.4f})")
+    else:
+        print("\nNo crossover found in the specified range.")
     
     # Analyze left tail (negative) returns
     #left_tail_analyzer = LeftTailWeeklyReturnAnalyzer(ticker)
