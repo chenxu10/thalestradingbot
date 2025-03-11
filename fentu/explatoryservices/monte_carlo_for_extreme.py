@@ -59,6 +59,27 @@ class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
     def get_expected_standard_deviation(self):
         """Get the expected standard deviation from simulated right tail returns"""
         return self.simulate_t_distribution()
+    
+    def get_half_standard_deviation(self, n_times=10000):
+        """
+        Calculate 0.5std through simulation.
+        
+        Instead of multiplying the full standard deviation by 0.5,
+        this method simulates returns and calculates the 0.5 quantile
+        of the empirical standard deviation distribution.
+        """
+        params = self.fit_t_distribution_parameters()
+        sample_size = len(self.returns)
+        
+        simulated_stds = []
+        for _ in range(n_times):
+            simulated_returns = t.rvs(*params, size=sample_size)
+            simulated_stds.append(np.std(simulated_returns))
+        
+        # Sort the simulated standard deviations and find the 0.5 quantile
+        simulated_stds.sort()
+        half_std_index = int(0.5 * len(simulated_stds))
+        return simulated_stds[half_std_index]
 
 
 class LeftTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
@@ -128,6 +149,14 @@ if __name__ == "__main__":
 
     historical_std = np.std(right_tail_analyzer.returns)
     print(f"Historical standard deviation of weekly returns: {historical_std:.4f}")
+    
+    # Calculate 0.5 standard deviation through simulation
+    half_std = right_tail_analyzer.get_half_standard_deviation()
+    print(f"\nStandard deviation values:")
+    print(f"Expected full std: {expected_std:.4f}")
+    print(f"Expected 0.5 quantile std (from simulation): {half_std:.4f}")
+    print(f"Historical std: {historical_std:.4f}")
+    print(f"Ratio (Historical/0.5 quantile): {historical_std/half_std:.4f}")
     
     # Analyze left tail (negative) returns
     #left_tail_analyzer = LeftTailWeeklyReturnAnalyzer(ticker)
