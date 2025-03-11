@@ -200,21 +200,28 @@ def black_scholes_put(
     return put_price
 
 if __name__ == "__main__":   
-    volatility = VolatilityFacade("TQQQ")
+    ticker = "TQQQ"
+    volatility = VolatilityFacade(ticker)
+    
+    # Visualize different time-frame return distributions
     volatility.visualize_weekly_percentage_change()
-    # print(volatility.find_worst_k_weeks())
-    # volatility.visualize_weekly_percentage_change()
-    #print(volatility.daily_returns)
-    #volatility.visualize_daily_percentage_change()
-    #volatility.calculate_daily_volatility()
-    #volatility.visualize_monthly_percentage_change()
-    #volatility.visualize_yearly_percentage_change()
-
-    #volatility.show_today_return()
-    #print(volatility.find_worst_k_days(k=5))
-    #print(volatility.find_worst_months(threshold=-0.3))    
-    #print(volatility.find_worst_k_months(k=30))
-    #print(volatility.find_worst_k_years(k=3))
-    # Calendar year Return Check
-    #calendar_returns = volatility.get_calendar_year_returns("UVXY")
-    #print(calendar_returns)
+    # volatility.visualize_daily_percentage_change()
+    # volatility.visualize_monthly_percentage_change()
+    # volatility.visualize_yearly_percentage_change()
+    
+    # Calculate volatility metrics
+    # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
+    
+    # Find extreme returns
+    # print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
+    # print(f"Worst days: {volatility.find_worst_k_days(k=5)}")
+    # print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
+    # print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
+    # print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")
+    
+    # Show recent returns
+    # volatility.show_today_return()
+    
+    # Calculate calendar year returns
+    # calendar_returns = volatility.get_calendar_year_returns(ticker)
+    # print(calendar_returns)
