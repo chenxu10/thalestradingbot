@@ -3,6 +3,29 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm, t
 from fentu.explatoryservices.volcalculator import VolatilityFacade
 
+def find_std_crossover_point(ticker, start=0.1, end=1.5, step=0.05, n_times=10000, filter_returns=None):
+    """
+    Find the quantile where the expected standard deviation crosses below historical standard deviation.
+    
+    Args:
+        ticker (str): The stock ticker symbol
+        start (float): Starting quantile for search
+        end (float): Ending quantile for search
+        step (float): Step size for quantile increments
+        n_times (int): Number of simulations for each quantile
+        filter_returns (callable, optional): Function to filter returns data
+        
+    Returns:
+        tuple: (crossover_quantile, expected_std, historical_std)
+              If no crossover is found, returns (None, None, historical_std)
+    """
+    analyzer = RightTailWeeklyReturnAnalyzer(ticker)
+    if filter_returns:
+        analyzer.returns = filter_returns(analyzer.returns)
+    
+    return analyzer.find_crossover_quantile(start, end, step, n_times)
+
+
 class WeeklyReturnAnalyzer:
     """Base class for analyzing weekly returns distributions"""
     def __init__(self, ticker):
@@ -194,12 +217,11 @@ if __name__ == "__main__":
     print(f"Expected standard deviation of weekly returns: {expected_std:.4f}")
     print(f"Historical standard deviation of weekly returns: {historical_std:.4f}")
 
-    
     # Find the crossover point where expected_std < historical_std
-    # Find the gaogu under 0.29
+    # Using the standalone function
     print("\nSearching for crossover point...")
-    crossover_q, crossover_std, hist_std = right_tail_analyzer.find_crossover_quantile(
-        start=0.25, end=1.5, step=0.05)
+    crossover_q, crossover_std, hist_std = find_std_crossover_point(
+        ticker, start=0.25, end=1.5, step=0.05)
     
     if crossover_q is not None:
         print(f"\nCrossover found at quantile {crossover_q:.2f}")
