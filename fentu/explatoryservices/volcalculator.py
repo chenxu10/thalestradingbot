@@ -244,8 +244,8 @@ if __name__ == "__main__":
     volatility = VolatilityFacade(ticker)
     
     # Visualize different time-frame return distributions
-    volatility.visualize_weekly_percentage_change()
-    # volatility.visualize_daily_percentage_change()
+    #volatility.visualize_weekly_percentage_change()
+    volatility.visualize_daily_percentage_change()
     # volatility.visualize_monthly_percentage_change()
     # volatility.visualize_yearly_percentage_change()
     
