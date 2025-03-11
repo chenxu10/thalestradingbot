@@ -221,7 +221,7 @@ if __name__ == "__main__":
     # Using the standalone function
     print("\nSearching for crossover point...")
     crossover_q, crossover_std, hist_std = find_std_crossover_point(
-        ticker, start=0.25, end=1.5, step=0.05)
+        ticker, start=0, end=3, step=0.05)
     
     if crossover_q is not None:
         print(f"\nCrossover found at quantile {crossover_q:.2f}")
