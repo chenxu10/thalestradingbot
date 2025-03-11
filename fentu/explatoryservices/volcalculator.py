@@ -131,7 +131,8 @@ class VolatilityFacade:
     def visualize_yearly_percentage_change(self):
         """Visualize yearly percentage changes using QQ plot and histogram"""
         self.visualize_percentage_change('yearly')
-    
+    def sd():
+        pass
     def find_worst_returns(self, period='daily', k=None, threshold=None):
         """
         Find worst returns for a specific period either by count (k) or threshold
