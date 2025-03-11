@@ -99,13 +99,6 @@ class VolatilityFacade:
         prices = self._get_prices(instrument)
         returns = prices.pct_change(period_length)[period_length:]
         return returns
-
-    def get_past_five_days(self, instrument=None):
-        instrument = instrument or self.instrument
-        instrument_obj = yf.Ticker(instrument)
-        instru_hist = instrument_obj.history(period="max")
-        prices = instru_hist['Close']
-        return prices.tail(5)
     
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
