@@ -260,8 +260,8 @@ if __name__ == "__main__":
     # print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")
     
     # Show recent returns
-    # volatility.show_today_return()
+    volatility.show_today_return()
     
     # Calculate calendar year returns
-    # calendar_returns = volatility.get_calendar_year_returns(ticker)
-    # print(calendar_returns)
+    calendar_returns = volatility.get_calendar_year_returns(ticker)
+    print(calendar_returns)
