@@ -34,11 +34,18 @@ class VolatilityFacade:
     This class gets daily percentage change of an instrument
     """
     def __init__(self, instrument):
+        self.instrument = instrument
         self.daily_returns = self._get_returns(instrument, 1)
         self.weekly_returns = self._get_returns(instrument, 5)
         self.monthly_returns = self._get_returns(instrument, 21)
         self.yearly_returns = self._get_returns(instrument, 252)
         self.daily_volatility = DailyVolatility()
+        self.return_periods = {
+            'daily': self.daily_returns,
+            'weekly': self.weekly_returns,
+            'monthly': self.monthly_returns,
+            'yearly': self.yearly_returns
+        }
 
     def _get_prices(self, instrument):
         instrument = yf.Ticker(instrument)
@@ -46,12 +53,13 @@ class VolatilityFacade:
         prices = instru_hist['Close']
         return prices
     
-    def get_calendar_year_returns(self, instrument):
+    def get_calendar_year_returns(self, instrument=None):
         """
         Calculate returns for each calendar year from 2003 to present.
         Returns a DataFrame with yearly returns where each return represents
         buying on Jan 1st and selling on Dec 31st of the same year.
         """
+        instrument = instrument or self.instrument
         prices = self._get_prices(instrument)
         
         # Create empty list to store yearly returns
@@ -92,67 +100,99 @@ class VolatilityFacade:
         returns = prices.pct_change(period_length)[period_length:]
         return returns
 
-    def get_past_five_days(self, instrument):
-        instrument = yf.Ticker(instrument)
-        instru_hist = instrument.history(period="max")
+    def get_past_five_days(self, instrument=None):
+        instrument = instrument or self.instrument
+        instrument_obj = yf.Ticker(instrument)
+        instru_hist = instrument_obj.history(period="max")
         prices = instru_hist['Close']
         return prices.tail(5)
     
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
     
-    def _visualize_percentage_change(self, returns_data):
+    def visualize_percentage_change(self, period='daily'):
         """
-        Helper method to visualize percentage changes
+        Visualize percentage changes for a specific period using QQ plot and histogram
         Args:
-            returns_data: DataFrame containing the returns data to visualize
+            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
         """
+        if period not in self.return_periods:
+            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
+        
+        returns_data = self.return_periods[period]
         ps.qq_plot(returns_data)
         ps.histgram_plot(returns_data)
 
     def visualize_daily_percentage_change(self):
-        """
-        Visualize daily percentage changes using QQ plot and histogram
-        """
-        self._visualize_percentage_change(self.daily_returns)
+        """Visualize daily percentage changes using QQ plot and histogram"""
+        self.visualize_percentage_change('daily')
     
     def visualize_weekly_percentage_change(self):
-        """
-        Visualize weekly percentage changes using QQ plot and histogram
-        """
-        self._visualize_percentage_change(self.weekly_returns)
+        """Visualize weekly percentage changes using QQ plot and histogram"""
+        self.visualize_percentage_change('weekly')
     
     def visualize_monthly_percentage_change(self):
-        """
-        Visualize monthly percentage changes using QQ plot and histogram
-        """
-        self._visualize_percentage_change(self.monthly_returns)
+        """Visualize monthly percentage changes using QQ plot and histogram"""
+        self.visualize_percentage_change('monthly')
 
     def visualize_yearly_percentage_change(self):
+        """Visualize yearly percentage changes using QQ plot and histogram"""
+        self.visualize_percentage_change('yearly')
+    
+    def find_worst_returns(self, period='daily', k=None, threshold=None):
         """
-        Visualize yearly percentage changes using QQ plot and histogram
+        Find worst returns for a specific period either by count (k) or threshold
+        
+        Args:
+            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+            k: int, number of worst returns to find (mutually exclusive with threshold)
+            threshold: float, threshold below which returns are considered "worst"
+        
+        Returns:
+            pandas.Series: Filtered returns sorted from worst to best
         """
-        self._visualize_percentage_change(self.yearly_returns)
+        if period not in self.return_periods:
+            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
+            
+        returns = self.return_periods[period]
+        
+        if k is not None and threshold is not None:
+            raise ValueError("Please specify either k or threshold, not both")
+        
+        if k is not None:
+            return returns.sort_values().head(k)
+        
+        if threshold is not None:
+            return returns.loc[returns < threshold].sort_values()
+            
+        raise ValueError("Either k or threshold must be specified")
     
-    def find_worst_k_days(self,k=20):
-        return self.daily_returns.sort_values().head(k)
+    def find_worst_k_days(self, k=20):
+        """Find k worst daily returns"""
+        return self.find_worst_returns(period='daily', k=k)
     
-    def find_worst_k_months(self,k=3):
-        return self.monthly_returns.sort_values().head(k)
+    def find_worst_k_weeks(self, k=3):
+        """Find k worst weekly returns"""
+        return self.find_worst_returns(period='weekly', k=k)
     
-    def find_worst_k_years(self,k=3):
-        return self.yearly_returns.sort_values().head(k)
+    def find_worst_k_months(self, k=3):
+        """Find k worst monthly returns"""
+        return self.find_worst_returns(period='monthly', k=k)
+    
+    def find_worst_k_years(self, k=3):
+        """Find k worst yearly returns"""
+        return self.find_worst_returns(period='yearly', k=k)
 
-    def find_worst_k_weeks(self,k=3):
-        return self.weekly_returns.sort_values().head(k)
-
-    def find_worst_weeks(self,threshold=-0.1):
-        return self.weekly_returns.loc[self.weekly_returns < threshold]
+    def find_worst_weeks(self, threshold=-0.1):
+        """Find weekly returns below threshold"""
+        return self.find_worst_returns(period='weekly', threshold=threshold)
     
-    def find_worst_months(self,threshold=-0.2):
-        return self.monthly_returns.loc[self.monthly_returns < threshold]
+    def find_worst_months(self, threshold=-0.2):
+        """Find monthly returns below threshold"""
+        return self.find_worst_returns(period='monthly', threshold=threshold)
 
     def show_today_return(self):
+        """Show recent daily returns"""
         print(self.daily_returns.tail(20))
 
 def black_scholes_put(
