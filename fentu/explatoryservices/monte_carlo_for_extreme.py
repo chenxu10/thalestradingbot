@@ -49,7 +49,8 @@ class RightTailWeeklyReturnAnalyzer(WeeklyReturnAnalyzer):
     
     def _filter_returns(self, weekly_returns):
         """Filter for positive returns (right tail)"""
-        return weekly_returns[weekly_returns > 0]
+        return weekly_returns
+        #return weekly_returns[weekly_returns > 0]
     
     def _calculate_statistic(self, returns):
         """Calculate standard deviation for right tail distribution"""
