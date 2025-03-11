@@ -355,8 +355,6 @@ if __name__ == "__main__":
     # # 70 - 76 
     # pnl_in_1std = 100 * (1 - probability_larger_than_K_sell)
     # print("Scenario 2 take 1std to 2std risk exposure is {}".format(pnl_in_1std))
-
-
     
     rightwr = RightWeeklyReturn("TQQQ")
     print(rightwr.simulate_by_t_distribution_to_get_one_std())
