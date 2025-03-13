@@ -1,12 +1,13 @@
 
 
 def fit_stable_distribution(weekly_changes):
+    
     alpha = 1
     beta = 0.5
     return alpha, beta
 
 def test_fit_stable_distribution():
-    weekly_changes = []
+    weekly_changes = [-0.13,-0.10,-0.07,-0.10,-0.14,-0.14]
     expected_alpha, expected_beta = fit_stable_distribution(weekly_changes) 
     assert expected_alpha == 1
     assert expected_beta == 0.5
