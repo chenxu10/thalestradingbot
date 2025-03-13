@@ -62,7 +62,7 @@ def test_fit_stable_distribution():
     assert -1 <= beta <= 1, f"Invalid beta: {beta}"
     
     # Generate visualization (commented out for CI/CD)
-    # plot_stable_fit(weekly_changes)  # Uncomment to see plot
+    plot_stable_fit(weekly_changes)  # Uncomment to see plot
 
 if __name__ == "__main__":
     test_fit_stable_distribution()
