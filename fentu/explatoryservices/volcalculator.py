@@ -192,7 +192,7 @@ class VolatilityFacade:
 if __name__ == "__main__":   
     ticker = "TQQQ"
     volatility = VolatilityFacade(ticker)
-    print(volatility.weekly_returns[:5])
+    print(volatility.weekly_returns[-10:])
     
     # Visualize different time-frame return distributions
     #volatility.visualize_weekly_percentage_change()
