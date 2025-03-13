@@ -192,10 +192,11 @@ class VolatilityFacade:
 if __name__ == "__main__":   
     ticker = "TQQQ"
     volatility = VolatilityFacade(ticker)
+    print(volatility.weekly_returns)
     
     # Visualize different time-frame return distributions
     #volatility.visualize_weekly_percentage_change()
-    volatility.visualize_daily_percentage_change()
+    #volatility.visualize_daily_percentage_change()
     # volatility.visualize_monthly_percentage_change()
     # volatility.visualize_yearly_percentage_change()
     
@@ -203,15 +204,15 @@ if __name__ == "__main__":
     # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
     
     # Find extreme returns
-    print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
+    #print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
     # print(f"Worst days: {volatility.find_worst_k_days(k=5)}")
     # print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
     # print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
     # print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")
     
     # Show recent returns
-    volatility.show_today_return()
+    #volatility.show_today_return()
     
     # Calculate calendar year returns
-    calendar_returns = volatility.get_calendar_year_returns(ticker)
-    print(calendar_returns)
+    #calendar_returns = volatility.get_calendar_year_returns(ticker)
+    #print(calendar_returns)
