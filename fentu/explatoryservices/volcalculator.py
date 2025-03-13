@@ -190,9 +190,9 @@ class VolatilityFacade:
 
 
 if __name__ == "__main__":   
-    ticker = "TQQQ"
+    ticker = "QQQ"
     volatility = VolatilityFacade(ticker)
-    print(volatility.weekly_returns[-10:])
+    #print(volatility.weekly_returns[-10:])
     
     # Visualize different time-frame return distributions
     #volatility.visualize_weekly_percentage_change()
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
     
     # Find extreme returns
-    #print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
+    print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
     # print(f"Worst days: {volatility.find_worst_k_days(k=5)}")
     # print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
     # print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
