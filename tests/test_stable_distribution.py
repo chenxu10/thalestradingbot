@@ -11,7 +11,6 @@ def test_fit_stable_distribution():
     assert 0 < alpha <= 2, f"Invalid alpha: {alpha}"
     assert -1 <= beta <= 1, f"Invalid beta: {beta}"
     
-    # Generate visualization (commented out for CI/CD)
 
 if __name__ == "__main__":
     weekly_changes = [-0.13,-0.10,-0.07,-0.10,-0.14,-0.14]
