@@ -5,7 +5,6 @@ def fit_stable_distribution(weekly_changes):
     beta = 0.5
     return alpha, beta
 
-
 def test_fit_stable_distribution():
     weekly_changes = []
     expected_alpha, expected_beta = fit_stable_distribution(weekly_changes) 
