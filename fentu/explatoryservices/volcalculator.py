@@ -190,7 +190,7 @@ class VolatilityFacade:
 
 
 if __name__ == "__main__":   
-    ticker = "QQQ"
+    ticker = "YINN"
     volatility = VolatilityFacade(ticker)
     #print(volatility.weekly_returns[-10:])
     
