@@ -216,11 +216,15 @@ if __name__ == "__main__":
     
     # Calculate calendar year returns
     calendar_returns = volatility.get_calendar_year_returns(ticker)
+    calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
     print(calendar_returns)
 
     ticker = "TMF"
     volatility = VolatilityFacade(ticker)
-    calendar_returns = volatility.get_calendar_year_returns(ticker)
-    print(calendar_returns)
+    tmf_calendar_returns = volatility.get_calendar_year_returns(ticker)
+    tmf_calendar_returns['TMF'] = tmf_calendar_returns['Close']
+    calendar_returns['TMF'] = tmf_calendar_returns['TMF']
+    print(tmf_calendar_returns)
+    
 
 
