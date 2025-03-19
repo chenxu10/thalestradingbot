@@ -217,3 +217,10 @@ if __name__ == "__main__":
     # Calculate calendar year returns
     calendar_returns = volatility.get_calendar_year_returns(ticker)
     print(calendar_returns)
+
+    ticker = "TMF"
+    volatility = VolatilityFacade(ticker)
+    calendar_returns = volatility.get_calendar_year_returns(ticker)
+    print(calendar_returns)
+
+
