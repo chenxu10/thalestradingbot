@@ -190,8 +190,9 @@ class VolatilityFacade:
 
 
 if __name__ == "__main__":   
-    ticker = "TLT"
+    ticker = "TQQQ"
     volatility = VolatilityFacade(ticker)
+    print(volatility.daily_returns[-10:])
     #print(volatility.weekly_returns[-10:])
     
     # Visualize different time-frame return distributions
@@ -215,9 +216,9 @@ if __name__ == "__main__":
     #volatility.show_today_return()
     
     # Calculate calendar year returns
-    calendar_returns = volatility.get_calendar_year_returns(ticker)
-    calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
-    print(calendar_returns)
+    # calendar_returns = volatility.get_calendar_year_returns(ticker)
+    # calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
+    # print(calendar_returns)
     
 
 
