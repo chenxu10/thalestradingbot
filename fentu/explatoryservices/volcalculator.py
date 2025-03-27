@@ -199,7 +199,7 @@ if __name__ == "__main__":
     #volatility.visualize_weekly_percentage_change()
     #volatility.visualize_daily_percentage_change()
     # volatility.visualize_monthly_percentage_change()
-    volatility.visualize_yearly_percentage_change()
+    #volatility.visualize_yearly_percentage_change()
     
     # Calculate volatility metrics
     # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
