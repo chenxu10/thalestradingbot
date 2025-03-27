@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 
+# 什么是逃生套利时机？
+# 赚到多少可以逃生？
+
 @dataclass
 class OptionTicket:
     option_type: str
