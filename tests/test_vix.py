@@ -8,6 +8,8 @@ class OptionTicket:
     current_market_price: float
 
 def calculate_uvxy_otm_put_exp_return(uvxy_year_change, option_ticket):
+    current_market_price = option_ticket.current_market_price
+    strike_price = option_ticket.strike_price
     return 4000
 
 
