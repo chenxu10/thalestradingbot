@@ -18,7 +18,7 @@ def calculate_uvxy_otm_put_exp_return(uvxy_year_change, option_ticket):
 
 
 def test_calculate_uvxy_otm_put():
-    option_ticket = OptionTicket('Put','2026-01-01',3, 20.57)
+    option_ticket = OptionTicket('Put','2026-01-01',10, 21.03)
     principle = 10000
     historical_uvxy_yearly_change = [-0.5,-0.87,-0.41,-0.89,-0.12,-0.83,0.72,-0.93]
     uxvy_year_expected_return = calculate_uvxy_otm_put_exp_return(
