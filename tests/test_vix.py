@@ -10,10 +10,13 @@ class OptionTicket:
 def calculate_uvxy_otm_put_exp_return(uvxy_year_change, option_ticket):
     current_market_price = option_ticket.current_market_price
     strike_price = option_ticket.strike_price
-    year_end_return = [
+    year_end_absolute_return = [
         max(strike_price - current_market_price * (1 + i),0) * 100 for i in uvxy_year_change
     ]
-    print(year_end_return)
+    year_end_relative_return = [
+        i/10000 for i in  year_end_absolute_return
+    ]
+    print(year_end_relative_return)
     return 4000
 
 
