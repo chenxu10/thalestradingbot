@@ -5,7 +5,7 @@ class OptionTicket:
     option_type: str
     expiration: str
     strike_price: float
-    current_underlying_price: float
+    current_market_price: float
 
 def calculate_uvxy_otm_put_exp_return(uvxy_year_change, option_ticket):
     return 4000
