@@ -17,8 +17,7 @@ def calculate_uvxy_otm_put_exp_return(uvxy_year_change, option_ticket):
     cost_of_option = option_ticket.cost_of_option
     year_end_absolute_return = [
         max(strike_price - current_market_price * (1 + i),0) * 100 for i in uvxy_year_change
-    ]
-    print(year_end_absolute_return)
+]
     year_end_relative_return = [
         i/(cost_of_option * 100) for i in  year_end_absolute_return
     ]
