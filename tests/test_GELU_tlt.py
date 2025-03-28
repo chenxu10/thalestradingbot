@@ -28,24 +28,26 @@ def otm_puts_pl(price):
     else:
         return (put_strike - price) * num_puts - (num_puts * put_premium)
 
-# Calculate total P/L for the combined strategy
-total_pl = []
-for price in price_range:
-    cc_pl = covered_call_pl(price)
-    op_pl = otm_puts_pl(price)
-    total_pl.append(cc_pl + op_pl)
 
-# Plotting the P/L graph
-plt.figure(figsize=(10, 6))
-plt.plot(price_range, total_pl, label='Covered Call + 3 OTM Puts', color='blue')
-plt.axhline(0, color='black', lw=0.5, ls='--')
-plt.axvline(call_strike, color='red', lw=0.5, ls='--', label='Call Strike ($91.00)')
-plt.axvline(put_strike, color='green', lw=0.5, ls='--', label='Put Strike ($85.00)')
-plt.title('Profit and Loss Graph for Covered Call + 3 OTM Puts')
-plt.xlabel('Price of TLT')
-plt.ylabel('Profit/Loss')
-plt.legend()
-plt.grid()
-plt.xlim(70, 110)
-plt.ylim(-10, 10)
-plt.show()
+if __name__ == "__main__":
+# Calculate total P/L for the combined strategy
+    total_pl = []
+    for price in price_range:
+        cc_pl = covered_call_pl(price)
+        op_pl = otm_puts_pl(price)
+        total_pl.append(cc_pl + op_pl)
+
+    # Plotting the P/L graph
+    plt.figure(figsize=(10, 6))
+    plt.plot(price_range, total_pl, label='Covered Call + 3 OTM Puts', color='blue')
+    plt.axhline(0, color='black', lw=0.5, ls='--')
+    plt.axvline(call_strike, color='red', lw=0.5, ls='--', label='Call Strike ($91.00)')
+    plt.axvline(put_strike, color='green', lw=0.5, ls='--', label='Put Strike ($85.00)')
+    plt.title('Profit and Loss Graph for Covered Call + 3 OTM Puts')
+    plt.xlabel('Price of TLT')
+    plt.ylabel('Profit/Loss')
+    plt.legend()
+    plt.grid()
+    plt.xlim(70, 110)
+    plt.ylim(-10, 10)
+    plt.show()

@@ -8,12 +8,14 @@ from scipy import stats
 import fentu.constants as const
 
 def calculate_four_moments(x):
+    """Calculate the four moments of the data"""
     mean = x.mean()
     std = x.std()
-    mad = x.mad()
+    # Calculate MAD manually since .mad() is deprecated
+    mad = (x - x.mean()).abs().mean()
     skew = x.skew()
     kurtosis = x.kurtosis()
-    return mean, mad, std, skew, kurtosis
+    return mean, std, mad, skew, kurtosis
 
 def qq_plot(x):
     fig = probplot(x, plot=plt)
@@ -29,7 +31,7 @@ def qq_plot(x):
     return fig
 
 def calculate_within_onestrd_prop(data):
-    close = data['Close']
+    close = data
     mean = close.mean()
     std = close.std()
     print("mean close price change is {}".format(mean))
@@ -53,9 +55,13 @@ def fit_lognormal_distribution(data):
     return x, fitted_pdf, mu, sigma
 
 def histgram_plot(data):
+    print("histgram_plot data looks like", data.sample(2))
     calculate_within_onestrd_prop(data)
-    sns.histplot(data, x='Close', kde=True, bins=50)
-    x = list(data['Close'])   
+    # Plot histogram directly from Series
+    sns.histplot(data=data, kde=True, bins=50)
+    
+    # Convert Series to list for distribution fitting
+    x = list(data)
     x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
     plt.plot(x_log, pdf_log, 'g--', lw=2, 
             label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
