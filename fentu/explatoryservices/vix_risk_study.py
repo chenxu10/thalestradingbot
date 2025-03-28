@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-
+from fentu.explatoryservices.volcalculator import VolatilityFacade
 # 什么是逃生套利时机？
 # 赚到多少可以逃生？
 
@@ -33,6 +33,11 @@ def main():
         21.03,
         3.04)
     principle = 10000
+    ticker = "UVXY"
+    volatility = VolatilityFacade(ticker)
+    historical_uvxy_yearly_change = volatility.yearly_returns
+    historical_uvxy_yearly_change[-10:]
+    print(historical_uvxy_yearly_change)
     historical_uvxy_yearly_change = [-0.5,-0.87,-0.41,-0.89,-0.12,-0.83,0.72,-0.93]
     uxvy_year_expected_return = calculate_uvxy_otm_put_exp_return(
         historical_uvxy_yearly_change,option_ticket
