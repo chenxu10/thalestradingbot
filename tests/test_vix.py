@@ -45,7 +45,7 @@ def equal(actual, expected):
     if actual == expected:
         return
     else:
-        print(actual,'not equal to', expected)
+        print(actual,'not equal to expectation', expected)
         raise Exception
 
 if __name__ == "__main__":
