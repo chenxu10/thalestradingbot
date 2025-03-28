@@ -38,7 +38,7 @@ def test_calculate_uvxy_otm_put():
     uxvy_year_expected_return = calculate_uvxy_otm_put_exp_return(
         historical_uvxy_yearly_change,option_ticket
     )
-    
+     
     assert 0.2 < uxvy_year_expected_return/principle < 0.5
 
 if __name__ == "__main__":
