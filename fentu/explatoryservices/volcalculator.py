@@ -200,6 +200,7 @@ if __name__ == "__main__":
     #volatility.visualize_daily_percentage_change()
     # volatility.visualize_monthly_percentage_change()
     volatility.visualize_yearly_percentage_change()
+    print(volatility.yearly_returns)
     
     # Calculate volatility metrics
     # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
@@ -216,9 +217,9 @@ if __name__ == "__main__":
     #volatility.show_today_return()
     
     # Calculate calendar year returns
-    calendar_returns = volatility.get_calendar_year_returns(ticker)
+    #calendar_returns = volatility.get_calendar_year_returns(ticker)
     # calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
-    print(calendar_returns)
+    # print(calendar_returns)
     
 
 
