@@ -190,8 +190,9 @@ class VolatilityFacade:
 
 
 if __name__ == "__main__":   
-    ticker = "UVXY"
+    ticker = "TLT"
     volatility = VolatilityFacade(ticker)
+    volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns[-10:])
     ##print(volatility.weekly_returns[-10:])
     
@@ -199,8 +200,8 @@ if __name__ == "__main__":
     #volatility.visualize_weekly_percentage_change()
     #volatility.visualize_daily_percentage_change()
     # volatility.visualize_monthly_percentage_change()
-    volatility.visualize_yearly_percentage_change()
-    print(volatility.yearly_returns)
+    #volatility.visualize_yearly_percentage_change()
+    #print(volatility.yearly_returns)
     
     # Calculate volatility metrics
     # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
