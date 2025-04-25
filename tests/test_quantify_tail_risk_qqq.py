@@ -6,8 +6,6 @@ You should use market value of ndx100 to determine the over-hedge ratio
 def ndx100_to_qqq(ndx100_price, ratio):
     return ndx100_price / ratio
 
-
-
 class TailHedger:
     def __init__(self, ticker, volume, market_price) -> None:
         self.ticker = ticker
