@@ -16,7 +16,8 @@ class TailHedger:
         return round(self.volume * self.hedge_ratio)
     
     def output_strike_price(self):
-        return 45
+        protective_strike = self.market_price * 0.8
+        return round(protective_strike * 2) / 2
    
 
 def to_tail_hedger(ticker, volume, market_price):
@@ -31,7 +32,8 @@ def main():
     
     assert TailHedger.output_ticker() == 'qqq'
     assert TailHedger.output_volume() == 3
-    assert TailHedger.output_strike_price() == 45
+    print(TailHedger.output_strike_price())
+    assert TailHedger.output_strike_price() == 41.5
 
 
 
