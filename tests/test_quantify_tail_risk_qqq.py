@@ -7,12 +7,13 @@ class TailHedger:
         self.ticker = ticker
         self.volume = volume
         self.market_price = market_price
+        self.hedge_ratio = 3
 
     def output_ticker(self):
         return 'qqq'
 
     def output_volume(self):
-        return 3
+        return round(self.volume * self.hedge_ratio)
     
     def output_strike_price(self):
         return 45
