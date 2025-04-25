@@ -1,7 +1,3 @@
-
-
-
-
 class TailHedger:
     def __init__(self, ticker, volume, market_price) -> None:
         self.ticker = ticker
