@@ -11,14 +11,27 @@ class TailHedger:
     def output_ticker(self):
         return 'qqq'
 
+    def output_volume(self):
+        return 3
+    
+    def output_strike_price(self):
+        return 45
+   
+
 def to_tail_hedger(ticker, volume, market_price):
-    return TailHedger('tqqq',1,)
+    return TailHedger(ticker, volume, market_price)
 
 def main():
     ticker = 'tqqq'
     volume = 1
     market_price = 51.65
-    assert to_tail_hedger(ticker, volume, market_price).output_ticker() == 'qqq'
+
+    TailHedger = to_tail_hedger(ticker, volume, market_price)
+    
+    assert TailHedger.output_ticker() == 'qqq'
+    assert TailHedger.output_volume() == 3
+    assert TailHedger.output_strike_price() == 45
+
 
 
 if __name__ == "__main__":
