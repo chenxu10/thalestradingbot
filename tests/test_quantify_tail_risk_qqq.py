@@ -3,7 +3,6 @@ The common underlying of TQQQ and QQQ are ndx100.
 
 You should use market value of ndx100 to determine the over-hedge ratio
 """
-
 def ndx100_to_qqq(ndx100_price, ratio):
     return ndx100_price / ratio
 
