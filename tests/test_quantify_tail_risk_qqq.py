@@ -1,3 +1,9 @@
+
+def ndx100_to_qqq(ndx100_price, ratio):
+    return ndx100_price / ratio
+
+
+
 class TailHedger:
     def __init__(self, ticker, volume, market_price) -> None:
         self.ticker = ticker
@@ -17,9 +23,6 @@ class TailHedger:
 def to_tail_hedger(ticker, volume, market_price):
     return TailHedger(ticker, volume, market_price)
 
-
-def ndx100_to_qqq(ndx100_price, ratio):
-    return ndx100_price / ratio
 
 def main():
     ticker = 'tqqq'
