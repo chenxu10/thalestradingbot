@@ -190,9 +190,10 @@ class VolatilityFacade:
 
 
 if __name__ == "__main__":   
-    ticker = "GLD"
-    volatility = VolatilityFacade(ticker)
-    volatility.visualize_daily_percentage_change()
+    print("hello world")
+    # ticker = "TQQQ"
+    # volatility = VolatilityFacade(ticker)
+    # volatility.visualize_daily_percentage_change()
     #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns[-10:])
     ##print(volatility.weekly_returns[-10:])
