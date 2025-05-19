@@ -12,9 +12,12 @@ py-vollib = "^1.0.1"
 yfinance = "^0.2.54"
 
 
+
+[tool.pdm.build]
+includes = []
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -23,3 +26,21 @@ python_classes = "Test*"
 python_functions = "test_*"
 # Ignore the testfun directory during test collection
 norecursedirs = ["tests/testfun"]
+
+[project]
+authors = [
+    {name = "chenxu10", email = "shenxu2011@gmail.com"},
+]
+requires-python = "<4.0,>=3.8"
+dependencies = [
+    "pytest<9.0.0,>=8.3.3",
+    "py-vollib<2.0.0,>=1.0.1",
+    "yfinance<1.0.0,>=0.2.54",
+    "matplotlib>=3.7.5",
+    "statsmodels>=0.14.1",
+    "seaborn>=0.13.2",
+]
+name = "thalestradingbot"
+version = "0.1.0"
+description = ""
+readme = "README.md"
