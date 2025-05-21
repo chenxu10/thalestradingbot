@@ -7,3 +7,4 @@ def send_sms_to_email():
 # API
 
 assert send_sms_to_email() == "Notification message sent"
+
