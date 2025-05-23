@@ -14,6 +14,7 @@ def calculate_uvxy_otm_put_exp_return(uvxy_year_change, option_ticket):
     cost_of_option = option_ticket.cost_of_option
 
     year_end_absolute_return = []
+    
     for i in uvxy_year_change:
        expected_price_at_expire = current_market_price * (1 + i)  
        expected_payoff = max(strike_price - expected_price_at_expire, 0) 
