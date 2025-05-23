@@ -22,7 +22,7 @@ def calculate_uvxy_otm_put_exp_return(uvxy_year_change, option_ticket):
     year_end_relative_return = [
         i/(cost_of_option * 100) for i in  year_end_absolute_return
     ]
-    print(year_end_relative_return)
+    print("year_end_return is",year_end_relative_return)
     return 4000
 
 
