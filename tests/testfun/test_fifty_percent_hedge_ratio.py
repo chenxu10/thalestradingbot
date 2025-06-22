@@ -13,3 +13,5 @@ def test_explore_qixian_cuopei():
     daily_option_preimum = 2
 
     assert three_months_daily_option_cost < daily_option_preimum
+
+
