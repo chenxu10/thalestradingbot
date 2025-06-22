@@ -10,8 +10,13 @@ def test_explore_qixian_cuopei():
     
     three_months_daily_option_cost = calculate_three_months_daily_option_cost()
     print(three_months_daily_option_cost)
-    daily_option_preimum = 2
+    daily_option_preimum = 7
 
     assert three_months_daily_option_cost < daily_option_preimum
 
 
+def main():
+    test_explore_qixian_cuopei()
+
+if __name__ == "__main__":
+    main()
