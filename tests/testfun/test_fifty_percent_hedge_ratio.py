@@ -1,5 +1,10 @@
 """
 历史回测降本速度是否降低了50%
+
+Constrants:
+(1) 日平均成本 < 日期权
+(2)
+
 """
 
 def test_explore_qixian_cuopei():
