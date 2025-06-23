@@ -15,6 +15,7 @@ def test_explore_qixian_cuopei():
     def calculate_three_months_daily_option_cost():
         """
         Expire at 09/30 Strike at 473
+        Expire at 12/30 Strike at 473
         """
         return 473 / 14
     
