@@ -17,8 +17,8 @@ def test_explore_qixian_cuopei():
         Expire at 09/30 Strike at 473
         Expire at 12/30 Strike at 473
         """
-        oneqqqputweeklyaverage = 1441/28
-        threeqqqputsweeklyaverage = 2 * oneqqqputweeklyaverage
+        oneqqqputweeklyaverage = 424/28
+        threeqqqputsweeklyaverage = 3 * oneqqqputweeklyaverage
         return threeqqqputsweeklyaverage
     
     three_months_daily_option_cost = calculate_three_months_daily_option_cost()
