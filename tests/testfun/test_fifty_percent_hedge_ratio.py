@@ -7,6 +7,8 @@ Constrants:
 (1) 大于等于(已经吃货的量+义乌仓假设全部吃进的量) * 2
 (2) 长期看跌期权的Theta开销，远远小于卖短期期权的日常权利金收入
 
+把张数和Strike Price分开考虑
+
 """
 
 def test_explore_qixian_cuopei():
