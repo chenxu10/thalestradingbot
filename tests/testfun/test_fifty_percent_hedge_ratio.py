@@ -4,7 +4,6 @@
 Constrants:
 (1) 日平均成本 < 50% * 日期权
 (2) 张数大于(持仓+义务) * 2倍的看跌期权
-
 """
 
 def test_explore_qixian_cuopei():
