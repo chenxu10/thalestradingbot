@@ -8,7 +8,6 @@ Constrants:
 (2) 长期看跌期权的Theta开销，远远小于卖短期期权的日常权利金收入
 
 把张数和Strike Price分开考虑
-
 """
 
 def test_explore_qixian_cuopei():
