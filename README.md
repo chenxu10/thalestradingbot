@@ -6,3 +6,5 @@ This project helps to express the view of tail hedging investing mentioned in Da
 ## Trader's Lore(Rules of Games to be Reviewed)
 1. Take the risk you understand instead of trying to understand you want to take.
 
+## Task
+- (DONE) yahoofinancedata rate limit
