@@ -7,4 +7,4 @@ This project helps to express the view of tail hedging investing mentioned in Da
 1. Take the risk you understand instead of trying to understand you want to take.
 
 ## Task
-- (TODO) yahoofinancedata rate limit
+- (DONE) yahoofinancedata rate limit
