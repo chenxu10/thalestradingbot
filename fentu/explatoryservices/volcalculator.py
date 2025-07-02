@@ -11,6 +11,7 @@ pd.set_option('display.max_rows', None)
 import fentu.explatoryservices.plotting_service as ps
 import numpy as np
 from scipy.stats import norm, t
+from curl_cffi import requests
 
 class VolatilityCalculator:
     """Base class for different volatility calculation strategies"""
@@ -48,7 +49,8 @@ class VolatilityFacade:
         }
 
     def _get_prices(self, instrument):
-        instrument = yf.Ticker(instrument)
+        session = requests.Session(impersonate="chrome")
+        instrument = yf.Ticker(instrument, session=session)
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']
         return prices
