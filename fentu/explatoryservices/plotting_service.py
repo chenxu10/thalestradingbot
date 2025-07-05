@@ -7,7 +7,7 @@ from scipy.stats import norm
 from scipy import stats
 import fentu.constants as const
 import pandas as pd
-import yfinance as yf
+from fentu.dataservices import download_data_range as ddr
 
 def calculate_four_moments(x):
     """Calculate the four moments of the data"""
@@ -80,15 +80,10 @@ def plot_index_performance(ticker: str, start_date: str = None, end_date: str = 
             pd.to_datetime(start_date)
         if end_date:
             pd.to_datetime(end_date)
-            
-        # Fetch data
-        if start_date and end_date:
-            data = yf.download(ticker, start=start_date, end=end_date)["Close"]
-            date_range_str = f"({start_date} to {end_date})"
-        else:
-            data = yf.download(ticker, period="1y")["Close"]
-            date_range_str = f"({data.index[0].date()} to {data.index[-1].date()})"
-        
+
+        data, date_range_str = ddr.download_ticker_range(
+            ticker, start_date, end_date)
+
         # Create plot
         fig, ax = plt.subplots(figsize=(10, 6))
         data.plot(ax=ax, title=f"{ticker} Performance {date_range_str}", lw=2)
