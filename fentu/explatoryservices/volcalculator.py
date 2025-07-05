@@ -36,10 +36,11 @@ class VolatilityFacade:
     """
     def __init__(self, instrument):
         self.instrument = instrument
-        self.daily_returns = self._get_returns(instrument, 1)
-        self.weekly_returns = self._get_returns(instrument, 5)
-        self.monthly_returns = self._get_returns(instrument, 21)
-        self.yearly_returns = self._get_returns(instrument, 252)
+        self.prices = self._get_prices(instrument)
+        self.daily_returns = self._get_returns(instrument, self.prices, 1)
+        self.weekly_returns = self._get_returns(instrument, self.prices, 5)
+        self.monthly_returns = self._get_returns(instrument, self.prices, 21)
+        self.yearly_returns = self._get_returns(instrument, self.prices, 252)
         self.daily_volatility = DailyVolatility()
         self.return_periods = {
             'daily': self.daily_returns,
@@ -91,14 +92,13 @@ class VolatilityFacade:
         
         return calendar_returns
 
-    def _get_returns(self, instrument, period_length):
+    def _get_returns(self, instrument, prices, period_length):
         """
         Helper method to get returns for different time periods
         Args:
             instrument: The financial instrument ticker
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
-        prices = self._get_prices(instrument)
         returns = prices.pct_change(period_length)[period_length:]
         return returns
     
