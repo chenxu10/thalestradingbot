@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 pd.set_option('display.max_rows', None)
 
-import fentu.explatoryservices.plotting_service as ps
+import fentu.explatoryservices.plotting_service as ps   
 import numpy as np
 from scipy.stats import norm, t
 from curl_cffi import requests
@@ -36,10 +36,11 @@ class VolatilityFacade:
     """
     def __init__(self, instrument):
         self.instrument = instrument
-        self.daily_returns = self._get_returns(instrument, 1)
-        self.weekly_returns = self._get_returns(instrument, 5)
-        self.monthly_returns = self._get_returns(instrument, 21)
-        self.yearly_returns = self._get_returns(instrument, 252)
+        self.prices = self._get_prices(instrument)
+        self.daily_returns = self._get_returns(instrument, self.prices, 1)
+        self.weekly_returns = self._get_returns(instrument, self.prices, 5)
+        self.monthly_returns = self._get_returns(instrument, self.prices, 21)
+        self.yearly_returns = self._get_returns(instrument, self.prices, 252)
         self.daily_volatility = DailyVolatility()
         self.return_periods = {
             'daily': self.daily_returns,
@@ -91,14 +92,13 @@ class VolatilityFacade:
         
         return calendar_returns
 
-    def _get_returns(self, instrument, period_length):
+    def _get_returns(self, instrument, prices, period_length):
         """
         Helper method to get returns for different time periods
         Args:
             instrument: The financial instrument ticker
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
-        prices = self._get_prices(instrument)
         returns = prices.pct_change(period_length)[period_length:]
         return returns
     
@@ -192,10 +192,14 @@ class VolatilityFacade:
 
 
 if __name__ == "__main__":   
-    ticker = "QQQ"
+    ticker = "TLT"
     volatility = VolatilityFacade(ticker)
+    print(volatility._get_prices(ticker))
+    ps.plot_index_performance('qqq','2025-02-17','2025-06-17')
+    
+    #print(volatility.weekly_returns)
     #volatility.visualize_daily_percentage_change()
-    volatility.visualize_weekly_percentage_change()
+    #volatility.visualize_weekly_percentage_change()
     #print(volatility.daily_returns[-10:])
     ##print(volatility.weekly_returns[-10:])
     
@@ -213,9 +217,9 @@ if __name__ == "__main__":
     #print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
     # print(f"Worst days: {volatility.find_worst_k_days(k=5)}")
     #print(f"Worst months: {volatility.find_worst_k_months(k=5)}")
-    print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
-    print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
-    print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")
+    # print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
+    # print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
+    # print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")
     
     # Show recent returns
     #volatility.show_today_return()
