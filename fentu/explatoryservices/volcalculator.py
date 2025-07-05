@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 pd.set_option('display.max_rows', None)
 
-import fentu.explatoryservices.plotting_service as ps
+import fentu.explatoryservices.plotting_service as ps   
 import numpy as np
 from scipy.stats import norm, t
 from curl_cffi import requests
@@ -195,6 +195,8 @@ if __name__ == "__main__":
     ticker = "TLT"
     volatility = VolatilityFacade(ticker)
     print(volatility._get_prices(ticker))
+    ps.plot_index_performance('qqq','2025-02-17','2025-06-17')
+    
     #print(volatility.weekly_returns)
     #volatility.visualize_daily_percentage_change()
     #volatility.visualize_weekly_percentage_change()
