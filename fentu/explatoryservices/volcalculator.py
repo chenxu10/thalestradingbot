@@ -192,10 +192,13 @@ class VolatilityFacade:
 
 
 if __name__ == "__main__":   
-    ticker = "TLT"
-    volatility = VolatilityFacade(ticker)
-    print(volatility._get_prices(ticker))
-    ps.plot_index_performance('qqq','2025-02-17','2025-06-17')
+    ticker = ["spy","qqq"]
+    ps.plot_index_performance(ticker,'2025-02-17','2025-07-06')
+    
+    #ticker = "TLT"
+    #volatility = VolatilityFacade(ticker)
+    #print(volatility._get_prices(ticker))
+    
     
     #print(volatility.weekly_returns)
     #volatility.visualize_daily_percentage_change()

@@ -72,30 +72,57 @@ def histgram_plot(data):
     plt.tight_layout()
     plt.show()
 
-def plot_index_performance(ticker: str, start_date: str = None, end_date: str = None):
-    """Plot performance of an index with customizable date range"""
+def validate_date_formats(start_date, end_date):
+    if start_date:
+        pd.to_datetime(start_date)
+    if end_date:
+        pd.to_datetime(end_date)
+
+def plot_index_performance(ticker, start_date: str = None, end_date: str = None):
+    """Plot performance of one or more indices with customizable date range"""
     try:
-        # Validate date formats if provided
-        if start_date:
-            pd.to_datetime(start_date)
-        if end_date:
-            pd.to_datetime(end_date)
+        # Accept ticker as str or list of str
+        if isinstance(ticker, str):
+            tickers = [ticker]
+        elif isinstance(ticker, list):
+            tickers = ticker
+        else:
+            raise ValueError("ticker must be a string or a list of strings")
 
-        data, date_range_str = ddr.download_ticker_range(
-            ticker, start_date, end_date)
+        validate_date_formats(start_date, end_date)
+        data_dict, date_range_str = download_and_align_data(start_date, end_date, tickers)
+        combined_df = combine_into_single_dataframe(data_dict)
+        return create_plot(tickers, date_range_str, combined_df)
 
-        # Create plot
-        fig, ax = plt.subplots(figsize=(10, 6))
-        data.plot(ax=ax, title=f"{ticker} Performance {date_range_str}", lw=2)
-        ax.set_ylabel("Price ($)")
-        ax.grid(True)
-        plt.show()
-        plt.close(fig)  # Prevent display during tests
-        return fig
-        
     except Exception as e:
         if "Unknown string format" in str(e):
             raise ValueError(f"Invalid date format: {str(e)}")
         raise RuntimeError(f"Failed to plot {ticker} performance: {str(e)}")
+
+def create_plot(tickers, date_range_str, combined_df):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    combined_df.plot(ax=ax, lw=2)
+    ax.set_title(f"{' vs '.join(tickers)} Performance {date_range_str}")
+    ax.set_ylabel("Price ($)")
+    ax.grid(True)
+    ax.legend(title="Ticker")
+    plt.show()
+    plt.close(fig)
+    return fig
+
+def combine_into_single_dataframe(data_dict):
+    combined_df = pd.DataFrame(data_dict)
+    return combined_df
+
+def download_and_align_data(start_date, end_date, tickers):
+    data_dict = {}
+    date_range_str = None
+    for t in tickers:
+        data, drs = ddr.download_ticker_range(t, start_date, end_date)
+        data_dict[t] = data.squeeze()  # Squeeze in case it's a DataFrame with one column
+        if date_range_str is None:
+            date_range_str = drs
+    return data_dict,date_range_str
+
 
 
