@@ -3,8 +3,6 @@ This script calculates volatility and return metrics for financial instruments
 Refactored to follow SOLID principles with separated concerns
 """
 
-import statsmodels.api as sm
-import matplotlib.pyplot as plt
 import pandas as pd
 pd.set_option('display.max_rows', None)
 
