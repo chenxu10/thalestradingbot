@@ -375,26 +375,41 @@ class DailyVolatility:
         return self.calculator.calculate_volatility(daily_returns)
 
 
+def calculate_straddle_range(current_price: float, daily_volatility: float, days: int):
+    """
+    Calculate the range of a straddle option
+
+    Math formula coming from
+    https://arxiv.org/pdf/1401.2524
+    """
+    positive_range = current_price + current_price * daily_volatility * np.sqrt(days)
+    negative_range = current_price - current_price * daily_volatility * np.sqrt(days)
+    return positive_range, negative_range
+
 if __name__ == "__main__":   
-    ticker = ["spy","qqq"]
-    ps.plot_index_performance(ticker,'2025-02-17','2025-07-06')
+    #ticker = ["spy","qqq"]
+    #ps.plot_index_performance(ticker,'2025-02-17','2025-07-06')
     
     # Example usage of the new structure
-    analysis_service = FinancialAnalysisService()
-    analysis_service.initialize_instrument("TLT")
-    print(f"Daily volatility: {analysis_service.calculate_daily_volatility()}")
-    print(f"Worst 5 days: {analysis_service.find_worst_returns('daily', k=5)}")
+    #analysis_service = FinancialAnalysisService()
+    #analysis_service.initialize_instrument("TLT")
+    # print(f"Daily volatility: {analysis_service.calculate_daily_volatility()}")
+    # print(f"Worst 5 days: {analysis_service.find_worst_returns('daily', k=5)}")
     
-    # Or use the backward-compatible facade
+    # Calculate straddle range
+    # current_ticker_price = float(input("Enter current market price: "))
+    # daily_volatility = analysis_service.calculate_daily_volatility()
+    # print(calculate_straddle_range(current_ticker_price, daily_volatility, 5))
+
+    # # Or use the backward-compatible facade
     ticker = "TLT"
     volatility = VolatilityFacade(ticker)
-    print(volatility._get_prices(ticker))
+    # print(volatility._get_prices(ticker))
     
-    
-    print(volatility.weekly_returns)
-    volatility.visualize_daily_percentage_change()
+    # print(volatility.weekly_returns)
+    # volatility.visualize_daily_percentage_change()
     volatility.visualize_weekly_percentage_change()
-    print(volatility.daily_returns[-10:])
+    # print(volatility.daily_returns[-10:])
     #print(volatility.weekly_returns[-10:])
     
     # Visualize different time-frame return distributions

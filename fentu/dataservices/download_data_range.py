@@ -1,6 +1,6 @@
 import yfinance as yf
-import requests
 import pandas as pd
+from curl_cffi import requests
 
 def download_ticker_range(ticker, start_date, end_date):
     if start_date and end_date:
