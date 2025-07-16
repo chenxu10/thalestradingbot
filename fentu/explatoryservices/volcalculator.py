@@ -136,6 +136,12 @@ class CalendarReturnCalculator:
     def __init__(self, data_retriever: DataRetriever):
         self.data_retriever = data_retriever
     
+    def calculate_year_return(self, year_data):
+        first_price = year_data.iloc[0]
+        last_price = year_data.iloc[-1]
+        year_return = (last_price - first_price) / first_price
+        return year_return
+        
     def get_calendar_year_returns(self, instrument: str) -> pd.DataFrame:
         """
         Calculate returns for each calendar year.
@@ -156,11 +162,7 @@ class CalendarReturnCalculator:
         for year in years:
             year_data = prices[prices.index.year == year]
             if not year_data.empty:
-                first_price = year_data.iloc[0]
-                last_price = year_data.iloc[-1]
-                
-                year_return = (last_price - first_price) / first_price
-                
+                year_return = self.calculate_year_return(year_data)
                 yearly_returns_list.append({
                     'Date': pd.Timestamp(f'{year}-12-31'),
                     'Close': year_return
@@ -408,7 +410,7 @@ if __name__ == "__main__":
     
     # print(volatility.weekly_returns)
     # volatility.visualize_daily_percentage_change()
-    volatility.visualize_weekly_percentage_change()
+    #volatility.visualize_weekly_percentage_change()
     # print(volatility.daily_returns[-10:])
     #print(volatility.weekly_returns[-10:])
     
@@ -434,9 +436,9 @@ if __name__ == "__main__":
     #volatility.show_today_return()
     
     # Calculate calendar year returns
-    #calendar_returns = volatility.get_calendar_year_returns(ticker)
-    # calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
-    # print(calendar_returns)
+    calendar_returns = volatility.get_calendar_year_returns(ticker)
+    calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
+    print(calendar_returns)
     
 
 

@@ -91,6 +91,8 @@ def plot_index_performance(ticker, start_date: str = None, end_date: str = None)
 
         validate_date_formats(start_date, end_date)
         data_dict, date_range_str = download_and_align_data(start_date, end_date, tickers)
+        print(data_dict)
+        print(date_range_str)
         combined_df = combine_into_single_dataframe(data_dict)
         return create_plot(tickers, date_range_str, combined_df)
 
