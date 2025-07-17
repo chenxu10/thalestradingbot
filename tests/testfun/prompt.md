@@ -1,8 +1,2 @@
-Want to write a unit test the big background is focusing on build a backtest portfolio. 
-For now focus on plot out a performance of a index let's say qqq(for ndx100). 
-Use TDD. 
-- Use meaningful test names that describe behavior (e.g., "shouldSumTwoPositiveNumbers") 
-- Make test failures clear and informativ Here are in the half code - Use meaningful test names that describe behavior (e.g., "shouldSumTwoPositiveNumbers") 
-- Make test failures clear and informative. 
-- Write just enough code to make the test pass 
-- The code should follow F.I.R.S.T principles
+Given the output of DataRetrive class under dataservices folder. Want you to create
+a new folder called performanceservices and add unit test. The new python file under performanceservices should be able to calculate quarter-to-date, year-to-date and month-to-date performance of ndx100. The goal of this is to benchmark a hedge fund manager's performance.
