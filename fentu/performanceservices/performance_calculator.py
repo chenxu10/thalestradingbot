@@ -17,13 +17,13 @@ class PerformanceCalculator:
         """Initialize the performance calculator"""
         pass
     
-    def calculate_mtd_performance(self, prices: pd.Series, 
+    def calculate_mtd_performance(self, prices: Union[pd.Series, pd.DataFrame], 
                                 reference_date: date) -> float:
         """
         Calculate month-to-date performance
         
         Args:
-            prices: Historical price data
+            prices: Historical price data (Series or DataFrame)
             reference_date: Date for MTD calculation
             
         Returns:
@@ -38,13 +38,13 @@ class PerformanceCalculator:
         
         return ((end_price - start_price) / start_price) * 100
     
-    def calculate_qtd_performance(self, prices: pd.Series, 
+    def calculate_qtd_performance(self, prices: Union[pd.Series, pd.DataFrame], 
                                 reference_date: date) -> float:
         """
         Calculate quarter-to-date performance
         
         Args:
-            prices: Historical price data
+            prices: Historical price data (Series or DataFrame)
             reference_date: Date for QTD calculation
             
         Returns:
@@ -59,13 +59,13 @@ class PerformanceCalculator:
         
         return ((end_price - start_price) / start_price) * 100
     
-    def calculate_ytd_performance(self, prices: pd.Series, 
+    def calculate_ytd_performance(self, prices: Union[pd.Series, pd.DataFrame], 
                                 reference_date: date) -> float:
         """
         Calculate year-to-date performance
         
         Args:
-            prices: Historical price data
+            prices: Historical price data (Series or DataFrame)
             reference_date: Date for YTD calculation
             
         Returns:
@@ -111,7 +111,7 @@ class PerformanceCalculator:
             'tracking_error': tracking_error
         }
     
-    def _validate_date(self, prices: pd.Series, reference_date: date) -> None:
+    def _validate_date(self, prices: Union[pd.Series, pd.DataFrame], reference_date: date) -> None:
         """Validate that reference date is within price data range"""
         if reference_date > date.today():
             raise ValueError("Reference date cannot be in the future")
@@ -127,13 +127,20 @@ class PerformanceCalculator:
         start_month = quarter_starts[reference_date.month]
         return date(reference_date.year, start_month, 1)
     
-    def _get_price_at_date(self, prices: pd.Series, target_date: date) -> float:
+    def _get_price_at_date(self, prices: Union[pd.Series, pd.DataFrame], target_date: date) -> float:
         """Get price at specific date, using nearest available date"""
         target_timestamp = pd.Timestamp(target_date)
         
+        # Handle both Series and DataFrame inputs
+        if isinstance(prices, pd.DataFrame):
+            # If it's a DataFrame, use the first column (typically 'Close')
+            price_series = prices.iloc[:, 0]
+        else:
+            price_series = prices
+        
         # Find the nearest available date
-        nearest_date = prices.index[prices.index <= target_timestamp][-1]
-        return prices[nearest_date]
+        nearest_date = price_series.index[price_series.index <= target_timestamp][-1]
+        return price_series[nearest_date]
     
     def _calculate_returns(self, prices: pd.Series) -> List[float]:
         """Calculate period returns from price series"""

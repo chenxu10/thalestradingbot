@@ -7,11 +7,12 @@ import pandas as pd
 pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps   
-from fentu.dataservices.download_data_range import DataRetriever
+import fentu.performanceservices as pf
+from fentu.dataservices.download_data_range import DataRetriever, download_ticker_range
 import numpy as np
 from abc import ABC, abstractmethod
 from typing import Optional, Union, Dict, Any
-
+from datetime import date
 
 # Business Logic Layer - Single Responsibility: Return Calculations
 class ReturnCalculator:
@@ -386,9 +387,29 @@ def calculate_straddle_range(current_price: float, daily_volatility: float, days
     negative_range = current_price - current_price * daily_volatility * np.sqrt(days)
     return positive_range, negative_range
 
+def create_mock_ndx100_data(): 
+    dates = pd.date_range('2023-01-01', '2024-12-31', freq='D')
+    start_price = 350.0
+    
+    # Generate daily returns with some drift (upward trend)
+    daily_returns = np.random.normal(0.0008, 0.02, len(dates))  # ~0.08% daily mean return, 2% volatility
+    
+    # Calculate cumulative prices
+    price_changes = np.cumprod(1 + daily_returns)
+    prices = start_price * price_changes
+    
+    return pd.Series(prices, index=dates)
+
 if __name__ == "__main__":   
     #ticker = ["spy","qqq"]
     #ps.plot_index_performance(ticker,'2025-02-17','2025-07-06')
+    ndx100_prices = download_ticker_range('qqq', '2025-02-17', '2025-06-06')[0]
+    print(ndx100_prices)
+    calculator = pf.PerformanceCalculator()
+    reference_date = date(2025,6,30)
+    qtd_perf = calculator.calculate_mtd_performance(
+        ndx100_prices, reference_date=reference_date) 
+    print(qtd_perf)
     
     # Example usage of the new structure
     #analysis_service = FinancialAnalysisService()
@@ -402,13 +423,13 @@ if __name__ == "__main__":
     # print(calculate_straddle_range(current_ticker_price, daily_volatility, 5))
 
     # # Or use the backward-compatible facade
-    ticker = "TLT"
-    volatility = VolatilityFacade(ticker)
+    #ticker = "TLT"
+    #volatility = VolatilityFacade(ticker)
     # print(volatility._get_prices(ticker))
     
     # print(volatility.weekly_returns)
     # volatility.visualize_daily_percentage_change()
-    volatility.visualize_weekly_percentage_change()
+    #volatility.visualize_weekly_percentage_change()
     # print(volatility.daily_returns[-10:])
     #print(volatility.weekly_returns[-10:])
     

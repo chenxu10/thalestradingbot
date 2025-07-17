@@ -1,2 +1,2 @@
 Given the output of DataRetrive class under dataservices folder. Want you to create
-a new folder called performanceservices and add unit test. The new python file under performanceservices should be able to calculate quarter-to-date, year-to-date and month-to-date performance of ndx100. The goal of this is to benchmark a hedge fund manager's performance.
+a new folder called performanceservices and add unit test. The new python file under performanceservices should be able to calculate quarter-to-date, year-to-date and month-to-date performance of ndx100. The goal of this is to benchmark a hedge fund manager's performance. Move in small steps. Lines should be less than 50. Also make sure tests are passed. Follow Test Driven Method.
