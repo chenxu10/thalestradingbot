@@ -403,13 +403,15 @@ def create_mock_ndx100_data():
 if __name__ == "__main__":   
     #ticker = ["spy","qqq"]
     #ps.plot_index_performance(ticker,'2025-02-17','2025-07-06')
-    ndx100_prices = download_ticker_range('qqq', '2025-02-17', '2025-06-06')[0]
-    print(ndx100_prices)
-    calculator = pf.PerformanceCalculator()
-    reference_date = date(2025,6,30)
-    qtd_perf = calculator.calculate_mtd_performance(
-        ndx100_prices, reference_date=reference_date) 
-    print(qtd_perf)
+    
+    # Performance
+    # ndx100_prices = download_ticker_range('qqq', '2025-02-17', '2025-06-06')[0]
+    # print(ndx100_prices)
+    # calculator = pf.PerformanceCalculator()
+    # reference_date = date(2025,6,30)
+    # qtd_perf = calculator.calculate_mtd_performance(
+    #     ndx100_prices, reference_date=reference_date) 
+    # print(qtd_perf)
     
     # Example usage of the new structure
     #analysis_service = FinancialAnalysisService()
@@ -423,12 +425,11 @@ if __name__ == "__main__":
     # print(calculate_straddle_range(current_ticker_price, daily_volatility, 5))
 
     # # Or use the backward-compatible facade
-    #ticker = "TLT"
-    #volatility = VolatilityFacade(ticker)
-    # print(volatility._get_prices(ticker))
+    ticker = "TQQQ"
+    volatility = VolatilityFacade(ticker)
     
     # print(volatility.weekly_returns)
-    # volatility.visualize_daily_percentage_change()
+    volatility.visualize_daily_percentage_change()
     #volatility.visualize_weekly_percentage_change()
     # print(volatility.daily_returns[-10:])
     #print(volatility.weekly_returns[-10:])
