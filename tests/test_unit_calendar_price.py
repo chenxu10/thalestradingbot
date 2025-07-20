@@ -38,7 +38,7 @@ def package_implementation_bsm(stock, strike_price, time_to_expiration, interest
         volatility)
     
 def calculate_discounted_k_price(k, base_rate, time_to_expiration):
-    return k * math.exp(-base_rate * time_to_expiration/ 252)
+    return k * math.exp(-base_rate * time_to_expiration/ 365)
 
 class TestBSMPricer:
     def test_calendar_back_months_strike_equals_to_stock(self):
@@ -93,4 +93,4 @@ class TestBSMPricer:
         time_to_expiration = 20
         discounted_k_price = calculate_discounted_k_price(
             k, base_rate, time_to_expiration)
-        assert discounted_k_price == 100 * math.exp(-0.04 * 20/252)
+        assert discounted_k_price == 100 * math.exp(-0.04 * 20/365)
