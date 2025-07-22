@@ -7,6 +7,7 @@ of the market
 """
 
 import math
+from fentu.pricingservices import price_option as po
 from py_vollib.black_scholes import black_scholes
 
 
@@ -36,9 +37,6 @@ def package_implementation_bsm(stock, strike_price, time_to_expiration, interest
         time_to_expiration/365, 
         interest_rate, 
         volatility)
-    
-def calculate_discounted_k_price(k, base_rate, time_to_expiration):
-    return k * math.exp(-base_rate * time_to_expiration/ 365)
 
 class TestBSMPricer:
     def test_calendar_back_months_strike_equals_to_stock(self):
@@ -91,6 +89,23 @@ class TestBSMPricer:
         k = 100
         base_rate = 0.04
         time_to_expiration = 20
-        discounted_k_price = calculate_discounted_k_price(
+        discounted_k_price = po.calculate_discounted_k_price(
             k, base_rate, time_to_expiration)
         assert discounted_k_price == 100 * math.exp(-0.04 * 20/365)
+
+
+    def test_volatility_time_factor(self):
+        vol = 0.02
+        time_to_expiration = 20
+        actual_drift = po.calculate_vol_time_factor(vol, time_to_expiration)
+        expected_drift = vol * math.sqrt(time_to_expiration/365)
+        assert actual_drift == expected_drift
+
+    def test_log_normal_return(self):
+        stock = 105
+        strike = 100
+        expected_ln = math.log(105/100)
+        actual_ln = po.calculate_ln_ratio(stock, strike)
+        assert abs(expected_ln - actual_ln) < 0.01
+
+
