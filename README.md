@@ -41,7 +41,6 @@ This application is designed to analyze financial market data and identify histo
 - **Yearly Returns**: Assess annual performance metrics
 
 ### 🔍 Historical Crisis Detection
-![Historical vs Expected Crisis](figures/historical_min_vs_expected_min.jpg)
 
 The application identifies and analyzes historical worst-case market events:
 - **Worst-K Analysis**: Find the K worst performing periods (e.g., worst 5 days)
