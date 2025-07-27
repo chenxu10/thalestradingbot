@@ -34,7 +34,6 @@ authors = [
 requires-python = "<4.0,>=3.8"
 dependencies = [
     "pytest<9.0.0,>=8.3.3",
-    "py-vollib<2.0.0,>=1.0.1",
     "yfinance>=0.2.54,<1.0.0",
     "matplotlib>=3.7.5",
     "statsmodels>=0.14.1",
