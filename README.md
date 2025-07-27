@@ -3,33 +3,22 @@
 
 ## Environment Setup with uv
 
-This project uses [uv](https://github.com/astral-sh/uv) for fast Python package management. Follow these steps to set up your environment:
+This project uses [uv](https://github.com/astral-sh/uv) for fast Python package management. Follow these steps:
 
 ### 1. Install uv
 ```bash
-# On macOS and Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# macOS/Linux (curl or pip)
+curl -LsSf https://astral.sh/uv/install.sh | sh || pip install uv
 
-# On Windows
+# Windows
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# Or via pip
-pip install uv
 ```
 
 ### 2. Set up the project
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd thalestradingbot
-
-# Install dependencies and create virtual environment
 uv sync
-
-# Activate the environment (optional, uv run handles this automatically)
-source .venv/bin/activate  # On Linux/macOS
-# or
-.venv\Scripts\activate     # On Windows
 ```
 
 ### 3. Run the application
@@ -52,11 +41,13 @@ This application is designed to analyze financial market data and identify histo
 - **Yearly Returns**: Assess annual performance metrics
 
 ### 🔍 Historical Crisis Detection
+![Historical vs Expected Crisis](figures/historical_min_vs_expected_min.jpg)
+
 The application identifies and analyzes historical worst-case market events:
-- **Worst-K Analysis**: Find the K worst performing periods (e.g., worst 5 days, worst 3 weeks)
-- **Threshold Analysis**: Identify periods below specific return thresholds (e.g., all weeks with returns < -10%)
-- **Monte Carlo Simulation**: Predict potential extreme events using statistical modeling
-- **Left Tail Analysis**: Focus on the worst-case scenarios in return distributions
+- **Worst-K Analysis**: Find the K worst performing periods (e.g., worst 5 days)
+- **Threshold Analysis**: Identify periods below specific return thresholds
+- **Monte Carlo Simulation**: Predict potential extreme events using t-distribution modeling
+- **Left Tail Analysis**: Focus on worst-case scenarios in return distributions
 
 ### 📈 Visualization & Insights
 - Interactive plots of return distributions for all timeframes
