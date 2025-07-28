@@ -1,4 +1,7 @@
 # Thales Trading Bot
+
+*Read this in other languages: [English](README.md), [中文](README_zh.md)*
+
 > How to make money when you are wrong? It's much better to be convex than to be right.
 
 ## Environment Setup with uv
