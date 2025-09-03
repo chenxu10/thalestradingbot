@@ -425,12 +425,12 @@ if __name__ == "__main__":
     # print(calculate_straddle_range(current_ticker_price, daily_volatility, 5))
 
     # # Or use the backward-compatible facade
-    ticker = "TQQQ"
+    ticker = "TMF"
     volatility = VolatilityFacade(ticker)
     
-    # print(volatility.weekly_returns)
-    #volatility.visualize_daily_percentage_change()
-    #volatility.visualize_weekly_percentage_change()
+    #print(volatility.weekly_returns)
+    #olatility.visualize_daily_percentage_change()
+    volatility.visualize_weekly_percentage_change()
     # print(volatility.daily_returns[-10:])
     #print(volatility.weekly_returns[-10:])
     
