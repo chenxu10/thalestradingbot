@@ -3,8 +3,6 @@ This script calculates volatility and return metrics for financial instruments
 """
 
 import yfinance as yf
-import statsmodels.api as sm
-import matplotlib.pyplot as plt
 import pandas as pd
 pd.set_option('display.max_rows', None)
 
@@ -190,14 +188,8 @@ class VolatilityFacade:
         """Show recent daily returns"""
         print(self.daily_returns.tail(20))
 
-if __name__ == "__main__":   
-    ticker = "SPY"
-    volatility = VolatilityFacade(ticker)
-    #print(volatility.get_calendar_year_returns())
-    volatility.visualize_monthly_percentage_change()
-    #volatility.visualize_daily_percentage_change()
-    #volatility.visualize_weekly_percentage_change()
-    ##print(volatility.weekly_returns[-10:])
+if __name__ == "__main__":
+    pass
     
     # Visualize different time-frame return distributions
     #volatility.visualize_weekly_percentage_change()
