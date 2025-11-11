@@ -1,11 +1,8 @@
-import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from scipy.stats import probplot
-from scipy.stats import norm
 from scipy import stats
-import fentu.constants as const
 
 def calculate_four_moments(x):
     """Calculate the four moments of the data"""
@@ -54,17 +51,26 @@ def fit_lognormal_distribution(data):
     fitted_pdf = stats.lognorm.pdf(x, shape, loc, scale)
     return x, fitted_pdf, mu, sigma
 
+def fit_student_t_distribution(x):
+    df, loc, scale = stats.t.fit(x)
+    x_sorted = np.sort(x)
+    pdf_t = stats.t.pdf(x_sorted, df, loc, scale)
+    return x_sorted, pdf_t
+
+
 def histgram_plot(data):
     print("histgram_plot data looks like", data.sample(2))
-    calculate_within_onestrd_prop(data)
     # Plot histogram directly from Series
-    sns.histplot(data=data, kde=True, bins=50)
+    sns.histplot(data=data, bins=100)
     
-    # Convert Series to list for distribution fitting
     x = list(data)
     x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
     plt.plot(x_log, pdf_log, 'g--', lw=2, 
             label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
+    
+    # x_sorted, pdf_t = fit_student_t_distribution(x)
+    # plt.plot(x_sorted, pdf_t, color='orange', lw=2, 
+    #         label=f'Student-t Fit')
     
     plt.tight_layout()
     plt.show()

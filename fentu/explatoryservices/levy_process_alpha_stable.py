@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm, t
-from fentu.explatoryservices.volcalculator import VolatilityFacade
 from scipy import stats
 
 
@@ -64,12 +63,5 @@ def plot_stable_fit(weekly_changes, save_path=None):
         plt.show()
 
     plt.close()
- 
 
-if __name__ == "__main__":
-    ticker = "QQQ"
-    volatility = VolatilityFacade(ticker)
-    weekly_changes = volatility.weekly_returns
-    print(len(weekly_changes))
-    plot_stable_fit(weekly_changes)
 
