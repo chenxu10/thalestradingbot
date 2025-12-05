@@ -66,12 +66,7 @@ def histgram_plot(data):
     x = list(data)
     x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
     plt.plot(x_log, pdf_log, 'g--', lw=2, 
-            label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
-    
-    # x_sorted, pdf_t = fit_student_t_distribution(x)
-    # plt.plot(x_sorted, pdf_t, color='orange', lw=2, 
-    #         label=f'Student-t Fit')
-    
+            label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')    
     plt.tight_layout()
     plt.show()
 
