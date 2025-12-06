@@ -52,6 +52,23 @@ class VolatilityFacade:
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']
         return prices
+
+    def calculate_yearly_return_list(self, prices, yearly_returns_list, years):
+        for year in years:
+            # Get first and last trading day prices for each year
+            year_data = prices[prices.index.year == year]
+            if not year_data.empty:
+                first_price = year_data.iloc[0]
+                last_price = year_data.iloc[-1]
+                
+                # Calculate return
+                year_return = (last_price - first_price) / first_price
+                
+                yearly_returns_list.append({
+                    'Date': pd.Timestamp(f'{year}-12-31'),
+                    'Close': year_return
+                })
+        return yearly_returns_list
     
     def get_calendar_year_returns(self, instrument=None):
         """
@@ -68,22 +85,8 @@ class VolatilityFacade:
         # Get unique years from the price data
         years = prices.index.year.unique()
         
-        for year in years:
-            # Get first and last trading day prices for each year
-            year_data = prices[prices.index.year == year]
-            if not year_data.empty:
-                first_price = year_data.iloc[0]
-                last_price = year_data.iloc[-1]
-                
-                # Calculate return
-                year_return = (last_price - first_price) / first_price
-                
-                yearly_returns_list.append({
-                    'Date': pd.Timestamp(f'{year}-12-31'),
-                    'Close': year_return
-                })
-        
-        # Convert to DataFrame and sort by date
+        yearly_returns_list = self.calculate_yearly_return_list(
+            prices, yearly_returns_list, years)
         calendar_returns = pd.DataFrame(yearly_returns_list)
         calendar_returns = calendar_returns.sort_values('Date', ascending=False)
         
@@ -144,13 +147,10 @@ class VolatilityFacade:
         Returns:
             pandas.Series: Filtered returns sorted from worst to best
         """
+        returns = self.return_periods[period]
+
         if period not in self.return_periods:
             raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
-            
-        returns = self.return_periods[period]
-        
-        if k is not None and threshold is not None:
-            raise ValueError("Please specify either k or threshold, not both")
         
         if k is not None:
             return returns.sort_values().head(k)
