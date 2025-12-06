@@ -17,7 +17,7 @@ def fit_stable_distribution(weekly_changes):
         - beta (float): Skewness parameter (-1 ≤ beta ≤ 1)
     """
     data = np.array(weekly_changes)
-    print("starts to fit ....")
+    print("starts to fit levy stable distribution ....")
     alpha, beta, _, _ = stats.levy_stable.fit(
         data,
         loc=np.mean(data),  # Provide initial guess
@@ -25,7 +25,6 @@ def fit_stable_distribution(weekly_changes):
         optimizer='powell'  # More robust for this problem
     )
     return alpha, beta
-    #return np.clip(alpha, 0.01, 2.0), np.clip(beta, -1.0, 1.0)
 
 def plot_stable_fit(weekly_changes, save_path=None):
     """
