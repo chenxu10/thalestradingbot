@@ -7,6 +7,7 @@ import pandas as pd
 pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm, t
 from curl_cffi import requests
@@ -114,10 +115,14 @@ class VolatilityFacade:
         """
         if period not in self.return_periods:
             raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
-        
+
         returns_data = self.return_periods[period]
-        ps.qq_plot(returns_data)
-        ps.histgram_plot(returns_data)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+        ps.qq_plot(returns_data, ax=ax1, show=False)
+        ps.histgram_plot(returns_data, ax=ax2, show=False)
+        fig.suptitle(f'{self.instrument} {period.capitalize()} Returns')
+        plt.tight_layout()
+        plt.show()
 
     def visualize_daily_percentage_change(self):
         """Visualize daily percentage changes using QQ plot and histogram"""
@@ -189,9 +194,9 @@ class VolatilityFacade:
         print(self.daily_returns.tail(20))
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("SPY")
+    volatility = VolatilityFacade("IAU")
     # Visualize different time-frame return distributions
-    #volatility.visualize_weekly_percentage_change()
+    volatility.visualize_weekly_percentage_change()
     #volatility.visualize_daily_percentage_change()
     #volatility.visualize_yearly_percentage_change()
     #print(volatility.yearly_returns)
@@ -201,8 +206,8 @@ if __name__ == "__main__":
     
     # Find extreme returns
     #print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
-    print(f"Worst days: {volatility.find_worst_k_days(k=10)}")
-    print(f"Worst months: {volatility.find_worst_k_months(k=10)}")
+    #print(f"Worst days: {volatility.find_worst_k_days(k=30)}")
+    #print(f"Worst months: {volatility.find_worst_k_months(k=30)}")
     # print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
     # print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
     # print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")

@@ -14,18 +14,21 @@ def calculate_four_moments(x):
     kurtosis = x.kurtosis()
     return mean, std, mad, skew, kurtosis
 
-def qq_plot(x):
-    fig = probplot(x, plot=plt)
+def qq_plot(x, ax=None, show=True):
+    if ax is None:
+        fig, ax = plt.subplots()
+    probplot(x, plot=ax)
     mean, std, mad, skew, kurtosis = calculate_four_moments(x)
-    plt.text(0.05, 0.7, 
-             f'Mean: {mean:.4f}\
-             \nSD: {std:.4f}\
-             \nMAD:{mad:.4f}\
-             \nSkew: {skew:.4f}\
-             \nKurtosis: {kurtosis:.4f}', 
-         transform=plt.gca().transAxes, fontsize=12)
-    plt.show()
-    return fig
+    ax.text(0.05, 0.7,
+            f'Mean: {mean:.4f}\n'
+            f'SD: {std:.4f}\n'
+            f'MAD:{mad:.4f}\n'
+            f'Skew: {skew:.4f}\n'
+            f'Kurtosis: {kurtosis:.4f}',
+            transform=ax.transAxes, fontsize=12)
+    if show:
+        plt.show()
+    return ax
 
 def calculate_within_onestrd_prop(data):
     close = data
@@ -58,15 +61,19 @@ def fit_student_t_distribution(x):
     return x_sorted, pdf_t
 
 
-def histgram_plot(data):
+def histgram_plot(data, ax=None, show=True):
     print("histgram_plot data looks like", data.sample(2))
+    if ax is None:
+        fig, ax = plt.subplots()
     # Plot histogram directly from Series
-    sns.histplot(data=data, bins=100)
-    
+    sns.histplot(data=data, bins=100, ax=ax)
+
     x = list(data)
     x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
-    plt.plot(x_log, pdf_log, 'g--', lw=2, 
-            label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')    
-    plt.tight_layout()
-    plt.show()
+    ax.plot(x_log, pdf_log, 'g--', lw=2,
+            label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
+    if show:
+        plt.tight_layout()
+        plt.show()
+    return ax
 
