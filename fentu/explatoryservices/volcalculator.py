@@ -7,6 +7,7 @@ import pandas as pd
 pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
+import fentu.explatoryservices.see_power_law as spl
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm, t
@@ -109,7 +110,8 @@ class VolatilityFacade:
     
     def visualize_percentage_change(self, period='daily'):
         """
-        Visualize percentage changes for a specific period using QQ plot and histogram
+        Visualize percentage changes for a specific period using QQ plot, histogram,
+        and log-log plots for left and right tail analysis.
         Args:
             period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
         """
@@ -117,9 +119,24 @@ class VolatilityFacade:
             raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
 
         returns_data = self.return_periods[period]
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-        ps.qq_plot(returns_data, ax=ax1, show=False)
-        ps.histgram_plot(returns_data, ax=ax2, show=False)
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        ps.qq_plot(returns_data, ax=axes[0, 0], show=False)
+        ps.histgram_plot(returns_data, ax=axes[0, 1], show=False)
+
+        left_tail = np.abs(returns_data[returns_data < 0].values)
+        right_tail = returns_data[returns_data > 0].values
+
+        if len(left_tail) > 0:
+            x_min_left = np.min(left_tail)
+            spl.plot_loglog_histogram_log_binning(left_tail, x_min_left, ax=axes[1, 0])
+            axes[1, 0].set_title('Left Tail (Negative Returns) Log-Log')
+
+        if len(right_tail) > 0:
+            x_min_right = np.min(right_tail)
+            spl.plot_loglog_histogram_log_binning(right_tail, x_min_right, ax=axes[1, 1])
+            axes[1, 1].set_title('Right Tail (Positive Returns) Log-Log')
+
         fig.suptitle(f'{self.instrument} {period.capitalize()} Returns')
         plt.tight_layout()
         plt.show()
