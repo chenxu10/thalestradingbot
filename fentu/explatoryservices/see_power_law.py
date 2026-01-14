@@ -1,50 +1,17 @@
 """
-This script provides tools to plot on a sample of data set on liner, log-log and
-log-binning scales.
+This script provides tools to plot on a sample of data set on log-log scale
+with power law fitting.
 
-It helps you to see whether underlying data set has a power law potential.
-
-It plots on generated simulated data using power law when alpha=2.5.
-
-It also plots on empircial data of daily SPY return to check slope vaguely.
-
-TODO:
-It's worth to separate seeing SPY data with left tail and right tail analyses
+It helps you to see whether underlying data set has a power law potential
+by fitting a linear slope in log-log space to estimate alpha.
 
 Author: Xu.Shen<xs286@cornell.edu>
 """
 
 import numpy as np
-from scipy.stats import uniform, norm
+from scipy.stats import linregress
 import matplotlib.pyplot as plt
 
-def uniform_sample_r(loc, scale, size):
-    """生成均匀分布的随机数"""
-    return uniform.rvs(loc=loc, scale=scale, size=size)
-
-def generate_gaussian_samples(mu=0, sigma=1, size=1000000):
-    samples = norm.rvs(loc=mu, scale=sigma, size=size)
-    return np.abs(samples)
-
-def generate_transformative_power_law_samples(alpha, x_min=1.0, size=1000):
-    """使用变换方法生成幂律分布样本
-    
-    参数:
-    alpha: 幂律指数 (应该 > 1)
-    x_min: 分布的下限
-    size: 样本数量
-    
-    返回:
-    幂律分布的样本数组
-    """
-    uniform_r = uniform_sample_r(0, 1, size)
-    
-    if alpha <= 1:
-        raise ValueError("alpha 必须大于 1，否则分布无法归一化")
-    
-    power_law_samples = x_min * np.power(1.0 - uniform_r, -1.0/(alpha - 1))
-    
-    return power_law_samples
 
 def create_log_space_bins(x_min, samples) -> np.ndarray:
     """
@@ -52,6 +19,7 @@ def create_log_space_bins(x_min, samples) -> np.ndarray:
     """
     bins = np.logspace(np.log10(x_min), np.log10(np.max(samples)), 100)
     return bins
+
 
 def compute_histogram_with_bins(samples, bins, method='numpy_density'):
     """
@@ -95,173 +63,76 @@ def compute_histogram_with_bins(samples, bins, method='numpy_density'):
 
     return values, bin_centers, bin_edges
 
-def plot_linear_histogram(samples, ax=None):
+
+def fit_power_law_slope(bin_centers, density):
     """
-    Plot linear scale histogram of power-law samples
+    Fit a linear slope on log-log data to estimate power law exponent alpha.
 
-    参数:
-    samples: Power-law distributed samples
-    ax: Matplotlib axes object. If None, uses current axes
+    For power law p(x) ~ x^(-alpha), in log-log space:
+    log(p) = -alpha * log(x) + const
+    So alpha = -slope
 
-    返回:
-    ax: The axes object used for plotting
+    Parameters:
+    bin_centers: Array of bin center values
+    density: Array of density values
+
+    Returns:
+    tuple: (alpha, slope, intercept, r_squared)
+        - alpha: Estimated power law exponent
+        - slope: Slope of linear fit in log-log space
+        - intercept: Intercept of linear fit
+        - r_squared: R-squared value of the fit
     """
-
-    if ax is None:
-        ax = plt.gca()
-
-    ax.hist(samples, bins=30, density=True, alpha=0.7, color='blue')
-    ax.set_xlim(left=None, right=max(samples)+0.01)
-    ax.set_xlabel('x')
-    ax.set_ylabel('Probability density')
-    ax.set_title('Power-law distribution (linear scale)')
-    ax.grid(True, alpha=0.3)
-
-    return ax
-
-def plot_loglog_histogram(samples, x_min, ax=None):
-    """
-    Plot log-log scale histogram of power-law samples
-
-    Uses linear bins with standard numpy density calculation.
-    This can produce noisier plots in the tail region (similar to Newman plot b).
-
-    参数:
-    samples: Power-law distributed samples
-    x_min: Minimum value of the distribution
-    ax: Matplotlib axes object. If None, uses current axes
-
-    返回:
-    ax: The axes object used for plotting
-    hist: Histogram values
-    bin_centers: Bin center values
-    """
-
-    if ax is None:
-        ax = plt.gca()
-
-    # Create linear bins
-    bins = np.linspace(x_min, np.max(samples), 100)
-
-    # Use unified histogram computation pipeline
-    hist, bin_centers, _ = compute_histogram_with_bins(samples, bins, method='numpy_density')
-
-    # Plot only positive histogram values
-    ax.loglog(bin_centers[hist > 0], hist[hist > 0], 'o-', alpha=0.7)
-    ax.set_xlabel('x (log scale)')
-    ax.set_ylabel('Probability density (log scale)')
-    ax.set_title('Power-law distribution (log-log scale)')
-    ax.grid(True, alpha=0.3, which='both')
-
-    return ax, hist, bin_centers
-
-def plot_loglog_histogram_log_binning(samples, x_min, ax=None):
-    """
-    Plot log-log scale histogram with proper log binning method
-
-    This method produces cleaner plots like Newman's plot (c) by:
-    - Using log-spaced bins
-    - Using manual density normalization by bin width
-    - Using geometric mean for bin centers (correct for log scale)
-    - Reducing noise in the tail region
-
-    参数:
-    samples: Power-law distributed samples
-    x_min: Minimum value of the distribution
-    ax: Matplotlib axes object. If None, uses current axes
-
-    返回:
-    ax: The axes object used for plotting
-    density: Density values
-    bin_centers: Bin center values
-    """
-
-    if ax is None:
-        ax = plt.gca()
-
-    # Create log-spaced bins
-    bins = create_log_space_bins(x_min, samples)
-
-    # Use unified histogram computation pipeline with manual density method
-    density, bin_centers, _ = compute_histogram_with_bins(samples, bins, method='manual_density')
-
-    # Plot only bins with positive density
     mask = density > 0
-    ax.loglog(bin_centers[mask], density[mask], 'o-', alpha=0.7)
-    ax.set_xlabel('x (log scale)')
-    ax.set_ylabel('Probability density (log scale)')
-    ax.set_title('Power-law distribution with log binning')
-    ax.grid(True, alpha=0.3, which='both')
+    log_x = np.log10(bin_centers[mask])
+    log_y = np.log10(density[mask])
 
-    return ax, density, bin_centers
+    slope, intercept, r_value, _, _ = linregress(log_x, log_y)
+    alpha = -slope
+    r_squared = r_value ** 2
+
+    return alpha, slope, intercept, r_squared
 
 
-def plot_loglog_histogram_spy(samples, x_min, ax=None):
+def plot_loglog_with_fit(samples, x_min, ax=None, title=None):
     """
-    Plot log-log scale histogram of power-law samples
+    Plot log-log histogram with linear fit to estimate power law alpha.
 
-    Uses linear bins with standard numpy density calculation.
-    This can produce noisier plots in the tail region (similar to Newman plot b).
-
-    参数:
+    Parameters:
     samples: Power-law distributed samples
     x_min: Minimum value of the distribution
     ax: Matplotlib axes object. If None, uses current axes
+    title: Optional custom title for the plot
 
-    返回:
+    Returns:
     ax: The axes object used for plotting
-    hist: Histogram values
-    bin_centers: Bin center values
+    alpha: Estimated power law exponent
+    r_squared: R-squared value of the fit
     """
-
     if ax is None:
         ax = plt.gca()
 
-    # Create linear bins
-    bins = np.linspace(x_min, np.max(samples), 100)
+    bins = create_log_space_bins(x_min, samples)
+    density, bin_centers, _ = compute_histogram_with_bins(
+        samples, bins, method='manual_density'
+    )
 
-    # Use unified histogram computation pipeline
-    hist, bin_centers, _ = compute_histogram_with_bins(samples, bins, method='numpy_density')
+    mask = density > 0
+    ax.loglog(bin_centers[mask], density[mask], 'o', alpha=0.7, label='Data')
 
-    # Plot only positive histogram values
-    ax.loglog(bin_centers[hist > 0], hist[hist > 0], 'o-', alpha=0.7)
+    alpha, slope, intercept, r_squared = fit_power_law_slope(bin_centers, density)
+
+    fit_x = bin_centers[mask]
+    fit_y = 10 ** (slope * np.log10(fit_x) + intercept)
+    ax.loglog(fit_x, fit_y, 'r-', linewidth=2, label=f'Fit (α={alpha:.2f})')
+
     ax.set_xlabel('x (log scale)')
     ax.set_ylabel('Probability density (log scale)')
-    ax.set_title('Power-law distribution (log-log scale) on Historical SPY Daily Returns')
+    if title:
+        ax.set_title(f'{title}: α={alpha:.2f}, R²={r_squared:.3f}')
+    else:
+        ax.set_title(f'Power-law fit: α={alpha:.2f}, R²={r_squared:.3f}')
+    ax.legend(loc='upper right')
     ax.grid(True, alpha=0.3, which='both')
 
-    return ax, hist, bin_centers
-
-def calculate_sample_statistics(samples, x_min):
-    """
-    Calculate statistical metrics for power-law samples
-
-    参数:
-    samples: Power-law distributed samples
-    x_min: Expected minimum value of the distribution
-
-    返回:
-    dict: Dictionary containing statistical metrics
-    """
-    return {
-        'count': len(samples),
-        'min': np.min(samples),
-        'max': np.max(samples),
-        'median': np.median(samples),
-        'mean': np.mean(samples),
-        'x_min': x_min
-    }
-
-def print_sample_statistics(stats):
-    """
-    Print formatted statistical metrics for power-law samples
-
-    参数:
-    stats: Dictionary containing statistical metrics from calculate_sample_statistics
-    """
-    print(f"生成的样本统计:")
-    print(f"  样本数: {stats['count']}")
-    print(f"  最小值: {stats['min']:.4f} (应该接近 x_min={stats['x_min']})")
-    print(f"  最大值: {stats['max']:.4f}")
-    print(f"  中位数: {stats['median']:.4f}")
-    print(f"  均值: {stats['mean']:.4f}")
+    return ax, alpha, r_squared

@@ -129,13 +129,17 @@ class VolatilityFacade:
 
         if len(left_tail) > 0:
             x_min_left = np.min(left_tail)
-            spl.plot_loglog_histogram_log_binning(left_tail, x_min_left, ax=axes[1, 0])
-            axes[1, 0].set_title('Left Tail (Negative Returns) Log-Log')
+            spl.plot_loglog_with_fit(
+                left_tail, x_min_left, ax=axes[1, 0],
+                title='Left Tail (Negative Returns)'
+            )
 
         if len(right_tail) > 0:
             x_min_right = np.min(right_tail)
-            spl.plot_loglog_histogram_log_binning(right_tail, x_min_right, ax=axes[1, 1])
-            axes[1, 1].set_title('Right Tail (Positive Returns) Log-Log')
+            spl.plot_loglog_with_fit(
+                right_tail, x_min_right, ax=axes[1, 1],
+                title='Right Tail (Positive Returns)'
+            )
 
         fig.suptitle(f'{self.instrument} {period.capitalize()} Returns')
         plt.tight_layout()
