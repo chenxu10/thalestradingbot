@@ -64,9 +64,12 @@ def compute_histogram_with_bins(samples, bins, method='numpy_density'):
     return values, bin_centers, bin_edges
 
 
-def fit_power_law_slope(bin_centers, density):
+def fit_power_law_slope(bin_centers, density, tail_percent=0.2):
     """
     Fit a linear slope on log-log data to estimate power law exponent alpha.
+
+    Uses extreme value theory approach: fits only the tail portion of the data
+    where power law behavior is most prominent.
 
     For power law p(x) ~ x^(-alpha), in log-log space:
     log(p) = -alpha * log(x) + const
@@ -75,34 +78,53 @@ def fit_power_law_slope(bin_centers, density):
     Parameters:
     bin_centers: Array of bin center values
     density: Array of density values
+    tail_percent: Fraction of extreme tail data to use for fitting (default 0.2 = 20%)
+                  Uses the largest x values (rightmost portion of log-log plot)
 
     Returns:
-    tuple: (alpha, slope, intercept, r_squared)
+    tuple: (alpha, slope, intercept, r_squared, tail_mask)
         - alpha: Estimated power law exponent
         - slope: Slope of linear fit in log-log space
         - intercept: Intercept of linear fit
         - r_squared: R-squared value of the fit
+        - tail_mask: Boolean mask indicating which points were used for fitting
     """
     mask = density > 0
-    log_x = np.log10(bin_centers[mask])
-    log_y = np.log10(density[mask])
+    valid_centers = bin_centers[mask]
+    valid_density = density[mask]
+
+    n_points = len(valid_centers)
+    n_tail = max(int(n_points * tail_percent), 2)
+    tail_start_idx = n_points - n_tail
+
+    tail_centers = valid_centers[tail_start_idx:]
+    tail_density = valid_density[tail_start_idx:]
+
+    log_x = np.log10(tail_centers)
+    log_y = np.log10(tail_density)
 
     slope, intercept, r_value, _, _ = linregress(log_x, log_y)
     alpha = -slope
     r_squared = r_value ** 2
 
-    return alpha, slope, intercept, r_squared
+    tail_mask = np.zeros(len(valid_centers), dtype=bool)
+    tail_mask[tail_start_idx:] = True
+
+    return alpha, slope, intercept, r_squared, tail_mask
 
 
-def plot_loglog_with_fit(samples, x_min, ax=None, title=None):
+def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
     """
     Plot log-log histogram with linear fit to estimate power law alpha.
+
+    Uses extreme value theory: fits only the tail portion of the distribution.
 
     Parameters:
     samples: Power-law distributed samples
     x_min: Minimum value of the distribution
     ax: Matplotlib axes object. If None, uses current axes
     title: Optional custom title for the plot
+    tail_percent: Fraction of extreme tail to use for fitting (default 0.2 = 20%)
 
     Returns:
     ax: The axes object used for plotting
@@ -118,11 +140,23 @@ def plot_loglog_with_fit(samples, x_min, ax=None, title=None):
     )
 
     mask = density > 0
-    ax.loglog(bin_centers[mask], density[mask], 'o', alpha=0.7, label='Data')
+    valid_centers = bin_centers[mask]
+    valid_density = density[mask]
 
-    alpha, slope, intercept, r_squared = fit_power_law_slope(bin_centers, density)
+    alpha, slope, intercept, r_squared, tail_mask = fit_power_law_slope(
+        bin_centers, density, tail_percent
+    )
 
-    fit_x = bin_centers[mask]
+    ax.loglog(
+        valid_centers[~tail_mask], valid_density[~tail_mask],
+        'o', alpha=0.4, color='gray', label='Data (not fitted)'
+    )
+    ax.loglog(
+        valid_centers[tail_mask], valid_density[tail_mask],
+        'o', alpha=0.7, color='blue', label=f'Tail ({int(tail_percent*100)}%)'
+    )
+
+    fit_x = valid_centers[tail_mask]
     fit_y = 10 ** (slope * np.log10(fit_x) + intercept)
     ax.loglog(fit_x, fit_y, 'r-', linewidth=2, label=f'Fit (α={alpha:.2f})')
 

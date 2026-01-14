@@ -108,12 +108,14 @@ class VolatilityFacade:
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
     
-    def visualize_percentage_change(self, period='daily'):
+    def visualize_percentage_change(self, period='daily', tail_percent=0.2):
         """
         Visualize percentage changes for a specific period using QQ plot, histogram,
         and log-log plots for left and right tail analysis.
         Args:
             period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+            tail_percent: Fraction of extreme tail to fit for alpha estimation (default 0.2)
+                          Based on extreme value theory, only the tail exhibits power law behavior
         """
         if period not in self.return_periods:
             raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
@@ -131,14 +133,16 @@ class VolatilityFacade:
             x_min_left = np.min(left_tail)
             spl.plot_loglog_with_fit(
                 left_tail, x_min_left, ax=axes[1, 0],
-                title='Left Tail (Negative Returns)'
+                title='Left Tail (Negative Returns)',
+                tail_percent=tail_percent
             )
 
         if len(right_tail) > 0:
             x_min_right = np.min(right_tail)
             spl.plot_loglog_with_fit(
                 right_tail, x_min_right, ax=axes[1, 1],
-                title='Right Tail (Positive Returns)'
+                title='Right Tail (Positive Returns)',
+                tail_percent=tail_percent
             )
 
         fig.suptitle(f'{self.instrument} {period.capitalize()} Returns')
