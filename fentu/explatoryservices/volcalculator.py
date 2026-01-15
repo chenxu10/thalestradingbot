@@ -108,7 +108,7 @@ class VolatilityFacade:
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
     
-    def visualize_percentage_change(self, period='daily', tail_percent=0.2):
+    def visualize_percentage_change(self, period='daily', tail_percent=0.10):
         """
         Visualize percentage changes for a specific period using QQ plot, histogram,
         and log-log plots for left and right tail analysis.
