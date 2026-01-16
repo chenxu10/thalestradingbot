@@ -108,6 +108,25 @@ class VolatilityFacade:
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
     
+    def _prepare_percentage_change_data(self, period='daily'):
+        """
+        Prepare data for percentage change visualization.
+
+        Returns:
+            dict with 'returns', 'left_tail', 'right_tail', 'period', 'instrument'
+        """
+        if period not in self.return_periods:
+            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
+
+        returns_data = self.return_periods[period]
+        return {
+            'returns': returns_data,
+            'left_tail': np.abs(returns_data[returns_data < 0].values),
+            'right_tail': returns_data[returns_data > 0].values,
+            'period': period,
+            'instrument': self.instrument,
+        }
+
     def visualize_percentage_change(self, period='daily', tail_percent=0.10):
         """
         Visualize percentage changes for a specific period using QQ plot, histogram,
@@ -117,35 +136,28 @@ class VolatilityFacade:
             tail_percent: Fraction of extreme tail to fit for alpha estimation (default 0.2)
                           Based on extreme value theory, only the tail exhibits power law behavior
         """
-        if period not in self.return_periods:
-            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
+        data = self._prepare_percentage_change_data(period)
 
-        returns_data = self.return_periods[period]
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
-        ps.qq_plot(returns_data, ax=axes[0, 0], show=False)
-        ps.histgram_plot(returns_data, ax=axes[0, 1], show=False)
+        ps.qq_plot(data['returns'], ax=axes[0, 0], show=False)
+        ps.histgram_plot(data['returns'], ax=axes[0, 1], show=False)
 
-        left_tail = np.abs(returns_data[returns_data < 0].values)
-        right_tail = returns_data[returns_data > 0].values
+        tails = [
+            (data['left_tail'], axes[1, 0], 'Left Tail (Negative Returns)'),
+            (data['right_tail'], axes[1, 1], 'Right Tail (Positive Returns)'),
+        ]
 
-        if len(left_tail) > 0:
-            x_min_left = np.min(left_tail)
-            spl.plot_loglog_with_fit(
-                left_tail, x_min_left, ax=axes[1, 0],
-                title='Left Tail (Negative Returns)',
-                tail_percent=tail_percent
-            )
+        for tail_data, ax, title in tails:
+            if len(tail_data) > 0:
+                x_min = np.min(tail_data)
+                spl.plot_loglog_with_fit(
+                    tail_data, x_min, ax=ax,
+                    title=title,
+                    tail_percent=tail_percent
+                )
 
-        if len(right_tail) > 0:
-            x_min_right = np.min(right_tail)
-            spl.plot_loglog_with_fit(
-                right_tail, x_min_right, ax=axes[1, 1],
-                title='Right Tail (Positive Returns)',
-                tail_percent=tail_percent
-            )
-
-        fig.suptitle(f'{self.instrument} {period.capitalize()} Returns')
+        fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
         plt.tight_layout()
         plt.show()
 
