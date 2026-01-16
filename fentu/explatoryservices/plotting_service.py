@@ -61,17 +61,29 @@ def fit_student_t_distribution(x):
     return x_sorted, pdf_t
 
 
-def histgram_plot(data, ax=None, show=True):
+def histgram_plot(data, ax=None, show=True, title=None):
     print("histgram_plot data looks like", data.sample(2))
     if ax is None:
         fig, ax = plt.subplots()
     # Plot histogram directly from Series
-    sns.histplot(data=data, bins=100, ax=ax)
+    sns.histplot(data=data, bins=100, ax=ax, stat='count')
 
-    x = list(data)
-    x_log, pdf_log, mu_log, sigma_log = fit_lognormal_distribution(x)
-    ax.plot(x_log, pdf_log, 'g--', lw=2,
-            label=f'Log-Normal Fit\n(μ_log={mu_log:.2f}, σ_log={sigma_log:.2f})')
+    x = np.array(data)
+
+    # Fit and plot Normal distribution (orange line)
+    x_norm, pdf_norm, mu, sigma = fit_normal_distribution(x)
+    # Scale PDF to match histogram counts
+    bin_width = (max(x) - min(x)) / 100
+    scale_factor = len(x) * bin_width
+    ax.plot(x_norm, pdf_norm * scale_factor, color='orange', lw=2, label='Normal Fit')
+
+    # Fit and plot Student T distribution (green line)
+    x_t, pdf_t = fit_student_t_distribution(x)
+    ax.plot(x_t, pdf_t * scale_factor, color='green', lw=2, label='Student T Fit')
+
+    ax.legend()
+    if title:
+        ax.set_title(title)
     if show:
         plt.tight_layout()
         plt.show()
