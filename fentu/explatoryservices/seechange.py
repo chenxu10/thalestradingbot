@@ -16,9 +16,9 @@ def main():
     volatility = VolatilityFacade(ticker)
     
     actions = {
-        'daily': volatility.visualize_daily_percentage_change,
-        'weekly': volatility.visualize_weekly_percentage_change,
-        'monthly': volatility.visualize_monthly_percentage_change,
+        'daily': lambda: volatility.visualize_percentage_change('daily'),
+        'weekly': lambda: volatility.visualize_percentage_change('weekly'),
+        'monthly': lambda: volatility.visualize_percentage_change('monthly'),
         'yearly': lambda: print(volatility.get_calendar_year_returns())
     }
     

@@ -161,22 +161,6 @@ class VolatilityFacade:
         plt.tight_layout()
         plt.show()
 
-    def visualize_daily_percentage_change(self):
-        """Visualize daily percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('daily')
-    
-    def visualize_weekly_percentage_change(self):
-        """Visualize weekly percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('weekly')
-    
-    def visualize_monthly_percentage_change(self):
-        """Visualize monthly percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('monthly')
-
-    def visualize_yearly_percentage_change(self):
-        """Visualize yearly percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('yearly')
-
     def find_worst_returns(self, period='daily', k=None, threshold=None):
         """
         Find worst returns for a specific period either by count (k) or threshold
@@ -201,30 +185,6 @@ class VolatilityFacade:
             return returns.loc[returns < threshold].sort_values()
             
         raise ValueError("Either k or threshold must be specified")
-    
-    def find_worst_k_days(self, k=20):
-        """Find k worst daily returns"""
-        return self.find_worst_returns(period='daily', k=k)
-    
-    def find_worst_k_weeks(self, k=3):
-        """Find k worst weekly returns"""
-        return self.find_worst_returns(period='weekly', k=k)
-    
-    def find_worst_k_months(self, k=3):
-        """Find k worst monthly returns"""
-        return self.find_worst_returns(period='monthly', k=k)
-    
-    def find_worst_k_years(self, k=3):
-        """Find k worst yearly returns"""
-        return self.find_worst_returns(period='yearly', k=k)
-
-    def find_worst_weeks(self, threshold=-0.1):
-        """Find weekly returns below threshold"""
-        return self.find_worst_returns(period='weekly', threshold=threshold)
-    
-    def find_worst_months(self, threshold=-0.2):
-        """Find monthly returns below threshold"""
-        return self.find_worst_returns(period='monthly', threshold=threshold)
 
     def show_today_return(self):
         """Show recent daily returns"""
@@ -233,25 +193,23 @@ class VolatilityFacade:
 if __name__ == "__main__":
     volatility = VolatilityFacade("IAU")
     # Visualize different time-frame return distributions
-    volatility.visualize_weekly_percentage_change()
-    #volatility.visualize_daily_percentage_change()
-    #volatility.visualize_yearly_percentage_change()
+    volatility.visualize_percentage_change('weekly')
+    #volatility.visualize_percentage_change('daily')
+    #volatility.visualize_percentage_change('yearly')
     #print(volatility.yearly_returns)
-    
+
     # Calculate volatility metrics
     # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
-    
+
     # Find extreme returns
-    #print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
-    #print(f"Worst days: {volatility.find_worst_k_days(k=30)}")
-    #print(f"Worst months: {volatility.find_worst_k_months(k=30)}")
-    # print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
-    # print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
-    # print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")
-    
+    #print(f"Worst weeks: {volatility.find_worst_returns('weekly', k=3)}")
+    #print(f"Worst days: {volatility.find_worst_returns('daily', k=30)}")
+    #print(f"Worst months: {volatility.find_worst_returns('monthly', k=30)}")
+    # print(f"Worst months (below -20%): {volatility.find_worst_returns('monthly', threshold=-0.2)}")
+
     # Show recent returns
     #volatility.show_today_return()
-    
+
     # Calculate calendar year returns
     #calendar_returns = volatility.get_calendar_year_returns(ticker)
     # calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
