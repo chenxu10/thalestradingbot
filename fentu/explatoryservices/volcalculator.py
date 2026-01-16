@@ -113,53 +113,64 @@ class VolatilityFacade:
         Prepare data for percentage change visualization.
 
         Returns:
-            dict with 'returns', 'left_tail', 'right_tail', 'period', 'instrument'
+            dict with 'returns', 'tails', 'period', 'instrument'
         """
         if period not in self.return_periods:
             raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
 
         returns_data = self.return_periods[period]
+        left_tail = np.abs(returns_data[returns_data < 0].values)
+        right_tail = returns_data[returns_data > 0].values
+
         return {
             'returns': returns_data,
-            'left_tail': np.abs(returns_data[returns_data < 0].values),
-            'right_tail': returns_data[returns_data > 0].values,
+            'tails': [
+                {'data': left_tail, 'x_min': np.min(left_tail) if len(left_tail) > 0 else None,
+                 'title': 'Left Tail (Negative Returns)'},
+                {'data': right_tail, 'x_min': np.min(right_tail) if len(right_tail) > 0 else None,
+                 'title': 'Right Tail (Positive Returns)'},
+            ],
             'period': period,
             'instrument': self.instrument,
         }
 
-    def visualize_percentage_change(self, period='daily', tail_percent=0.10):
+    def _plot_percentage_change(self, data, tail_percent):
         """
-        Visualize percentage changes for a specific period using QQ plot, histogram,
-        and log-log plots for left and right tail analysis.
-        Args:
-            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
-            tail_percent: Fraction of extreme tail to fit for alpha estimation (default 0.2)
-                          Based on extreme value theory, only the tail exhibits power law behavior
-        """
-        data = self._prepare_percentage_change_data(period)
+        Plot percentage change visualizations.
 
+        Args:
+            data: dict from _prepare_percentage_change_data
+            tail_percent: Fraction of extreme tail to fit for alpha estimation
+        """
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
         ps.qq_plot(data['returns'], ax=axes[0, 0], show=False)
         ps.histgram_plot(data['returns'], ax=axes[0, 1], show=False)
 
-        tails = [
-            (data['left_tail'], axes[1, 0], 'Left Tail (Negative Returns)'),
-            (data['right_tail'], axes[1, 1], 'Right Tail (Positive Returns)'),
-        ]
-
-        for tail_data, ax, title in tails:
-            if len(tail_data) > 0:
-                x_min = np.min(tail_data)
+        tail_axes = [axes[1, 0], axes[1, 1]]
+        for tail, ax in zip(data['tails'], tail_axes):
+            if tail['x_min'] is not None:
                 spl.plot_loglog_with_fit(
-                    tail_data, x_min, ax=ax,
-                    title=title,
+                    tail['data'], tail['x_min'], ax=ax,
+                    title=tail['title'],
                     tail_percent=tail_percent
                 )
 
         fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
         plt.tight_layout()
         plt.show()
+
+    def visualize_percentage_change(self, period='daily', tail_percent=0.10):
+        """
+        Visualize percentage changes for a specific period using QQ plot, histogram,
+        and log-log plots for left and right tail analysis.
+
+        Args:
+            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+            tail_percent: Fraction of extreme tail to fit for alpha estimation (default 0.1)
+        """
+        data = self._prepare_percentage_change_data(period)
+        self._plot_percentage_change(data, tail_percent)
 
     def find_worst_returns(self, period='daily', k=None, threshold=None):
         """
