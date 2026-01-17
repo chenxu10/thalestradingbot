@@ -205,26 +205,17 @@ if __name__ == "__main__":
     volatility = VolatilityFacade("IAU")
     # Visualize different time-frame return distributions
     volatility.visualize_percentage_change('weekly')
-    #volatility.visualize_percentage_change('daily')
-    #volatility.visualize_percentage_change('yearly')
-    #print(volatility.yearly_returns)
 
     # Calculate volatility metrics
     # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
 
     # Find extreme returns
-    #print(f"Worst weeks: {volatility.find_worst_returns('weekly', k=3)}")
-    #print(f"Worst days: {volatility.find_worst_returns('daily', k=30)}")
-    #print(f"Worst months: {volatility.find_worst_returns('monthly', k=30)}")
+    print(f"Worst months: {volatility.find_worst_returns('monthly', k=3)}")
     # print(f"Worst months (below -20%): {volatility.find_worst_returns('monthly', threshold=-0.2)}")
-
-    # Show recent returns
-    #volatility.show_today_return()
 
     # Calculate calendar year returns
     #calendar_returns = volatility.get_calendar_year_returns(ticker)
-    # calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
-    # print(calendar_returns)
+    
     
 
 

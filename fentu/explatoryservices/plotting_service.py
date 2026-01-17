@@ -61,25 +61,34 @@ def fit_student_t_distribution(x):
     return x_sorted, pdf_t
 
 
-def histgram_plot(data, ax=None, show=True, title=None):
-    print("histgram_plot data looks like", data.sample(2))
+def prepare_histogram_data(data, bins=100):
+    x = np.array(data)
+    bin_width = (max(x) - min(x)) / bins
+    scale_factor = len(x) * bin_width
+
+    x_norm, pdf_norm, _, _ = fit_normal_distribution(x)
+    x_t, pdf_t = fit_student_t_distribution(x)
+
+    return {
+        'data': data,
+        'bins': bins,
+        'scale_factor': scale_factor,
+        'normal_fit': {'x': x_norm, 'pdf': pdf_norm * scale_factor},
+        'student_t_fit': {'x': x_t, 'pdf': pdf_t * scale_factor},
+    }
+
+
+def render_histogram(view_model, ax=None, show=True, title=None):
     if ax is None:
         fig, ax = plt.subplots()
-    # Plot histogram directly from Series
-    sns.histplot(data=data, bins=100, ax=ax, stat='count')
 
-    x = np.array(data)
+    sns.histplot(data=view_model['data'], bins=view_model['bins'], ax=ax, stat='count')
 
-    # Fit and plot Normal distribution (orange line)
-    x_norm, pdf_norm, mu, sigma = fit_normal_distribution(x)
-    # Scale PDF to match histogram counts
-    bin_width = (max(x) - min(x)) / 100
-    scale_factor = len(x) * bin_width
-    ax.plot(x_norm, pdf_norm * scale_factor, color='orange', lw=2, label='Normal Fit')
+    normal = view_model['normal_fit']
+    ax.plot(normal['x'], normal['pdf'], color='orange', lw=2, label='Normal Fit')
 
-    # Fit and plot Student T distribution (green line)
-    x_t, pdf_t = fit_student_t_distribution(x)
-    ax.plot(x_t, pdf_t * scale_factor, color='green', lw=2, label='Student T Fit')
+    student_t = view_model['student_t_fit']
+    ax.plot(student_t['x'], student_t['pdf'], color='green', lw=2, label='Student T Fit')
 
     ax.legend()
     if title:
@@ -88,4 +97,13 @@ def histgram_plot(data, ax=None, show=True, title=None):
         plt.tight_layout()
         plt.show()
     return ax
+
+
+def histogram_plot(data, ax=None, show=True, title=None, bins=100):
+    view_model = prepare_histogram_data(data, bins)
+    return render_histogram(view_model, ax, show, title)
+
+
+# Backward compatibility alias
+histgram_plot = histogram_plot
 
