@@ -99,11 +99,7 @@ def render_histogram(view_model, ax=None, show=True, title=None):
     return ax
 
 
-def histogram_plot(data, ax=None, show=True, title=None, bins=100):
+def histgram_plot(data, ax=None, show=True, title=None, bins=100):
     view_model = prepare_histogram_data(data, bins)
     return render_histogram(view_model, ax, show, title)
-
-
-# Backward compatibility alias
-histgram_plot = histogram_plot
 
