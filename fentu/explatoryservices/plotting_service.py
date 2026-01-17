@@ -68,6 +68,7 @@ def prepare_histogram_data(data, bins=100):
 
     x_norm, pdf_norm, _, _ = fit_normal_distribution(x)
     x_t, pdf_t = fit_student_t_distribution(x)
+    x_lognorm, pdf_lognorm, _, _ = fit_lognormal_distribution(x)
 
     return {
         'data': data,
@@ -75,6 +76,7 @@ def prepare_histogram_data(data, bins=100):
         'scale_factor': scale_factor,
         'normal_fit': {'x': x_norm, 'pdf': pdf_norm * scale_factor},
         'student_t_fit': {'x': x_t, 'pdf': pdf_t * scale_factor},
+        'lognormal_fit': {'x': x_lognorm, 'pdf': pdf_lognorm * scale_factor},
     }
 
 
@@ -89,6 +91,9 @@ def render_histogram(view_model, ax=None, show=True, title=None):
 
     student_t = view_model['student_t_fit']
     ax.plot(student_t['x'], student_t['pdf'], color='green', lw=2, label='Student T Fit')
+
+    lognormal = view_model['lognormal_fit']
+    ax.plot(lognormal['x'], lognormal['pdf'], color='red', lw=2, label='Lognormal Fit')
 
     ax.legend()
     if title:
