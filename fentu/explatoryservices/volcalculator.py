@@ -201,6 +201,18 @@ class VolatilityFacade:
         """Show recent daily returns"""
         print(self.daily_returns.tail(20))
 
+    def get_past_week_price_and_log_returns(self):
+        """Get most recent 5 trading days prices with daily log returns"""
+        prices = self._get_prices(self.instrument).tail(5)
+        log_returns = np.log(prices / prices.shift(1))
+        return pd.DataFrame({'price': prices, 'log_return': log_returns})
+
+    def get_past_year_price_and_log_returns(self):
+        """Get most recent ~252 trading days prices with daily log returns"""
+        prices = self._get_prices(self.instrument).tail(252)
+        log_returns = np.log(prices / prices.shift(1))
+        return pd.DataFrame({'price': prices, 'log_return': log_returns})
+
 if __name__ == "__main__":
     volatility = VolatilityFacade("IAU")
     # Visualize different time-frame return distributions
