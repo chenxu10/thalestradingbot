@@ -96,13 +96,14 @@ class VolatilityFacade:
 
     def _get_returns(self, instrument, period_length):
         """
-        Helper method to get returns for different time periods
+        Helper method to get log returns for different time periods
         Args:
             instrument: The financial instrument ticker
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
         prices = self._get_prices(instrument)
         returns = prices.pct_change(period_length)[period_length:]
+        #returns = np.log(prices / prices.shift(period_length))[period_length:]
         return returns
     
     def calculate_daily_volatility(self):
@@ -172,9 +173,9 @@ class VolatilityFacade:
         data = self._prepare_percentage_change_data(period)
         self._plot_percentage_change(data, tail_percent)
 
-    def find_worst_returns(self, period='daily', k=None, threshold=None):
+    def find_negative_extreme_returns(self, period='daily', k=None, threshold=None):
         """
-        Find worst returns for a specific period either by count (k) or threshold
+        Find negative extreme returns for a specific period either by count (k) or threshold
         
         Args:
             period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
@@ -197,6 +198,31 @@ class VolatilityFacade:
             
         raise ValueError("Either k or threshold must be specified")
 
+    def find_positive_extreme_returns(self, period='daily', k=None, threshold=None):
+        """
+        Find positive extreme returns for a specific period either by count (k) or threshold
+        
+        Args:
+            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+            k: int, number of best returns to find (mutually exclusive with threshold)
+            threshold: float, threshold above which returns are considered "best"
+        
+        Returns:
+            pandas.Series: Filtered returns sorted from best to worst
+        """
+        returns = self.return_periods[period]
+
+        if period not in self.return_periods:
+            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
+        
+        if k is not None:
+            return returns.sort_values(ascending=False).head(k)
+        
+        if threshold is not None:
+            return returns.loc[returns > threshold].sort_values(ascending=False)
+            
+        raise ValueError("Either k or threshold must be specified")
+
     def show_today_return(self):
         """Show recent daily returns"""
         print(self.daily_returns.tail(20))
@@ -214,16 +240,20 @@ class VolatilityFacade:
         return pd.DataFrame({'price': prices, 'log_return': log_returns})
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("IAU")
+    volatility = VolatilityFacade("USO")
     # Visualize different time-frame return distributions
-    volatility.visualize_percentage_change('weekly')
+    # volatility.visualize_percentage_change('weekly')
+    print(volatility.get_past_week_price_and_log_returns())
 
     # Calculate volatility metrics
-    # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
+    print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
 
     # Find extreme returns
-    print(f"Worst months: {volatility.find_worst_returns('monthly', k=3)}")
-    # print(f"Worst months (below -20%): {volatility.find_worst_returns('monthly', threshold=-0.2)}")
+    #print(f"Worst months: {volatility.find_negative_extreme_returns('monthly', k=3)}")
+    print(f"Worst days (below -20%): {volatility.find_negative_extreme_returns('daily', threshold=-0.2)}")
+    print(f"Worst months (below -20%): {volatility.find_negative_extreme_returns('monthly', threshold=-0.2)}")
+    print(f"Best days (above +20%): {volatility.find_positive_extreme_returns('daily', threshold=0.2)}")
+    print(f"Best months (above +20%): {volatility.find_positive_extreme_returns('monthly', threshold=0.2)}")
 
     # Calculate calendar year returns
     #calendar_returns = volatility.get_calendar_year_returns(ticker)
