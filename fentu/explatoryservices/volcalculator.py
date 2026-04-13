@@ -7,6 +7,7 @@ import pandas as pd
 pd.set_option('display.max_rows', None)
 
 import fentu.explatoryservices.plotting_service as ps
+import fentu.explatoryservices.see_power_law as spl
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm, t
@@ -95,54 +96,86 @@ class VolatilityFacade:
 
     def _get_returns(self, instrument, period_length):
         """
-        Helper method to get returns for different time periods
+        Helper method to get log returns for different time periods
         Args:
             instrument: The financial instrument ticker
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
         prices = self._get_prices(instrument)
         returns = prices.pct_change(period_length)[period_length:]
+        #returns = np.log(prices / prices.shift(period_length))[period_length:]
         return returns
     
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
     
-    def visualize_percentage_change(self, period='daily'):
+    def _prepare_percentage_change_data(self, period='daily'):
         """
-        Visualize percentage changes for a specific period using QQ plot and histogram
-        Args:
-            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+        Prepare data for percentage change visualization.
+
+        Returns:
+            dict with 'returns', 'tails', 'period', 'instrument'
         """
         if period not in self.return_periods:
             raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
 
         returns_data = self.return_periods[period]
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-        ps.qq_plot(returns_data, ax=ax1, show=False)
-        ps.histgram_plot(returns_data, ax=ax2, show=False)
-        fig.suptitle(f'{self.instrument} {period.capitalize()} Returns')
+        left_tail = np.abs(returns_data[returns_data < 0].values)
+        right_tail = returns_data[returns_data > 0].values
+
+        return {
+            'returns': returns_data,
+            'tails': [
+                {'data': left_tail, 'x_min': np.min(left_tail) if len(left_tail) > 0 else None,
+                 'title': 'Left Tail (Negative Returns)'},
+                {'data': right_tail, 'x_min': np.min(right_tail) if len(right_tail) > 0 else None,
+                 'title': 'Right Tail (Positive Returns)'},
+            ],
+            'period': period,
+            'instrument': self.instrument,
+        }
+
+    def _plot_percentage_change(self, data, tail_percent):
+        """
+        Plot percentage change visualizations.
+
+        Args:
+            data: dict from _prepare_percentage_change_data
+            tail_percent: Fraction of extreme tail to fit for alpha estimation
+        """
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+
+        ps.qq_plot(data['returns'], ax=axes[0, 0], show=False)
+        ps.histgram_plot(data['returns'], ax=axes[0, 1], show=False)
+
+        tail_axes = [axes[1, 0], axes[1, 1]]
+        for tail, ax in zip(data['tails'], tail_axes):
+            if tail['x_min'] is not None:
+                spl.plot_loglog_with_fit(
+                    tail['data'], tail['x_min'], ax=ax,
+                    title=tail['title'],
+                    tail_percent=tail_percent
+                )
+
+        fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
         plt.tight_layout()
         plt.show()
 
-    def visualize_daily_percentage_change(self):
-        """Visualize daily percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('daily')
-    
-    def visualize_weekly_percentage_change(self):
-        """Visualize weekly percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('weekly')
-    
-    def visualize_monthly_percentage_change(self):
-        """Visualize monthly percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('monthly')
-
-    def visualize_yearly_percentage_change(self):
-        """Visualize yearly percentage changes using QQ plot and histogram"""
-        self.visualize_percentage_change('yearly')
-
-    def find_worst_returns(self, period='daily', k=None, threshold=None):
+    def visualize_percentage_change(self, period='daily', tail_percent=0.10):
         """
-        Find worst returns for a specific period either by count (k) or threshold
+        Visualize percentage changes for a specific period using QQ plot, histogram,
+        and log-log plots for left and right tail analysis.
+
+        Args:
+            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+            tail_percent: Fraction of extreme tail to fit for alpha estimation (default 0.1)
+        """
+        data = self._prepare_percentage_change_data(period)
+        self._plot_percentage_change(data, tail_percent)
+
+    def find_negative_extreme_returns(self, period='daily', k=None, threshold=None):
+        """
+        Find negative extreme returns for a specific period either by count (k) or threshold
         
         Args:
             period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
@@ -164,61 +197,67 @@ class VolatilityFacade:
             return returns.loc[returns < threshold].sort_values()
             
         raise ValueError("Either k or threshold must be specified")
-    
-    def find_worst_k_days(self, k=20):
-        """Find k worst daily returns"""
-        return self.find_worst_returns(period='daily', k=k)
-    
-    def find_worst_k_weeks(self, k=3):
-        """Find k worst weekly returns"""
-        return self.find_worst_returns(period='weekly', k=k)
-    
-    def find_worst_k_months(self, k=3):
-        """Find k worst monthly returns"""
-        return self.find_worst_returns(period='monthly', k=k)
-    
-    def find_worst_k_years(self, k=3):
-        """Find k worst yearly returns"""
-        return self.find_worst_returns(period='yearly', k=k)
 
-    def find_worst_weeks(self, threshold=-0.1):
-        """Find weekly returns below threshold"""
-        return self.find_worst_returns(period='weekly', threshold=threshold)
-    
-    def find_worst_months(self, threshold=-0.2):
-        """Find monthly returns below threshold"""
-        return self.find_worst_returns(period='monthly', threshold=threshold)
+    def find_positive_extreme_returns(self, period='daily', k=None, threshold=None):
+        """
+        Find positive extreme returns for a specific period either by count (k) or threshold
+        
+        Args:
+            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+            k: int, number of best returns to find (mutually exclusive with threshold)
+            threshold: float, threshold above which returns are considered "best"
+        
+        Returns:
+            pandas.Series: Filtered returns sorted from best to worst
+        """
+        returns = self.return_periods[period]
+
+        if period not in self.return_periods:
+            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
+        
+        if k is not None:
+            return returns.sort_values(ascending=False).head(k)
+        
+        if threshold is not None:
+            return returns.loc[returns > threshold].sort_values(ascending=False)
+            
+        raise ValueError("Either k or threshold must be specified")
 
     def show_today_return(self):
         """Show recent daily returns"""
         print(self.daily_returns.tail(20))
 
+    def get_past_week_price_and_log_returns(self):
+        """Get most recent 5 trading days prices with daily log returns"""
+        prices = self._get_prices(self.instrument).tail(5)
+        log_returns = np.log(prices / prices.shift(1))
+        return pd.DataFrame({'price': prices, 'log_return': log_returns})
+
+    def get_past_year_price_and_log_returns(self):
+        """Get most recent ~252 trading days prices with daily log returns"""
+        prices = self._get_prices(self.instrument).tail(252)
+        log_returns = np.log(prices / prices.shift(1))
+        return pd.DataFrame({'price': prices, 'log_return': log_returns})
+
 if __name__ == "__main__":
-    volatility = VolatilityFacade("IAU")
+    volatility = VolatilityFacade("USO")
     # Visualize different time-frame return distributions
-    volatility.visualize_weekly_percentage_change()
-    #volatility.visualize_daily_percentage_change()
-    #volatility.visualize_yearly_percentage_change()
-    #print(volatility.yearly_returns)
-    
+    # volatility.visualize_percentage_change('weekly')
+    print(volatility.get_past_week_price_and_log_returns())
+
     # Calculate volatility metrics
-    # print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
-    
+    print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
+
     # Find extreme returns
-    #print(f"Worst weeks: {volatility.find_worst_k_weeks()}")
-    #print(f"Worst days: {volatility.find_worst_k_days(k=30)}")
-    #print(f"Worst months: {volatility.find_worst_k_months(k=30)}")
-    # print(f"Worst months (below -20%): {volatility.find_worst_months(threshold=-0.2)}")
-    # print(f"Worst 3 months: {volatility.find_worst_k_months(k=3)}")
-    # print(f"Worst 3 years: {volatility.find_worst_k_years(k=3)}")
-    
-    # Show recent returns
-    #volatility.show_today_return()
-    
+    #print(f"Worst months: {volatility.find_negative_extreme_returns('monthly', k=3)}")
+    print(f"Worst days (below -20%): {volatility.find_negative_extreme_returns('daily', threshold=-0.2)}")
+    print(f"Worst months (below -20%): {volatility.find_negative_extreme_returns('monthly', threshold=-0.2)}")
+    print(f"Best days (above +20%): {volatility.find_positive_extreme_returns('daily', threshold=0.2)}")
+    print(f"Best months (above +20%): {volatility.find_positive_extreme_returns('monthly', threshold=0.2)}")
+
     # Calculate calendar year returns
     #calendar_returns = volatility.get_calendar_year_returns(ticker)
-    # calendar_returns['TLT 3X'] = calendar_returns['Close'] * 3
-    # print(calendar_returns)
+    
     
 
 

@@ -15,19 +15,14 @@ def main():
     
     volatility = VolatilityFacade(ticker)
     
-    actions = {
-        'daily': volatility.visualize_daily_percentage_change,
-        'weekly': volatility.visualize_weekly_percentage_change,
-        'monthly': volatility.visualize_monthly_percentage_change,
-        'yearly': lambda: print(volatility.get_calendar_year_returns())
-    }
-    
-    if timeframe not in actions:
+    valid_timeframes = {'daily', 'weekly', 'monthly', 'yearly'}
+
+    if timeframe not in valid_timeframes:
         print(f"Unknown timeframe: {timeframe}")
         print("Valid options: daily, weekly, monthly, yearly")
         sys.exit(1)
-    
-    actions[timeframe]()
+
+    volatility.visualize_percentage_change(timeframe)
 
 if __name__ == "__main__":
     main()
