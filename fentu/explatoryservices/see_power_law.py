@@ -90,7 +90,7 @@ def _tail_mask(n_valid, tail_start_idx):
 
 def fit_power_law_slope(bin_centers, density, tail_percent=0.2):
     """
-    Fit a linear slope on log-log data to estimate the power-law exponent.
+    Fit a log-log line to the extreme tail; return slope and intercept.
 
     Uses extreme value theory approach: fits only the tail portion of the data
     where power law behavior is most prominent.
@@ -99,10 +99,8 @@ def fit_power_law_slope(bin_centers, density, tail_percent=0.2):
     log(p) = -alpha * log(x) + const
     So alpha = -slope (derived by the caller; not returned to avoid redundancy).
 
-    Layered composition:
-      Layer 1 (selectors): _positive_density_mask, _tail_start_index, _tail_mask
-      Layer 2 (fit):        _fit_loglog_line
-      Layer 3 (this):       composes the above into the public 4-tuple.
+    Selection of which bins belong to the tail is a separate concern, exposed
+    by tail_mask(). This function's single responsibility is the fit.
 
     Parameters:
     bin_centers: Array of bin center values
@@ -111,10 +109,9 @@ def fit_power_law_slope(bin_centers, density, tail_percent=0.2):
                   Uses the largest x values (rightmost portion of log-log plot)
 
     Returns:
-    tuple: (slope, intercept, tail_mask)
+    tuple: (slope, intercept)
         - slope: Slope of linear fit in log-log space (alpha = -slope)
         - intercept: Intercept of linear fit
-        - tail_mask: Boolean mask aligned to positive-density bins, True over the fitted tail
     """
     valid_mask = _positive_density_mask(density)
     valid_centers = bin_centers[valid_mask]
@@ -122,11 +119,32 @@ def fit_power_law_slope(bin_centers, density, tail_percent=0.2):
 
     tail_start_idx = _tail_start_index(len(valid_centers), tail_percent)
 
-    slope, intercept = _fit_loglog_line(
+    return _fit_loglog_line(
         valid_centers[tail_start_idx:], valid_density[tail_start_idx:]
     )
 
-    return slope, intercept, _tail_mask(len(valid_centers), tail_start_idx)
+
+def tail_mask(bin_centers, density, tail_percent=0.2):
+    """
+    Boolean mask over positive-density bins, True over the extreme tail window.
+
+    Companion to fit_power_law_slope(): the same tail_percent selects the same
+    bins, so callers can fit and color points consistently. This function's
+    single responsibility is tail selection; it performs no fitting.
+
+    Parameters:
+    bin_centers: Array of bin center values
+    density: Array of density values
+    tail_percent: Fraction of extreme tail data to mark (default 0.2 = 20%)
+
+    Returns:
+    np.ndarray: Boolean mask aligned to the positive-density bins, True over the
+                rightmost tail_percent of those bins.
+    """
+    valid_mask = _positive_density_mask(density)
+    n_valid = int(valid_mask.sum())
+    tail_start_idx = _tail_start_index(n_valid, tail_percent)
+    return _tail_mask(n_valid, tail_start_idx)
 
 
 def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
@@ -158,21 +176,20 @@ def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
     valid_centers = bin_centers[mask]
     valid_density = density[mask]
 
-    slope, intercept, tail_mask = fit_power_law_slope(
-        bin_centers, density, tail_percent
-    )
+    slope, intercept = fit_power_law_slope(bin_centers, density, tail_percent)
     alpha = -slope
+    tmask = tail_mask(bin_centers, density, tail_percent)
 
     ax.loglog(
-        valid_centers[~tail_mask], valid_density[~tail_mask],
+        valid_centers[~tmask], valid_density[~tmask],
         'o', alpha=0.4, color='gray', label='Data (not fitted)'
     )
     ax.loglog(
-        valid_centers[tail_mask], valid_density[tail_mask],
+        valid_centers[tmask], valid_density[tmask],
         'o', alpha=0.7, color='blue', label=f'Tail ({int(tail_percent*100)}%)'
     )
 
-    fit_x = valid_centers[tail_mask]
+    fit_x = valid_centers[tmask]
     fit_y = 10 ** (slope * np.log10(fit_x) + intercept)
     ax.loglog(fit_x, fit_y, 'r-', linewidth=2, label=f'Fit (α={alpha:.2f})')
 

@@ -16,14 +16,13 @@ def synthetic_powerlaw_histogram():
     return bin_centers, density
 
 
-def test_fit_returns_three_tuple(synthetic_powerlaw_histogram):
+def test_fit_returns_two_tuple(synthetic_powerlaw_histogram):
     bin_centers, density = synthetic_powerlaw_histogram
     result = spl.fit_power_law_slope(bin_centers, density, tail_percent=0.2)
-    assert len(result) == 3
-    slope, intercept, tail_mask = result
+    assert len(result) == 2
+    slope, intercept = result
     assert isinstance(slope, float)
     assert isinstance(intercept, float)
-    assert tail_mask.dtype == bool
 
 
 def test_fit_baseline_values_unchanged(synthetic_powerlaw_histogram):
@@ -33,29 +32,58 @@ def test_fit_baseline_values_unchanged(synthetic_powerlaw_histogram):
     Baseline: slope=-1.057629 (=> alpha=1.057629), intercept=-2.783810.
     """
     bin_centers, density = synthetic_powerlaw_histogram
-    slope, intercept, tail_mask = spl.fit_power_law_slope(
-        bin_centers, density, tail_percent=0.2
-    )
+    slope, intercept = spl.fit_power_law_slope(bin_centers, density, tail_percent=0.2)
     assert slope == pytest.approx(-1.057629)
     assert -slope == pytest.approx(1.057629)  # alpha, derived
     assert intercept == pytest.approx(-2.783810)
-    assert len(tail_mask) == 79
-    assert tail_mask.sum() == 15
 
 
 def test_alpha_derived_from_slope(synthetic_powerlaw_histogram):
     """alpha is not returned; callers derive it as alpha = -slope."""
     bin_centers, density = synthetic_powerlaw_histogram
-    slope, _, _ = spl.fit_power_law_slope(bin_centers, density, tail_percent=0.2)
+    slope, _ = spl.fit_power_law_slope(bin_centers, density, tail_percent=0.2)
     alpha = -slope
     assert alpha > 0
 
 
+def test_tail_mask_is_boolean(synthetic_powerlaw_histogram):
+    bin_centers, density = synthetic_powerlaw_histogram
+    mask = spl.tail_mask(bin_centers, density, tail_percent=0.2)
+    assert mask.dtype == bool
+
+
+def test_tail_mask_baseline_values_unchanged(synthetic_powerlaw_histogram):
+    """tail_mask is now a separate function; same baseline shape/sum as before."""
+    bin_centers, density = synthetic_powerlaw_histogram
+    mask = spl.tail_mask(bin_centers, density, tail_percent=0.2)
+    assert len(mask) == 79
+    assert mask.sum() == 15
+
+
 def test_tail_mask_aligned_to_positive_density_bins(synthetic_powerlaw_histogram):
     bin_centers, density = synthetic_powerlaw_histogram
-    _, _, tail_mask = spl.fit_power_law_slope(bin_centers, density, tail_percent=0.2)
+    mask = spl.tail_mask(bin_centers, density, tail_percent=0.2)
     n_valid = int((density > 0).sum())
-    assert len(tail_mask) == n_valid
+    assert len(mask) == n_valid
+
+
+def test_fit_and_tail_mask_select_same_tail(synthetic_powerlaw_histogram):
+    """fit_power_law_slope and tail_mask use the same tail_percent, so the
+    fit must be over exactly the bins tail_mask marks as True."""
+    bin_centers, density = synthetic_powerlaw_histogram
+    tmask = spl.tail_mask(bin_centers, density, tail_percent=0.2)
+    valid_mask = density > 0
+    valid_centers = bin_centers[valid_mask]
+    tail_centers = valid_centers[tmask]
+    # fit_power_law_slope fits over the same tail_centers window
+    slope, intercept = spl.fit_power_law_slope(bin_centers, density, tail_percent=0.2)
+    # re-derive slope from the marked tail directly; must match
+    from scipy.stats import linregress
+    tail_density = density[valid_mask][tmask]
+    expected_slope, _, _, _, _ = linregress(
+        np.log10(tail_centers), np.log10(tail_density)
+    )
+    assert slope == pytest.approx(expected_slope)
 
 
 def test_layer1_positive_density_mask_is_boolean(synthetic_powerlaw_histogram):
