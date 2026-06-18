@@ -1,5 +1,87 @@
 """
-This script calculates volatility and return metrics for financial instruments
+This script calculates volatility and return metrics for financial instruments.
+
+Topology Diagram (ASCII)
+========================
+
+ External Dependencies
+ +---------------------------------------------------------------------------+
+ | yfinance | pandas | numpy | scipy.stats(norm,t) | curl_cffi.requests     |
+ | matplotlib.pyplot | plotting_service (ps) | see_power_law (spl)          |
+ +---------------------------------------------------------------------------+
+      |            |          |            |               |
+      | prices     | data     | tails/log  | (unused)      | plotting
+      v            v          v            v               v
+
+ Class Hierarchy & Relationships
+ +-------------------------------+
+ |   VolatilityCalculator        |  <<abstract base>>
+ |   calculate_volatility()      |  -> NotImplementedError
+ +---------------+---------------+
+                 |  inherits
+                 v
+ +-------------------------------+
+ | StandardDeviationVolatility   |
+ | calculate_volatility()        |  -> returns_data.std()
+ +---------------+---------------+
+                 |  used-by (Strategy pattern)
+                 v
+ +-------------------------------+
+ | DailyVolatility               |  <<context>>
+ | - calculator: VolatilityCalc  |
+ | calculate_1std_daily_vol()    |
+ +---------------+---------------+
+                 |  composition
+                 v
+ +---------------------------------------------------------------------------+
+ |                          VolatilityFacade                                 |
+ |  instrument | start_date | end_date                                       |
+ |  return_periods = {daily, weekly, monthly, yearly}                       |
+ |                                                                           |
+ |  [Data Acquisition]                    [Volatility]                       |
+ |  _get_prices() ----> yf.Ticker          calculate_daily_volatility()      |
+ |        |                 + curl_cffi            |                         |
+ |        |                 session                v                         |
+ |        +---> _get_returns() ----> DailyVolatility                          |
+ |                  |  pct_change(period)                                     |
+ |                  v                                                         |
+ |            daily/weekly/monthly/yearly returns ----+                       |
+ |                                                    |                     |
+ |  [Calendar Returns]                                |                     |
+ |  get_calendar_year_returns()                       |                     |
+ |     +-> _get_prices()                              |                     |
+ |     +-> calculate_yearly_return_list()             |                     |
+ |                                                    |                     |
+ |  [Extreme Returns]  <------------------------------+                     |
+ |  find_negative_extreme_returns() (k | threshold)                         |
+ |  find_positive_extreme_returns() (k | threshold)                         |
+ |                                                                           |
+ |  [Visualization: data-view-model pattern]                                 |
+ |  visualize_percentage_change(period, tail_percent)                       |
+ |     |                                                                     |
+ |     +-> _prepare_percentage_change_data()  <<data prep>>                  |
+ |     |       +-> return_periods, numpy (left/right tails)                  |
+ |     |       +-> returns dict {returns, tails, period, instrument}         |
+ |     |                                                                     |
+ |     +-> _plot_percentage_change()  <<visualization>>                      |
+ |             +-> ps.qq_plot()              (axes[0,0])                     |
+ |             +-> ps.histgram_plot()        (axes[0,1])                     |
+ |             +-> spl.plot_loglog_with_fit  (axes[1,0/1] - tail fits)       |
+ |             +-> matplotlib subplots (2x2) + suptitle                      |
+ |                                                                           |
+ |  [Reporting]                                                              |
+ |  show_today_return()                       -> daily_returns.tail(20)      |
+ |  get_past_week_price_and_log_returns()     -> _get_prices + np.log       |
+ |  get_past_year_price_and_log_returns()     -> _get_prices + np.log       |
+ +---------------------------------------------------------------------------+
+
+ Entry Point
+ +---------------------------------------------------------------------------+
+ | __main__: VolatilityFacade("ILS")                                         |
+ |   -> get_past_week_price_and_log_returns()                                |
+ |   -> calculate_daily_volatility()                                         |
+ |   -> find_negative/positive_extreme_returns() (threshold=+-0.2)           |
+ +---------------------------------------------------------------------------+
 """
 
 import yfinance as yf
@@ -34,8 +116,10 @@ class VolatilityFacade:
     """
     This class gets daily percentage change of an instrument
     """
-    def __init__(self, instrument):
+    def __init__(self, instrument, start_date=None, end_date=None):
         self.instrument = instrument
+        self.start_date = start_date
+        self.end_date = end_date
         self.daily_returns = self._get_returns(instrument, 1)
         self.weekly_returns = self._get_returns(instrument, 5)
         self.monthly_returns = self._get_returns(instrument, 21)
@@ -53,6 +137,15 @@ class VolatilityFacade:
         instrument = yf.Ticker(instrument, session=session)
         instru_hist = instrument.history(period="max")
         prices = instru_hist['Close']
+
+        if prices.index.tz is not None:
+            prices.index = prices.index.tz_localize(None)
+
+        if self.start_date is not None:
+            prices = prices[prices.index >= pd.Timestamp(self.start_date)]
+        if self.end_date is not None:
+            prices = prices[prices.index <= pd.Timestamp(self.end_date)]
+
         return prices
 
     def calculate_yearly_return_list(self, prices, yearly_returns_list, years):
@@ -240,7 +333,7 @@ class VolatilityFacade:
         return pd.DataFrame({'price': prices, 'log_return': log_returns})
 
 if __name__ == "__main__":
-    volatility = VolatilityFacade("USO")
+    volatility = VolatilityFacade("ILS")
     # Visualize different time-frame return distributions
     # volatility.visualize_percentage_change('weekly')
     print(volatility.get_past_week_price_and_log_returns())
