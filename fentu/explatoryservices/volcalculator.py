@@ -265,55 +265,57 @@ class VolatilityFacade:
         data = self._prepare_percentage_change_data(period)
         self._plot_percentage_change(data, tail_percent)
 
+    def _find_extreme_returns(self, period='daily', k=None, threshold=None, side='negative'):
+        """
+        Find extreme returns for a specific period either by count (k) or threshold.
+
+        Args:
+            period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
+            k: int, number of extreme returns to find (mutually exclusive with threshold)
+            threshold: float, threshold beyond which returns are considered extreme
+            side: str, 'negative' (worst, sorted ascending) or 'positive' (best, sorted descending)
+
+        Returns:
+            pandas.Series: Filtered returns sorted from most extreme to least extreme
+        """
+        if period not in self.return_periods:
+            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
+        returns = self.return_periods[period]
+        ascending = (side == 'negative')
+        compare = (lambda r, t: r < t) if side == 'negative' else (lambda r, t: r > t)
+        if k is not None:
+            return returns.sort_values(ascending=ascending).head(k)
+        if threshold is not None:
+            return returns.loc[compare(returns, threshold)].sort_values(ascending=ascending)
+        raise ValueError("Either k or threshold must be specified")
+
     def find_negative_extreme_returns(self, period='daily', k=None, threshold=None):
         """
         Find negative extreme returns for a specific period either by count (k) or threshold
-        
+
         Args:
             period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
             k: int, number of worst returns to find (mutually exclusive with threshold)
             threshold: float, threshold below which returns are considered "worst"
-        
+
         Returns:
             pandas.Series: Filtered returns sorted from worst to best
         """
-        returns = self.return_periods[period]
-
-        if period not in self.return_periods:
-            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
-        
-        if k is not None:
-            return returns.sort_values().head(k)
-        
-        if threshold is not None:
-            return returns.loc[returns < threshold].sort_values()
-            
-        raise ValueError("Either k or threshold must be specified")
+        return self._find_extreme_returns(period, k, threshold, side='negative')
 
     def find_positive_extreme_returns(self, period='daily', k=None, threshold=None):
         """
         Find positive extreme returns for a specific period either by count (k) or threshold
-        
+
         Args:
             period: str, one of 'daily', 'weekly', 'monthly', 'yearly'
             k: int, number of best returns to find (mutually exclusive with threshold)
             threshold: float, threshold above which returns are considered "best"
-        
+
         Returns:
             pandas.Series: Filtered returns sorted from best to worst
         """
-        returns = self.return_periods[period]
-
-        if period not in self.return_periods:
-            raise ValueError(f"Period must be one of {list(self.return_periods.keys())}")
-        
-        if k is not None:
-            return returns.sort_values(ascending=False).head(k)
-        
-        if threshold is not None:
-            return returns.loc[returns > threshold].sort_values(ascending=False)
-            
-        raise ValueError("Either k or threshold must be specified")
+        return self._find_extreme_returns(period, k, threshold, side='positive')
 
     def show_today_return(self):
         """Show recent daily returns"""
