@@ -92,7 +92,6 @@ import fentu.explatoryservices.plotting_service as ps
 import fentu.explatoryservices.see_power_law as spl
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import norm, t
 from curl_cffi import requests
 
 class VolatilityCalculator:

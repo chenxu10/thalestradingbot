@@ -64,16 +64,45 @@ def compute_histogram_with_bins(samples, bins, method='numpy_density'):
     return values, bin_centers, bin_edges
 
 
+def _positive_density_mask(density):
+    """Boolean mask of bins with positive density (log-log needs log10(y) > -inf)."""
+    return density > 0
+
+
+def _tail_start_index(n_valid, tail_percent):
+    """Index at which the extreme tail begins (rightmost tail_percent of points)."""
+    n_tail = max(int(n_valid * tail_percent), 2)
+    return n_valid - n_tail
+
+
+def _fit_loglog_line(x, y):
+    """Fit log10(y) = slope * log10(x) + intercept; return slope, intercept."""
+    slope, intercept, _, _, _ = linregress(np.log10(x), np.log10(y))
+    return slope, intercept
+
+
+def _tail_mask(n_valid, tail_start_idx):
+    """Boolean mask of length n_valid, True over the tail window."""
+    mask = np.zeros(n_valid, dtype=bool)
+    mask[tail_start_idx:] = True
+    return mask
+
+
 def fit_power_law_slope(bin_centers, density, tail_percent=0.2):
     """
-    Fit a linear slope on log-log data to estimate power law exponent alpha.
+    Fit a linear slope on log-log data to estimate the power-law exponent.
 
     Uses extreme value theory approach: fits only the tail portion of the data
     where power law behavior is most prominent.
 
     For power law p(x) ~ x^(-alpha), in log-log space:
     log(p) = -alpha * log(x) + const
-    So alpha = -slope
+    So alpha = -slope (derived by the caller; not returned to avoid redundancy).
+
+    Layered composition:
+      Layer 1 (selectors): _positive_density_mask, _tail_start_index, _tail_mask
+      Layer 2 (fit):        _fit_loglog_line
+      Layer 3 (this):       composes the above into the public 4-tuple.
 
     Parameters:
     bin_centers: Array of bin center values
@@ -82,35 +111,22 @@ def fit_power_law_slope(bin_centers, density, tail_percent=0.2):
                   Uses the largest x values (rightmost portion of log-log plot)
 
     Returns:
-    tuple: (alpha, slope, intercept, r_squared, tail_mask)
-        - alpha: Estimated power law exponent
-        - slope: Slope of linear fit in log-log space
+    tuple: (slope, intercept, tail_mask)
+        - slope: Slope of linear fit in log-log space (alpha = -slope)
         - intercept: Intercept of linear fit
-        - r_squared: R-squared value of the fit
-        - tail_mask: Boolean mask indicating which points were used for fitting
+        - tail_mask: Boolean mask aligned to positive-density bins, True over the fitted tail
     """
-    mask = density > 0
-    valid_centers = bin_centers[mask]
-    valid_density = density[mask]
+    valid_mask = _positive_density_mask(density)
+    valid_centers = bin_centers[valid_mask]
+    valid_density = density[valid_mask]
 
-    n_points = len(valid_centers)
-    n_tail = max(int(n_points * tail_percent), 2)
-    tail_start_idx = n_points - n_tail
+    tail_start_idx = _tail_start_index(len(valid_centers), tail_percent)
 
-    tail_centers = valid_centers[tail_start_idx:]
-    tail_density = valid_density[tail_start_idx:]
+    slope, intercept = _fit_loglog_line(
+        valid_centers[tail_start_idx:], valid_density[tail_start_idx:]
+    )
 
-    log_x = np.log10(tail_centers)
-    log_y = np.log10(tail_density)
-
-    slope, intercept, r_value, _, _ = linregress(log_x, log_y)
-    alpha = -slope
-    r_squared = r_value ** 2
-
-    tail_mask = np.zeros(len(valid_centers), dtype=bool)
-    tail_mask[tail_start_idx:] = True
-
-    return alpha, slope, intercept, r_squared, tail_mask
+    return slope, intercept, _tail_mask(len(valid_centers), tail_start_idx)
 
 
 def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
@@ -129,7 +145,6 @@ def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
     Returns:
     ax: The axes object used for plotting
     alpha: Estimated power law exponent
-    r_squared: R-squared value of the fit
     """
     if ax is None:
         ax = plt.gca()
@@ -143,9 +158,10 @@ def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
     valid_centers = bin_centers[mask]
     valid_density = density[mask]
 
-    alpha, slope, intercept, r_squared, tail_mask = fit_power_law_slope(
+    slope, intercept, tail_mask = fit_power_law_slope(
         bin_centers, density, tail_percent
     )
+    alpha = -slope
 
     ax.loglog(
         valid_centers[~tail_mask], valid_density[~tail_mask],
@@ -163,10 +179,10 @@ def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
     ax.set_xlabel('x (log scale)')
     ax.set_ylabel('Probability density (log scale)')
     if title:
-        ax.set_title(f'{title}: α={alpha:.2f}, R²={r_squared:.3f}')
+        ax.set_title(f'{title}: α={alpha:.2f}')
     else:
-        ax.set_title(f'Power-law fit: α={alpha:.2f}, R²={r_squared:.3f}')
+        ax.set_title(f'Power-law fit: α={alpha:.2f}')
     ax.legend(loc='upper right')
     ax.grid(True, alpha=0.3, which='both')
 
-    return ax, alpha, r_squared
+    return ax, alpha
