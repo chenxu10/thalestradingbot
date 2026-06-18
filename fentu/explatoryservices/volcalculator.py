@@ -195,8 +195,7 @@ class VolatilityFacade:
             period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
         """
         prices = self._get_prices(instrument)
-        returns = prices.pct_change(period_length)[period_length:]
-        #returns = np.log(prices / prices.shift(period_length))[period_length:]
+        returns = np.log(prices / prices.shift(period_length))[period_length:]
         return returns
     
     def calculate_daily_volatility(self):
