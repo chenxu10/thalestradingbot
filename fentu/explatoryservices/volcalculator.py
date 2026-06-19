@@ -234,7 +234,7 @@ class VolatilityFacade:
             data: dict from _prepare_percentage_change_data
             tail_percent: Fraction of extreme tail to fit for alpha estimation
         """
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 
         ps.qq_plot(data['returns'], ax=axes[0, 0], show=False)
         ps.histgram_plot(data['returns'], ax=axes[0, 1], show=False)
@@ -248,9 +248,48 @@ class VolatilityFacade:
                     tail_percent=tail_percent
                 )
 
+        self._plot_term_structure_panel(axes[0, 2], data['instrument'])
+
+        axes[1, 2].axis('off')
+
         fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
         plt.tight_layout()
         plt.show()
+
+    def _plot_term_structure_panel(self, ax, instrument):
+        """Fetch the yfinance option chain for `instrument` and render the ATM
+        IV term-structure curve on `ax`. Network-failure-safe: on any error the
+        panel shows a short note instead of breaking the rest of the figure.
+        """
+        from datetime import date as _date
+
+        from fentu.pricingservices.yfinance_fetcher import fetch_yfinance_chain
+        from fentu.pricingservices.yfinance_adapter import yfinance_chain_to_detail_rows
+        from fentu.pricingservices.iv_term_structure import build_bucket_rows
+        from fentu.pricingservices.term_structure_plotting import plot_term_structure
+
+        try:
+            chain_data, underlying_price = fetch_yfinance_chain(instrument)
+            if not chain_data.get("expiries") or underlying_price is None:
+                ax.text(0.5, 0.5, "IV term structure unavailable",
+                        ha="center", va="center", transform=ax.transAxes)
+                ax.set_title("IV Term Structure")
+                return
+
+            detail_rows = yfinance_chain_to_detail_rows(
+                chain_data,
+                underlying_price=underlying_price,
+                anchor_date=_date.today(),
+            )
+            buckets = build_bucket_rows(detail_rows)
+            plot_term_structure(
+                buckets, ax=ax, show=False,
+                title=f"{instrument} IV Term Structure",
+            )
+        except Exception as exc:
+            ax.text(0.5, 0.5, f"IV term structure unavailable\n{type(exc).__name__}",
+                    ha="center", va="center", transform=ax.transAxes)
+            ax.set_title("IV Term Structure")
 
     def visualize_percentage_change(self, period='daily', tail_percent=0.10):
         """
