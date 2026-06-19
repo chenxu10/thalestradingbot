@@ -1,17 +1,48 @@
 # Thales Trading Bot
-> It's much better to be convex than to be right.
+> It's much better to be convex than to be right, of course in a cost-effective way.
+
+## Main Features
+
+- **Realized-volatility analysis** — daily/weekly/monthly/yearly return distributions, QQ plots, histograms, and power-law tail fits via `see_change.py`.
+- **IV term-structure monitor** — ATM implied-vol curve (1D / 3D / 1W / 3W / 1M / 3M / 6M) from yfinance option chains, rendered alongside the realized-vol panels. 
+
+
+## Hello World
+
+Visualize QQQ daily returns plus its IV term structure:
+
+```bash
+uv run fentu/explatoryservices/seechange.py daily QQQ
+```
+
+Run the test suite:
+
+```bash
+uv run pytest
+```
 
 ---
 
 # 泰利斯交易机器人
-> 凸性远比正确更重要。
+> 凸性远比正确更重要，当然要以成本可控的方式。
 
 
-Step	What it does	Covered by the 3 tests?
-1. Compute DTE per expiry	expiry code → days	Test 1 ✅
-2. Pick ATM strike per expiry	strike list + spot → ATM + window	Test 2 ✅
-3. Read call/put IV at ATM, average	per-strike IV → atmIv per expiry	(glue)
-4. Fold into tenor buckets	per-expiry rows → (1D…6M, atmIv) curve	Test 3 ✅
-5. Fetch QQQ option chain (expiries, strikes, IV)	yfinance — no IBKR	❌ not covered
-6. Plot bucket rows on an Axes	tenor vs atmIv	❌ not covered
-7. Wire into visualize_percentage_change	add 5th panel / 2×3 layout	❌ not covered
+## 主要功能
+
+- **已实现波动率分析** — 通过 `see_change.py` 给出日/周/月/年收益分布、QQ 图、直方图与幂律尾部拟合。
+- **隐含波动率期限结构监控** — 从 yfinance 期权链提取 ATM 隐含波动率曲线（1日/3日/1周/3周/1月/3月/6月），与已实现波动率面板同屏渲染。
+
+
+## 快速开始
+
+可视化 QQQ 日度收益及其隐含波动率期限结构：
+
+```bash
+uv run fentu/explatoryservices/seechange.py daily QQQ
+```
+
+运行测试：
+
+```bash
+uv run pytest
+```
