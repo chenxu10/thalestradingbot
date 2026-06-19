@@ -226,6 +226,16 @@ class VolatilityFacade:
             'instrument': self.instrument,
         }
 
+    def _plot_tail_fits(self, tails, axes, tail_percent):
+        """Render left/right tail log-log fits onto the two bottom-row axes."""
+        for tail, ax in zip(tails, axes):
+            if tail['x_min'] is not None:
+                spl.plot_loglog_with_fit(
+                    tail['data'], tail['x_min'], ax=ax,
+                    title=tail['title'],
+                    tail_percent=tail_percent
+                )
+
     def _plot_percentage_change(self, data, tail_percent):
         """
         Plot percentage change visualizations.
@@ -238,18 +248,8 @@ class VolatilityFacade:
 
         ps.qq_plot(data['returns'], ax=axes[0, 0], show=False)
         ps.histgram_plot(data['returns'], ax=axes[0, 1], show=False)
-
-        tail_axes = [axes[1, 0], axes[1, 1]]
-        for tail, ax in zip(data['tails'], tail_axes):
-            if tail['x_min'] is not None:
-                spl.plot_loglog_with_fit(
-                    tail['data'], tail['x_min'], ax=ax,
-                    title=tail['title'],
-                    tail_percent=tail_percent
-                )
-
+        self._plot_tail_fits(data['tails'], [axes[1, 0], axes[1, 1]], tail_percent)
         self._plot_term_structure_panel(axes[0, 2], data['instrument'])
-
         axes[1, 2].axis('off')
 
         fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
