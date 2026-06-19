@@ -1,0 +1,20 @@
+#!/bin/bash
+# pre-push hook: run the full test suite before allowing any push.
+#
+# Install by copying to .git/hooks/pre-push and making it executable:
+#   cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+
+set -e
+
+echo "Running test suite before push..."
+if command -v uv >/dev/null 2>&1; then
+    uv run pytest -q
+elif [ -f .venv/bin/python ]; then
+    .venv/bin/python -m pytest -q
+elif [ -f venv/bin/python ]; then
+    venv/bin/python -m pytest -q
+else
+    python -m pytest -q
+fi
+
+echo "All tests passed. Proceeding with push."
