@@ -268,12 +268,17 @@ class VolatilityFacade:
         from fentu.pricingservices.iv_term_structure import build_bucket_rows
         from fentu.pricingservices.term_structure_plotting import plot_term_structure
 
+        def show_unavailable(detail=""):
+            message = "IV term structure unavailable"
+            if detail:
+                message = f"{message}\n{detail}"
+            ax.text(0.5, 0.5, message, ha="center", va="center", transform=ax.transAxes)
+            ax.set_title("IV Term Structure")
+
         try:
             chain_data, underlying_price = fetch_yfinance_chain(instrument)
             if not chain_data.get("expiries") or underlying_price is None:
-                ax.text(0.5, 0.5, "IV term structure unavailable",
-                        ha="center", va="center", transform=ax.transAxes)
-                ax.set_title("IV Term Structure")
+                show_unavailable()
                 return
 
             detail_rows = yfinance_chain_to_detail_rows(
@@ -287,9 +292,7 @@ class VolatilityFacade:
                 title=f"{instrument} IV Term Structure",
             )
         except Exception as exc:
-            ax.text(0.5, 0.5, f"IV term structure unavailable\n{type(exc).__name__}",
-                    ha="center", va="center", transform=ax.transAxes)
-            ax.set_title("IV Term Structure")
+            show_unavailable(detail=type(exc).__name__)
 
     def visualize_percentage_change(self, period='daily', tail_percent=0.10):
         """
