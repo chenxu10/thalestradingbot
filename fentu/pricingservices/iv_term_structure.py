@@ -1,0 +1,305 @@
+"""
+This module holds the pure, IBKR-free selection and bucketing logic:
+- calculate_calendar_dte     : expiry code -> days to expiry
+- pick_strike_window         : strike list + spot -> ATM strike + window
+- build_expiry_detail_rows   : per-expiry quotes -> detail rows with atmIv
+- build_bucket_rows          : detail rows -> normalized tenor curve
+
+No yfinance, no IBKR, no network. Everything operates on plain Python
+data structures so it stays trivially unit-testable.
+"""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+
+
+DEFAULT_BUCKET_DEFINITIONS = (
+    {"label": "1D", "targetDays": 1},
+    {"label": "3D", "targetDays": 3},
+    {"label": "1W", "targetDays": 7},
+    {"label": "3W", "targetDays": 21},
+    {"label": "1M", "targetDays": 30},
+    {"label": "3M", "targetDays": 90},
+    {"label": "6M", "targetDays": 180},
+)
+
+
+def _parse_anchor_date(value):
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+
+    normalized = str(value or "").strip()
+    if not normalized:
+        return None
+
+    for fmt in ("%Y-%m-%d", "%Y%m%d"):
+        try:
+            return datetime.strptime(normalized, fmt).date()
+        except ValueError:
+            continue
+
+    return None
+
+
+def normalize_expiry_code(value) -> str:
+    normalized = str(value or "").strip()
+    if len(normalized) == 10 and normalized[4] == "-" and normalized[7] == "-":
+        normalized = normalized.replace("-", "")
+    return normalized if len(normalized) == 8 and normalized.isdigit() else ""
+
+
+def calculate_calendar_dte(anchor_date, expiry_code):
+    anchor = _parse_anchor_date(anchor_date)
+    expiry = normalize_expiry_code(expiry_code)
+    if anchor is None or not expiry:
+        return None
+
+    try:
+        expiry_date = datetime.strptime(expiry, "%Y%m%d").date()
+    except ValueError:
+        return None
+
+    return (expiry_date - anchor).days
+
+
+def pick_strike_window(strikes, underlying_price, radius=1):
+    """Pick the ATM strike (nearest to spot) and a +/- radius window around it.
+
+    Returns {"atm_strike": float|None, "window_strikes": list[float]}.
+    On any invalid input (bad spot, no numeric strikes, NaN) returns
+    {"atm_strike": None, "window_strikes": []}.
+    """
+    try:
+        target_price = float(underlying_price)
+    except (TypeError, ValueError):
+        return {"atm_strike": None, "window_strikes": []}
+
+    if not (target_price == target_price):  # NaN guard
+        return {"atm_strike": None, "window_strikes": []}
+
+    normalized_strikes = []
+    seen = set()
+    for raw_strike in strikes or []:
+        try:
+            strike = float(raw_strike)
+        except (TypeError, ValueError):
+            continue
+        if not (strike == strike):  # NaN guard
+            continue
+        if strike in seen:
+            continue
+        seen.add(strike)
+        normalized_strikes.append(strike)
+
+    if not normalized_strikes:
+        return {"atm_strike": None, "window_strikes": []}
+
+    normalized_strikes.sort()
+    best_index = min(
+        range(len(normalized_strikes)),
+        key=lambda index: (
+            abs(normalized_strikes[index] - target_price),
+            normalized_strikes[index],
+        ),
+    )
+    safe_radius = max(0, int(radius or 0))
+    start = max(0, best_index - safe_radius)
+    end = min(len(normalized_strikes), best_index + safe_radius + 1)
+    window = normalized_strikes[start:end]
+
+    return {
+        "atm_strike": normalized_strikes[best_index],
+        "window_strikes": window,
+    }
+
+
+def _coerce_positive_number(value):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not (parsed == parsed):  # NaN guard
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _compute_average_iv(call_iv, put_iv):
+    if call_iv is None or put_iv is None:
+        return None
+    return round((call_iv + put_iv) / 2, 6)
+
+
+def build_expiry_detail_rows(expiry_rows, quotes_by_sub_id):
+    """Glue step 3: read call/put IV at the ATM strike, average -> atmIv per expiry.
+
+    Args:
+        expiry_rows: list of selection rows, each shaped
+            {expiry, dte, atm_strike, atm_call_sub_id, atm_put_sub_id}.
+            The sub_id fields are generic quote identifiers -- whatever the
+            caller's data source uses to key a quote (yfinance row id, IBKR
+            sub id, a stub key in tests). This module never touches a broker.
+        quotes_by_sub_id: dict mapping sub_id -> {"iv": ..., "mark": ...}.
+            iv / mark may be numeric strings; non-positive or non-finite IVs
+            are coerced to None so they can't contaminate the average.
+
+    Returns: list of detail rows sorted by (dte, expiry), each shaped
+        {expiry, dte, atm_strike, call_iv, put_iv, atm_iv, has_complete_pair,
+         call_mark, put_mark, atm_call_sub_id, atm_put_sub_id}.
+        These rows are the input to build_bucket_rows.
+    """
+    quotes = quotes_by_sub_id if isinstance(quotes_by_sub_id, dict) else {}
+
+    rows = []
+    for entry in expiry_rows or []:
+        if not isinstance(entry, dict):
+            continue
+
+        call_sub_id = str(entry.get("atm_call_sub_id") or "").strip()
+        put_sub_id = str(entry.get("atm_put_sub_id") or "").strip()
+        call_quote = quotes.get(call_sub_id) if call_sub_id else None
+        put_quote = quotes.get(put_sub_id) if put_sub_id else None
+
+        call_iv = _coerce_positive_number(
+            call_quote.get("iv") if isinstance(call_quote, dict) else None
+        )
+        put_iv = _coerce_positive_number(
+            put_quote.get("iv") if isinstance(put_quote, dict) else None
+        )
+
+        rows.append(
+            {
+                "expiry": str(entry.get("expiry") or "").strip(),
+                "dte": max(0, int(entry.get("dte") or 0)),
+                "atm_strike": _coerce_positive_number(entry.get("atm_strike")),
+                "call_iv": call_iv,
+                "put_iv": put_iv,
+                "atm_iv": _compute_average_iv(call_iv, put_iv),
+                "has_complete_pair": call_iv is not None and put_iv is not None,
+                "call_mark": _coerce_positive_number(
+                    call_quote.get("mark") if isinstance(call_quote, dict) else None
+                ),
+                "put_mark": _coerce_positive_number(
+                    put_quote.get("mark") if isinstance(put_quote, dict) else None
+                ),
+                "atm_call_sub_id": call_sub_id,
+                "atm_put_sub_id": put_sub_id,
+            }
+        )
+
+    rows = [row for row in rows if row["expiry"]]
+    rows.sort(key=lambda row: (row["dte"], str(row["expiry"])))
+    return rows
+
+
+def _clone_bucket_definitions(definitions):
+    source = definitions if definitions else DEFAULT_BUCKET_DEFINITIONS
+    normalized = []
+    for entry in source or []:
+        if not isinstance(entry, dict):
+            entry = {}
+        label = str(entry.get("label") or "").strip() or "Bucket"
+        try:
+            target_days = int(entry.get("targetDays"))
+        except (TypeError, ValueError):
+            target_days = 0
+        normalized.append({"label": label, "targetDays": max(0, target_days)})
+    return normalized
+
+
+def _pick_nearest_detail_row(detail_rows, target_days):
+    match = None
+    match_distance = None
+    for row in detail_rows or []:
+        if not isinstance(row, dict):
+            continue
+        expiry = str(row.get("expiry") or "").strip()
+        if not expiry:
+            continue
+        try:
+            dte = int(row.get("dte"))
+        except (TypeError, ValueError):
+            continue
+
+        distance = abs(dte - target_days)
+        if (
+            match is None
+            or distance < match_distance
+            or (distance == match_distance and dte < match["dte"])
+            or (
+                distance == match_distance
+                and dte == match["dte"]
+                and str(row.get("expiry") or "") < str(match.get("expiry") or "")
+            )
+        ):
+            match = row
+            match_distance = distance
+
+    return match
+
+
+def build_bucket_rows(detail_rows, bucket_definitions=None):
+    """Fold per-expiry detail rows into normalized tenor buckets.
+
+    Each bucket is matched to the detail row whose dte is nearest the bucket's
+    targetDays. Ties break to the lower dte, then to the earlier expiry string.
+    Matching is unconditional -- there is no max-distance cutoff; filtering
+    too-far matches is the caller's job.
+
+    Args:
+        detail_rows: output of build_expiry_detail_rows (or any list of dicts
+            shaped {expiry, dte, atm_strike, call_iv, put_iv, atm_iv,
+            has_complete_pair}). Rows with missing/blank expiry or non-integer
+            dte are ignored.
+        bucket_definitions: optional list of {label, targetDays}; defaults to
+            DEFAULT_BUCKET_DEFINITIONS (1D/3D/1W/3W/1M/3M/6M). Malformed entries
+            are coerced to safe defaults (label "Bucket", targetDays 0).
+
+    Returns: list of bucket rows in bucket-definition order, each shaped
+        {label, target_days, matched_expiry, matched_dte, atm_strike,
+         call_iv, put_iv, atm_iv, has_complete_pair}.
+        Buckets with no match (empty input) have None / False for all
+        matched fields.
+    """
+    buckets = _clone_bucket_definitions(bucket_definitions)
+
+    def field(row, key):
+        value = row.get(key) if isinstance(row, dict) else None
+        return value if value is not None else None
+
+    output = []
+    for bucket in buckets:
+        match = _pick_nearest_detail_row(detail_rows, bucket["targetDays"])
+        if match is None:
+            output.append(
+                {
+                    "label": bucket["label"],
+                    "target_days": bucket["targetDays"],
+                    "matched_expiry": None,
+                    "matched_dte": None,
+                    "atm_strike": None,
+                    "call_iv": None,
+                    "put_iv": None,
+                    "atm_iv": None,
+                    "has_complete_pair": False,
+                }
+            )
+            continue
+
+        output.append(
+            {
+                "label": bucket["label"],
+                "target_days": bucket["targetDays"],
+                "matched_expiry": str(match.get("expiry") or "").strip() or None,
+                "matched_dte": int(match.get("dte")) if match.get("dte") is not None else None,
+                "atm_strike": match.get("atm_strike"),
+                "call_iv": match.get("call_iv"),
+                "put_iv": match.get("put_iv"),
+                "atm_iv": match.get("atm_iv"),
+                "has_complete_pair": bool(match.get("has_complete_pair")),
+            }
+        )
+
+    return output

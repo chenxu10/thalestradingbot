@@ -1,23 +1,48 @@
 # Thales Trading Bot
-> It's much better to be convex than to be right.
+> It's much better to be convex than to be right, of course in a cost-effective way.
 
-This project helps to express the view of tail hedging investing mentioned in Dao of Capital.
+## Main Features
 
-## Trader's Lore(Rules of Games to be Reviewed)
-1. Take the risk you understand instead of trying to understand you want to take.
+- **Realized-volatility analysis** — daily/weekly/monthly/yearly return distributions, QQ plots, histograms, and power-law tail fits via `see_change.py`.
+- **IV term-structure monitor** — ATM implied-vol curve (1D / 3D / 1W / 3W / 1M / 3M / 6M) from yfinance option chains, rendered alongside the realized-vol panels. 
 
-## Task
-- (DONE) yahoofinancedata rate limit
+
+## Hello World
+
+Visualize QQQ daily returns plus its IV term structure:
+
+```bash
+uv run fentu/explatoryservices/seechange.py daily QQQ
+```
+
+Run the test suite:
+
+```bash
+uv run pytest
+```
 
 ---
 
 # 泰利斯交易机器人
-> 凸性远比正确更重要。
+> 凸性远比正确更重要，当然要以成本可控的方式。
 
-本项目旨在表达《资本之道》中提到的尾部对冲投资理念。
 
-## 交易者箴言（待复盘的游戏规则）
-1. 承担你理解的风险，而不是试图去理解你想要承担的风险。
+## 主要功能
 
-## 任务
-- （已完成）雅虎财经数据速率限制
+- **已实现波动率分析** — 通过 `see_change.py` 给出日/周/月/年收益分布、QQ 图、直方图与幂律尾部拟合。
+- **隐含波动率期限结构监控** — 从 yfinance 期权链提取 ATM 隐含波动率曲线（1日/3日/1周/3周/1月/3月/6月），与已实现波动率面板同屏渲染。
+
+
+## 快速开始
+
+可视化 QQQ 日度收益及其隐含波动率期限结构：
+
+```bash
+uv run fentu/explatoryservices/seechange.py daily QQQ
+```
+
+运行测试：
+
+```bash
+uv run pytest
+```
