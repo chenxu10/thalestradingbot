@@ -63,11 +63,17 @@ Topology Diagram (ASCII)
  |     |       +-> return_periods, numpy (left/right tails)                  |
  |     |       +-> returns dict {returns, tails, period, instrument}         |
  |     |                                                                     |
- |     +-> _plot_percentage_change()  <<visualization>>                      |
- |             +-> ps.qq_plot()              (axes[0,0])                     |
- |             +-> ps.histgram_plot()        (axes[0,1])                     |
- |             +-> spl.plot_loglog_with_fit  (axes[1,0/1] - tail fits)       |
- |             +-> matplotlib subplots (2x2) + suptitle                      |
+    |     +-> _plot_percentage_change()  <<visualization>>                      |
+    |             +-> ps.qq_plot()              (axes[0,0])                     |
+    |             +-> ps.histgram_plot()        (axes[0,1])                     |
+    |             +-> spl.plot_loglog_with_fit  (axes[1,0/1] - tail fits)       |
+    |             +-> _plot_term_structure_panel (axes[2,:] - IV term struct)   |
+    |             +-> _plot_vix_panel()          (axes[3,:] - ^VIX 1990->today) |
+    |                  +-> _get_vix_ohlc() -> _get_raw_ohlc(^VIX) [unfiltered]  |
+    |                  +-> _get_current_vix_value() -> _now_eastern()           |
+    |                       (today open if >=9:30 ET, else last close)         |
+    |             +-> _show_panel_unavailable()  (shared fallback note)         |
+    |             +-> matplotlib subplots (4x2 gridspec) + suptitle             |
  |                                                                           |
  |  [Reporting]                                                              |
  |  show_today_return()                       -> daily_returns.tail(20)      |
@@ -93,6 +99,33 @@ import fentu.explatoryservices.see_power_law as spl
 import matplotlib.pyplot as plt
 import numpy as np
 from curl_cffi import requests
+from datetime import datetime, timezone, timedelta, time as _dtime
+
+VIX_TICKER = "^VIX"
+TIME_MARKET_OPEN = _dtime(9, 30)  # US equity market open, Eastern Time
+
+
+def _is_us_dst(dt_utc):
+    """True if `dt_utc` (tz-aware UTC) falls within US daylight saving time.
+
+    US DST: second Sunday of March -> first Sunday of November. Stdlib-only so
+    this works on Python 3.8 (no zoneinfo).
+    """
+    year = dt_utc.year
+    mar1 = datetime(year, 3, 1, tzinfo=timezone.utc)
+    first_sunday_mar = mar1 + timedelta(days=(6 - mar1.weekday()) % 7)
+    second_sunday_mar = first_sunday_mar + timedelta(days=7)
+    nov1 = datetime(year, 11, 1, tzinfo=timezone.utc)
+    first_sunday_nov = nov1 + timedelta(days=(6 - nov1.weekday()) % 7)
+    return second_sunday_mar <= dt_utc < first_sunday_nov
+
+
+def _now_eastern():
+    """Current time in US Eastern Time (EST/EDT), tz-aware."""
+    now_utc = datetime.now(timezone.utc)
+    offset_h = -4 if _is_us_dst(now_utc) else -5
+    return now_utc.astimezone(timezone(timedelta(hours=offset_h), "ET"))
+
 
 class VolatilityCalculator:
     """Base class for different volatility calculation strategies"""
@@ -131,14 +164,22 @@ class VolatilityFacade:
             'yearly': self.yearly_returns
         }
 
-    def _get_prices(self, instrument):
-        session = requests.Session(impersonate="chrome")
-        instrument = yf.Ticker(instrument, session=session)
-        instru_hist = instrument.history(period="max")
-        prices = instru_hist['Close']
+    def _get_raw_ohlc(self, instrument):
+        """Fetch full OHLC history for `instrument` with no date filtering.
 
-        if prices.index.tz is not None:
-            prices.index = prices.index.tz_localize(None)
+        The shared network fetch; callers that want the facade's date window
+        apply start_date/end_date themselves.
+        """
+        session = requests.Session(impersonate="chrome")
+        ticker = yf.Ticker(instrument, session=session)
+        ohlc = ticker.history(period="max")
+        if ohlc.index.tz is not None:
+            ohlc.index = ohlc.index.tz_localize(None)
+        return ohlc
+
+    def _get_prices(self, instrument):
+        ohlc = self._get_raw_ohlc(instrument)
+        prices = ohlc['Close']
 
         if self.start_date is not None:
             prices = prices[prices.index >= pd.Timestamp(self.start_date)]
@@ -185,6 +226,53 @@ class VolatilityFacade:
         calendar_returns = calendar_returns.sort_values('Date', ascending=False)
         
         return calendar_returns
+
+    def _get_vix_ohlc(self):
+        """Full ^VIX OHLC history (1990 -> today), unfiltered.
+
+        The VIX subplot deliberately ignores the ETF's start/end window so the
+        trader sees the complete VIX context.
+        """
+        return self._get_raw_ohlc(VIX_TICKER)
+
+    def _get_vix_prices(self):
+        """Full ^VIX daily close history (1990 -> today), unfiltered."""
+        return self._get_vix_ohlc()['Close']
+
+    def _get_current_vix_value(self, vix_ohlc=None, now_et=None):
+        """Return (label, value) for the VIX "current value" annotation.
+
+        If the US market has opened today — i.e. the data's last trading day is
+        today and the time is >= 9:30 ET — return today's open (the 9:30 ET
+        print). Otherwise return the last trading day's close.
+
+        Args:
+            vix_ohlc: optional OHLC DataFrame (injected for tests); fetched if
+                omitted.
+            now_et: optional tz-aware Eastern Time datetime (injected for
+                tests); current time if omitted.
+        """
+        if vix_ohlc is None:
+            vix_ohlc = self._get_vix_ohlc()
+        if now_et is None:
+            now_et = _now_eastern()
+        if vix_ohlc.empty:
+            return None
+
+        last_row = vix_ohlc.iloc[-1]
+        last_date = vix_ohlc.index[-1].date()
+        market_opened_today = (
+            last_date == now_et.date() and now_et.time() >= TIME_MARKET_OPEN
+        )
+        if market_opened_today:
+            return (
+                f"VIX @ open {last_date.isoformat()} 9:30 ET",
+                float(last_row['Open']),
+            )
+        return (
+            f"VIX @ last close {last_date.isoformat()}",
+            float(last_row['Close']),
+        )
 
     def _get_returns(self, instrument, period_length):
         """
@@ -237,23 +325,24 @@ class VolatilityFacade:
                 )
 
     def _build_percentage_change_figure_layout(self):
-        """Build the 2x2-on-top + full-width-bottom figure for visualize.
+        """Build the 2x2-on-top + full-width term-structure + VIX figure.
 
-        Returns: (fig, ax_qq, ax_hist, ax_left, ax_right, ax_term) where
-        ax_term spans the full width of the bottom row.
+        Returns: (fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix) where
+        ax_term and ax_vix each span the full width of their bottom rows.
         """
-        fig = plt.figure(figsize=(12, 12))
+        fig = plt.figure(figsize=(12, 15))
         gs = fig.add_gridspec(
-            3, 2,
-            height_ratios=[1, 1, 1.1],
-            hspace=0.4, wspace=0.25,
+            4, 2,
+            height_ratios=[1, 1, 1, 1],
+            hspace=0.45, wspace=0.25,
         )
         ax_qq = fig.add_subplot(gs[0, 0])
         ax_hist = fig.add_subplot(gs[0, 1])
         ax_left = fig.add_subplot(gs[1, 0])
         ax_right = fig.add_subplot(gs[1, 1])
         ax_term = fig.add_subplot(gs[2, :])
-        return fig, ax_qq, ax_hist, ax_left, ax_right, ax_term
+        ax_vix = fig.add_subplot(gs[3, :])
+        return fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix
 
     def _plot_percentage_change(self, data, tail_percent):
         """
@@ -266,12 +355,13 @@ class VolatilityFacade:
             data: dict from _prepare_percentage_change_data
             tail_percent: Fraction of extreme tail to fit for alpha estimation
         """
-        fig, ax_qq, ax_hist, ax_left, ax_right, ax_term = self._build_percentage_change_figure_layout()
+        fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix = self._build_percentage_change_figure_layout()
 
         ps.qq_plot(data['returns'], ax=ax_qq, show=False)
         ps.histgram_plot(data['returns'], ax=ax_hist, show=False)
         self._plot_tail_fits(data['tails'], [ax_left, ax_right], tail_percent)
         self._plot_term_structure_panel(ax_term, data['instrument'])
+        self._plot_vix_panel(ax_vix)
 
         fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
         plt.show()
@@ -288,17 +378,10 @@ class VolatilityFacade:
         from fentu.pricingservices.iv_term_structure import build_bucket_rows
         from fentu.pricingservices.term_structure_plotting import plot_term_structure
 
-        def show_unavailable(detail=""):
-            message = "IV term structure unavailable"
-            if detail:
-                message = f"{message}\n{detail}"
-            ax.text(0.5, 0.5, message, ha="center", va="center", transform=ax.transAxes)
-            ax.set_title("IV Term Structure")
-
         try:
             chain_data, underlying_price = fetch_yfinance_chain(instrument)
             if not chain_data.get("expiries") or underlying_price is None:
-                show_unavailable()
+                self._show_panel_unavailable(ax, "IV Term Structure", "IV term structure unavailable")
                 return
 
             detail_rows = yfinance_chain_to_detail_rows(
@@ -312,7 +395,45 @@ class VolatilityFacade:
                 title=f"{instrument} IV Term Structure",
             )
         except Exception as exc:
-            show_unavailable(detail=type(exc).__name__)
+            self._show_panel_unavailable(ax, "IV Term Structure", "IV term structure unavailable", type(exc).__name__)
+
+    def _plot_vix_panel(self, ax):
+        """Render the ^VIX full-history close plus a current-value annotation.
+
+        Network-failure-safe: on any error the panel shows a short note instead
+        of breaking the rest of the figure, mirroring _plot_term_structure_panel.
+        """
+        try:
+            vix_ohlc = self._get_vix_ohlc()
+            if vix_ohlc.empty:
+                self._show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
+                return
+            close = vix_ohlc['Close']
+            ax.plot(close.index, close.values, color="purple", lw=1.2, label="VIX close")
+            ax.set_title("VIX Index")
+            ax.set_ylabel("VIX")
+            ax.legend(loc="upper left")
+            ax.grid(True, alpha=0.3)
+
+            current = self._get_current_vix_value(vix_ohlc=vix_ohlc)
+            if current is not None:
+                label, value = current
+                ax.text(
+                    0.99, 0.95, f"{label}\n{value:.2f}",
+                    transform=ax.transAxes, ha="right", va="top",
+                    bbox=dict(facecolor="white", alpha=0.8, edgecolor="purple"),
+                )
+        except Exception:
+            self._show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
+
+    def _show_panel_unavailable(self, ax, title, message, detail=""):
+        """Render a centered 'unavailable' note on `ax` (shared by the
+        term-structure and VIX panels)."""
+        text = message
+        if detail:
+            text = f"{message}\n{detail}"
+        ax.text(0.5, 0.5, text, ha="center", va="center", transform=ax.transAxes)
+        ax.set_title(title)
 
     def visualize_percentage_change(self, period='daily', tail_percent=0.10):
         """
