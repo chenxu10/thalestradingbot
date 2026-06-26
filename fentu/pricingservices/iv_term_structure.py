@@ -126,6 +126,22 @@ def _coerce_positive_number(value):
     return parsed if parsed > 0 else None
 
 
+# Yahoo (and some brokers) return a ~1e-5 sentinel "impliedVolatility" for
+# stale / no-trade options; that is 0.001% vol -- physically impossible for an
+# equity index (real ATM IV floor is ~5%, QQQ's is ~12-13%). Letting it through
+# poisons the (call+put)/2 average, so reject anything below this floor. See
+# Taleb SKILL.md Bachelier caveat ("ATM IV Term Structure" heuristics).
+_MIN_PLAUSIBLE_IV = 0.001
+
+
+def _coerce_plausible_iv(value):
+    """Like _coerce_positive_number but also rejects implausibly low IVs."""
+    parsed = _coerce_positive_number(value)
+    if parsed is None:
+        return None
+    return parsed if parsed >= _MIN_PLAUSIBLE_IV else None
+
+
 def _compute_average_iv(call_iv, put_iv):
     if call_iv is None or put_iv is None:
         return None
@@ -162,10 +178,10 @@ def build_expiry_detail_rows(expiry_rows, quotes_by_sub_id):
         call_quote = quotes.get(call_sub_id) if call_sub_id else None
         put_quote = quotes.get(put_sub_id) if put_sub_id else None
 
-        call_iv = _coerce_positive_number(
+        call_iv = _coerce_plausible_iv(
             call_quote.get("iv") if isinstance(call_quote, dict) else None
         )
-        put_iv = _coerce_positive_number(
+        put_iv = _coerce_plausible_iv(
             put_quote.get("iv") if isinstance(put_quote, dict) else None
         )
 
