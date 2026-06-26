@@ -132,14 +132,31 @@ class VolatilityCalculator:
     def calculate_volatility(self, returns_data):
         raise NotImplementedError
 
+class MeanAbsoluteDeviationVolatility(VolatilityCalculator):
+    """Headline daily-volatility metric.
+
+    Per the taleb-convexity-tailhedge skill: SD breaks under fat tails
+    (one day = 80% of SP500 kurtosis over 56 years), while MAD exists
+    whenever the mean exists. MAD is the headline; STD is kept only for a
+    `*_gaussian_only` comparison via StandardDeviationVolatility below.
+    """
+    def calculate_volatility(self, returns_data):
+        return (returns_data - returns_data.mean()).abs().mean()
+
 class StandardDeviationVolatility(VolatilityCalculator):
+    """Gaussian-only comparison volatility (kept for reference, not headline).
+
+    Per the skill, this metric loses scientific validity once the data leaves
+    the Gaussian basin (fat tails). Use MeanAbsoluteDeviationVolatility above
+    as the headline.
+    """
     def calculate_volatility(self, returns_data):
         # Handle both Series and DataFrame inputs
         return returns_data.std()
 
 class DailyVolatility:
     def __init__(self, calculator: VolatilityCalculator = None):
-        self.calculator = calculator or StandardDeviationVolatility()
+        self.calculator = calculator or MeanAbsoluteDeviationVolatility()
     
     def calculate_1std_daily_volatility(self, daily_returns):
         return self.calculator.calculate_volatility(daily_returns)
@@ -522,7 +539,7 @@ if __name__ == "__main__":
     print(volatility.get_past_week_price_and_log_returns())
 
     # Calculate volatility metrics
-    print(f"Daily volatility: {volatility.calculate_daily_volatility()}")
+    print(f"Daily volatility (MAD): {volatility.calculate_daily_volatility()}")
 
     # Find extreme returns
     #print(f"Worst months: {volatility.find_negative_extreme_returns('monthly', k=3)}")
