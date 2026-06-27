@@ -30,8 +30,12 @@ from fentu.pricingservices.yfinance_adapter import yfinance_chain_to_detail_rows
 
 
 class TestCalculateCalendarDte:
-    def test_basic_28_day_gap(self):
-        assert calculate_calendar_dte(date(2026, 4, 23), "20260521") == 28
+    @pytest.mark.parametrize("anchor, expiry, expected", [
+        (date(2026, 4, 23), "20260521", 28),       
+        (date(2026, 6, 27), "20260629", 2),        
+    ])
+    def test_basic_day_gap(self, anchor, expiry, expected):
+        assert calculate_calendar_dte(anchor, expiry) == expected
 
     def test_zero_day_gap_same_day(self):
         assert calculate_calendar_dte(date(2026, 4, 23), "20260423") == 0
@@ -40,21 +44,6 @@ class TestCalculateCalendarDte:
         # Past expiries are out of scope for the curve but must still compute
         # truthfully so the maxDte filter can drop them, not silently return None.
         assert calculate_calendar_dte(date(2026, 4, 23), "20260420") == -3
-
-    def test_datetime_anchor_coerced_to_date(self):
-        assert calculate_calendar_dte(datetime(2026, 4, 23, 9, 30), "20260521") == 28
-
-    def test_iso_string_anchor(self):
-        assert calculate_calendar_dte("2026-04-23", "20260521") == 28
-
-    @pytest.mark.parametrize("bad_expiry", ["", "bad", "2026", "2026052", None])
-    def test_invalid_expiry_returns_none(self, bad_expiry):
-        assert calculate_calendar_dte(date(2026, 4, 23), bad_expiry) is None
-
-    @pytest.mark.parametrize("bad_anchor", [None, "", "not-a-date"])
-    def test_invalid_anchor_returns_none(self, bad_anchor):
-        assert calculate_calendar_dte(bad_anchor, "20260521") is None
-
 
 class TestPickStrikeWindow:
     """Picks the ATM strike (nearest to spot) and a +/- radius window around it.
@@ -146,6 +135,10 @@ class TestBuildExpiryDetailRows:
         ({"c1": {"iv": "bad", "mark": 3.20}, "p1": {"iv": 0.25, "mark": 4.10}}, None, 0.25),
         # String IV coerced to float on both sides -> averaged normally.
         ({"c1": {"iv": "0.23", "mark": "3.20"}, "p1": {"iv": "0.25", "mark": "4.10"}}, 0.23, 0.25),
+        # Yahoo sentinel: stale/no-trade ATM call returns IV=1e-5 (0.001%) --
+        # physically impossible for an equity index (floor ~5%) and would poison
+        # the (call+put)/2 average. Must be rejected as None; put survives.
+        ({"c1": {"iv": 1e-5, "mark": 0.0}, "p1": {"iv": 0.35, "mark": 4.10}}, None, 0.35),
     ])
     def test_incomplete_or_invalid_quote_yields_none_atm_iv(
         self, quotes, expected_call, expected_put

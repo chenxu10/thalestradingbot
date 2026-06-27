@@ -39,7 +39,7 @@ Evaluated against `.opencode/skills/taleb-convexity-tailhedge/SKILL.md`
 ### Wrong / missing — against Taleb
 
 - [x] **`StandardDeviationVolatility` is the headline volatility.** Skill: "Retire SD, use MAD." `volcalculator.py:135-145`, displayed `:288` — DONE: `MeanAbsoluteDeviationVolatility` is now the default in `DailyVolatility`; `StandardDeviationVolatility` kept for `*_gaussian_only` comparison. Tests: `tests/test_volatility_metric.py` (10 passed).
-- [ ] **Kurtosis printed as a clean digit** — misleading; one day = 80% of SP500 kurtosis over 56 yr (`plotting_service.py:14`)
+- [x] **Kurtosis printed as a clean digit** — misleading; one day = 80% of SP500 kurtosis over 56 yr (`plotting_service.py:14`) — DONE: `calculate_four_moments` now also returns the leave-one-out (drop single most extreme obs) kurtosis; `qq_plot` displays `Kurt: X.XX` alongside `Kurt (drop 1 worst): Y.YY` so single-obs influence is visible. Tests: `tests/test_plotting_service_kurtosis.py` (5 passed).
 - [ ] **Student-T `df` computed but never displayed** — `df≈α` is the plug-in α for relative pricing and the "do I need a fat-tailed model at all" read (`plotting_service.py:49`)
 - [ ] **No κ (Kappa) gauge** — "Report κ beside every sample mean; κ>0.15 ⇒ normal approx unreliable; SP500≈0.2, single stocks 0.3–0.7". QQQ > SP500 concentration. **Absent**
 - [ ] **Tail α estimated by OLS on binned histogram density, not Hill MLE** — α̂=n/Σlog(xᵢ/L) is inverse-gamma (low variance); OLS-on-bins is biased & high-variance (`see_power_law.py:78`). Also inconsistent tail_percent defaults: `visualize_percentage_change` 0.10 vs `fit_power_law_slope` 0.20 (`volcalculator.py:438` vs `see_power_law.py:91`)

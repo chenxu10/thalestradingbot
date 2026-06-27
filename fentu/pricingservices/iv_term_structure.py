@@ -65,6 +65,68 @@ def calculate_calendar_dte(anchor_date, expiry_code):
     return (expiry_date - anchor).days
 
 
+def _parse_spot(underlying_price):
+    """Coerce the underlying price to a finite float, else None.
+
+    Used to short-circuit pick_strike_window when no valid spot is available.
+    """
+    try:
+        spot = float(underlying_price)
+    except (TypeError, ValueError):
+        return None
+    if spot != spot:  # NaN guard (NaN != NaN)
+        return None
+    return spot
+
+
+def _normalize_strikes(strikes):
+    """Coerce raw strikes to a sorted list of unique finite floats.
+
+    Drops any non-numeric, NaN, or duplicate values so the ATM finder only sees
+    clean, deduped, ordered data.
+    """
+    normalized = []
+    seen = set()
+    for raw_strike in strikes or []:
+        try:
+            strike = float(raw_strike)
+        except (TypeError, ValueError):
+            continue
+        if strike != strike:  # NaN guard
+            continue
+        if strike in seen:
+            continue
+        seen.add(strike)
+        normalized.append(strike)
+    normalized.sort()
+    return normalized
+
+
+def _nearest_strike_index(sorted_strikes, target_price):
+    """Index of the strike closest to `target_price`.
+
+    Tie-break by preferring the lower strike (`sorted_strikes[index]` is the
+    secondary sort key) so an equidistant down-strike wins over the up-strike.
+    """
+    return min(
+        range(len(sorted_strikes)),
+        key=lambda index: (
+            abs(sorted_strikes[index] - target_price),
+            sorted_strikes[index],
+        ),
+    )
+
+
+def _clamp_radius_window(sorted_strikes, center_index, radius):
+    """Slice `sorted_strikes` to +/- `radius` around `center_index`, clamped to
+    list edges so a wide radius at the bottom/top never under/overflows.
+    """
+    safe_radius = max(0, int(radius or 0))
+    start = max(0, center_index - safe_radius)
+    end = min(len(sorted_strikes), center_index + safe_radius + 1)
+    return sorted_strikes[start:end]
+
+
 def pick_strike_window(strikes, underlying_price, radius=1):
     """Pick the ATM strike (nearest to spot) and a +/- radius window around it.
 
@@ -72,46 +134,19 @@ def pick_strike_window(strikes, underlying_price, radius=1):
     On any invalid input (bad spot, no numeric strikes, NaN) returns
     {"atm_strike": None, "window_strikes": []}.
     """
-    try:
-        target_price = float(underlying_price)
-    except (TypeError, ValueError):
+    spot = _parse_spot(underlying_price)
+    if spot is None:
         return {"atm_strike": None, "window_strikes": []}
 
-    if not (target_price == target_price):  # NaN guard
+    sorted_strikes = _normalize_strikes(strikes)
+    if not sorted_strikes:
         return {"atm_strike": None, "window_strikes": []}
 
-    normalized_strikes = []
-    seen = set()
-    for raw_strike in strikes or []:
-        try:
-            strike = float(raw_strike)
-        except (TypeError, ValueError):
-            continue
-        if not (strike == strike):  # NaN guard
-            continue
-        if strike in seen:
-            continue
-        seen.add(strike)
-        normalized_strikes.append(strike)
-
-    if not normalized_strikes:
-        return {"atm_strike": None, "window_strikes": []}
-
-    normalized_strikes.sort()
-    best_index = min(
-        range(len(normalized_strikes)),
-        key=lambda index: (
-            abs(normalized_strikes[index] - target_price),
-            normalized_strikes[index],
-        ),
-    )
-    safe_radius = max(0, int(radius or 0))
-    start = max(0, best_index - safe_radius)
-    end = min(len(normalized_strikes), best_index + safe_radius + 1)
-    window = normalized_strikes[start:end]
+    best_index = _nearest_strike_index(sorted_strikes, spot)
+    window = _clamp_radius_window(sorted_strikes, best_index, radius)
 
     return {
-        "atm_strike": normalized_strikes[best_index],
+        "atm_strike": sorted_strikes[best_index],
         "window_strikes": window,
     }
 
@@ -124,6 +159,22 @@ def _coerce_positive_number(value):
     if not (parsed == parsed):  # NaN guard
         return None
     return parsed if parsed > 0 else None
+
+
+# Yahoo (and some brokers) return a ~1e-5 sentinel "impliedVolatility" for
+# stale / no-trade options; that is 0.001% vol -- physically impossible for an
+# equity index (real ATM IV floor is ~5%, QQQ's is ~12-13%). Letting it through
+# poisons the (call+put)/2 average, so reject anything below this floor. See
+# Taleb SKILL.md Bachelier caveat ("ATM IV Term Structure" heuristics).
+_MIN_PLAUSIBLE_IV = 0.001
+
+
+def _coerce_plausible_iv(value):
+    """Like _coerce_positive_number but also rejects implausibly low IVs."""
+    parsed = _coerce_positive_number(value)
+    if parsed is None:
+        return None
+    return parsed if parsed >= _MIN_PLAUSIBLE_IV else None
 
 
 def _compute_average_iv(call_iv, put_iv):
@@ -162,10 +213,10 @@ def build_expiry_detail_rows(expiry_rows, quotes_by_sub_id):
         call_quote = quotes.get(call_sub_id) if call_sub_id else None
         put_quote = quotes.get(put_sub_id) if put_sub_id else None
 
-        call_iv = _coerce_positive_number(
+        call_iv = _coerce_plausible_iv(
             call_quote.get("iv") if isinstance(call_quote, dict) else None
         )
-        put_iv = _coerce_positive_number(
+        put_iv = _coerce_plausible_iv(
             put_quote.get("iv") if isinstance(put_quote, dict) else None
         )
 
@@ -244,9 +295,11 @@ def build_bucket_rows(detail_rows, bucket_definitions=None):
     """Fold per-expiry detail rows into normalized tenor buckets.
 
     Each bucket is matched to the detail row whose dte is nearest the bucket's
-    targetDays. Ties break to the lower dte, then to the earlier expiry string.
-    Matching is unconditional -- there is no max-distance cutoff; filtering
-    too-far matches is the caller's job.
+    targetDays.For the 1D bucket it scans every detail row's dte 
+    (days-to-expiry, computed at yfinance_adapter.py:calculate_calendar_dte → 
+    iv_term_structure.py:65) and finds the one with abs(dte - 1) 
+    minimal. In practice yfinance's shortest QQQ expiry is 
+    usually 1–2 calendar days out
 
     Args:
         detail_rows: output of build_expiry_detail_rows (or any list of dicts
