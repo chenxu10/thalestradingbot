@@ -146,6 +146,10 @@ class TestBuildExpiryDetailRows:
         ({"c1": {"iv": "bad", "mark": 3.20}, "p1": {"iv": 0.25, "mark": 4.10}}, None, 0.25),
         # String IV coerced to float on both sides -> averaged normally.
         ({"c1": {"iv": "0.23", "mark": "3.20"}, "p1": {"iv": "0.25", "mark": "4.10"}}, 0.23, 0.25),
+        # Yahoo sentinel: stale/no-trade ATM call returns IV=1e-5 (0.001%) --
+        # physically impossible for an equity index (floor ~5%) and would poison
+        # the (call+put)/2 average. Must be rejected as None; put survives.
+        ({"c1": {"iv": 1e-5, "mark": 0.0}, "p1": {"iv": 0.35, "mark": 4.10}}, None, 0.35),
     ])
     def test_incomplete_or_invalid_quote_yields_none_atm_iv(
         self, quotes, expected_call, expected_put
