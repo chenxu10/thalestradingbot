@@ -40,7 +40,6 @@ Evaluated against `.opencode/skills/taleb-convexity-tailhedge/SKILL.md`
 
 - [x] **`StandardDeviationVolatility` is the headline volatility.** Skill: "Retire SD, use MAD." `volcalculator.py:135-145`, displayed `:288` — DONE: `MeanAbsoluteDeviationVolatility` is now the default in `DailyVolatility`; `StandardDeviationVolatility` kept for `*_gaussian_only` comparison. Tests: `tests/test_volatility_metric.py` (10 passed).
 - [x] **Kurtosis printed as a clean digit** — misleading; one day = 80% of SP500 kurtosis over 56 yr (`plotting_service.py:14`) — DONE: `calculate_four_moments` now also returns the leave-one-out (drop single most extreme obs) kurtosis; `qq_plot` displays `Kurt: X.XX` alongside `Kurt (drop 1 worst): Y.YY` so single-obs influence is visible. Tests: `tests/test_plotting_service_kurtosis.py` (5 passed).
-- [ ] **No κ (Kappa) gauge** — "Report κ beside every sample mean; κ>0.15 ⇒ normal approx unreliable; SP500≈0.2, single stocks 0.3–0.7". QQQ > SP500 concentration. **Absent**
 - [ ] **Tail α estimated by OLS on binned histogram density, not Hill MLE** — α̂=n/Σlog(xᵢ/L) is inverse-gamma (low variance); OLS-on-bins is biased & high-variance (`see_power_law.py:78`). Also inconsistent tail_percent defaults: `visualize_percentage_change` 0.10 vs `fit_power_law_slope` 0.20 (`volcalculator.py:438` vs `see_power_law.py:91`)
 - [ ] **Realized vol uses full history with no λ≈0.97 exponential decay** — "Traders have GARCH in their heads"; equal-weighting mixes vol regimes silently (`volcalculator.py:155`)
 - [ ] **IV term-structure panel is ATM-only** — "VIX is a body/2nd-moment metric; a true 4th-moment/tail bet = sell ATM straddles + buy OTM wings". Missing the entire convexity story (`volcalculator.py:369`)
@@ -52,12 +51,13 @@ Evaluated against `.opencode/skills/taleb-convexity-tailhedge/SKILL.md`
 
 1. [x] Rename/demote `StandardDeviationVolatility` → MAD headline, keep STD as `*_gaussian_only` for comparison (`volcalculator.py:135`)
 2. [ ] Display Student-T `df` on the histogram; add implied `α=df` to the histogram legend (`plotting_service.py:48`)
-3. [ ] Add κ to the QQ annotation block beside Mean/MAD (`plotting_service.py:21`)
 4. [ ] Replace the binned-loglog OLS α estimator with a Hill MLE (`see_power_law.py:78`)
 5. [ ] Overlay a 25Δ OTM put IV term structure on the ATM term-structure panel — that's the 4th-moment / tail-bet curve (`volcalculator.py:369`)
 6. [ ] Overlay realized-vol term structure on the IV curve, or write IV−realized explicitly (`volcalculator.py:363`)
 7. [ ] Add a `λ≈0.97` exponentially-weighted returns pass; show plain and EW distributions side-by-side (`volcalculator.py:155`)
 
+### ToLearn
+- [ ] **No κ (Kappa) gauge** — "Report κ beside every sample mean; κ>0.15 ⇒ normal approx unreliable; SP500≈0.2, single stocks 0.3–0.7". QQQ > SP500 concentration. **Absent**
 
 ## Story
 1. As s trader, I want to able to see VIX(historical low, medium and high region) and short term treasury notes
