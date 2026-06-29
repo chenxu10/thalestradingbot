@@ -40,13 +40,11 @@ Evaluated against `.opencode/skills/taleb-convexity-tailhedge/SKILL.md`
 
 - [x] **`StandardDeviationVolatility` is the headline volatility.** Skill: "Retire SD, use MAD." `volcalculator.py:135-145`, displayed `:288` — DONE: `MeanAbsoluteDeviationVolatility` is now the default in `DailyVolatility`; `StandardDeviationVolatility` kept for `*_gaussian_only` comparison. Tests: `tests/test_volatility_metric.py` (10 passed).
 - [x] **Kurtosis printed as a clean digit** — misleading; one day = 80% of SP500 kurtosis over 56 yr (`plotting_service.py:14`) — DONE: `calculate_four_moments` now also returns the leave-one-out (drop single most extreme obs) kurtosis; `qq_plot` displays `Kurt: X.XX` alongside `Kurt (drop 1 worst): Y.YY` so single-obs influence is visible. Tests: `tests/test_plotting_service_kurtosis.py` (5 passed).
-- [ ] **No κ (Kappa) gauge** — "Report κ beside every sample mean; κ>0.15 ⇒ normal approx unreliable; SP500≈0.2, single stocks 0.3–0.7". QQQ > SP500 concentration. **Absent**
 - [ ] **Tail α estimated by OLS on binned histogram density, not Hill MLE** — α̂=n/Σlog(xᵢ/L) is inverse-gamma (low variance); OLS-on-bins is biased & high-variance (`see_power_law.py:78`). Also inconsistent tail_percent defaults: `visualize_percentage_change` 0.10 vs `fit_power_law_slope` 0.20 (`volcalculator.py:438` vs `see_power_law.py:91`)
 - [ ] **Realized vol uses full history with no λ≈0.97 exponential decay** — "Traders have GARCH in their heads"; equal-weighting mixes vol regimes silently (`volcalculator.py:155`)
 - [ ] **IV term-structure panel is ATM-only** — "VIX is a body/2nd-moment metric; a true 4th-moment/tail bet = sell ATM straddles + buy OTM wings". Missing the entire convexity story (`volcalculator.py:369`)
 - [ ] **VIX panel labeled "tail context" without caveat** — VIX measures the 2nd moment, not the tail (`volcalculator.py:421`)
 - [ ] **No IV-vs-realized overlay** — the bot's thesis ("better convex than right, cost-effectively") turns on IV-rich/realized-poor *in the tails*; the two are never on the same axis (`volcalculator.py:363`)
-- [ ] **QQ reference line is Normal-only** — useful as the Wittgenstein ruler to *reject* Gaussianity, but the actionable ruler for a fat-tailed asset is the Student-T line whose slope yields df/α. Partial (`plotting_service.py:20`)
 
 ### Quick fix priority (Taleb-weighted)
 
