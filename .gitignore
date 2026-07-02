@@ -13,3 +13,4 @@ Ideas.pdf
 *.csv
 *.pdf
 .opencode/*
+.flen_cache/
