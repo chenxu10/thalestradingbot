@@ -183,6 +183,51 @@ def _compute_average_iv(call_iv, put_iv):
     return round((call_iv + put_iv) / 2, 6)
 
 
+def _quote_value(quote, key):
+    """Read a field from a quote that may be None or a non-dict."""
+    return quote.get(key) if isinstance(quote, dict) else None
+
+
+def _sub_id_of(entry, key):
+    """Strip an ATM sub-id field from a selection row to a plain string."""
+    return str(entry.get(key) or "").strip()
+
+
+def _lookup_quote(sub_id, quotes):
+    """Look up a quote by sub-id, returning None for an empty sub-id."""
+    return quotes.get(sub_id) if sub_id else None
+
+
+def _build_detail_row(entry, quotes):
+    """Build one detail row from a selection entry + the quote table.
+
+    Near-decomposable Simon subsystem: resolves the ATM call/put sub-ids,
+    coerces their IV/mark fields, and assembles the row. Pure -- it touches no
+    state outside its arguments.
+    """
+    call_sub_id = _sub_id_of(entry, "atm_call_sub_id")
+    put_sub_id = _sub_id_of(entry, "atm_put_sub_id")
+    call_quote = _lookup_quote(call_sub_id, quotes)
+    put_quote = _lookup_quote(put_sub_id, quotes)
+
+    call_iv = _coerce_plausible_iv(_quote_value(call_quote, "iv"))
+    put_iv = _coerce_plausible_iv(_quote_value(put_quote, "iv"))
+
+    return {
+        "expiry": str(entry.get("expiry") or "").strip(),
+        "dte": max(0, int(entry.get("dte") or 0)),
+        "atm_strike": _coerce_positive_number(entry.get("atm_strike")),
+        "call_iv": call_iv,
+        "put_iv": put_iv,
+        "atm_iv": _compute_average_iv(call_iv, put_iv),
+        "has_complete_pair": call_iv is not None and put_iv is not None,
+        "call_mark": _coerce_positive_number(_quote_value(call_quote, "mark")),
+        "put_mark": _coerce_positive_number(_quote_value(put_quote, "mark")),
+        "atm_call_sub_id": call_sub_id,
+        "atm_put_sub_id": put_sub_id,
+    }
+
+
 def build_expiry_detail_rows(expiry_rows, quotes_by_sub_id):
     """Glue step 3: read call/put IV at the ATM strike, average -> atmIv per expiry.
 
@@ -207,38 +252,7 @@ def build_expiry_detail_rows(expiry_rows, quotes_by_sub_id):
     for entry in expiry_rows or []:
         if not isinstance(entry, dict):
             continue
-
-        call_sub_id = str(entry.get("atm_call_sub_id") or "").strip()
-        put_sub_id = str(entry.get("atm_put_sub_id") or "").strip()
-        call_quote = quotes.get(call_sub_id) if call_sub_id else None
-        put_quote = quotes.get(put_sub_id) if put_sub_id else None
-
-        call_iv = _coerce_plausible_iv(
-            call_quote.get("iv") if isinstance(call_quote, dict) else None
-        )
-        put_iv = _coerce_plausible_iv(
-            put_quote.get("iv") if isinstance(put_quote, dict) else None
-        )
-
-        rows.append(
-            {
-                "expiry": str(entry.get("expiry") or "").strip(),
-                "dte": max(0, int(entry.get("dte") or 0)),
-                "atm_strike": _coerce_positive_number(entry.get("atm_strike")),
-                "call_iv": call_iv,
-                "put_iv": put_iv,
-                "atm_iv": _compute_average_iv(call_iv, put_iv),
-                "has_complete_pair": call_iv is not None and put_iv is not None,
-                "call_mark": _coerce_positive_number(
-                    call_quote.get("mark") if isinstance(call_quote, dict) else None
-                ),
-                "put_mark": _coerce_positive_number(
-                    put_quote.get("mark") if isinstance(put_quote, dict) else None
-                ),
-                "atm_call_sub_id": call_sub_id,
-                "atm_put_sub_id": put_sub_id,
-            }
-        )
+        rows.append(_build_detail_row(entry, quotes))
 
     rows = [row for row in rows if row["expiry"]]
     rows.sort(key=lambda row: (row["dte"], str(row["expiry"])))

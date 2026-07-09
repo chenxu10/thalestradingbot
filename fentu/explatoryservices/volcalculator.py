@@ -21,8 +21,8 @@ Topology Diagram (ASCII)
                  |  inherits
                  v
  +-------------------------------+
- | StandardDeviationVolatility   |
- | calculate_volatility()        |  -> returns_data.std()
+ | MeanAbsoluteDeviationVolatility|  (headline; MAD survives fat tails)
+ | StandardDeviationVolatility   |  (kept for *_gaussian_only comparison)
  +---------------+---------------+
                  |  used-by (Strategy pattern)
                  v
@@ -31,54 +31,59 @@ Topology Diagram (ASCII)
  | - calculator: VolatilityCalc  |
  | calculate_1std_daily_vol()    |
  +---------------+---------------+
-                 |  composition
+
+ Three injectable seams (extracted from the former God-Object facade):
+ +---------------------------------------------------------------------------+
+ | ReturnsRepository   (Seam 1 — the ONLY object that touches the network)   |
+ |   __init__(start_date, end_date)   <- cheap, no I/O                       |
+ |   _raw_ohlc(instrument)            -> yf.Ticker + curl_cffi session;      |
+ |                                       strips tz from the index            |
+ |   get_prices(instrument)           -> _raw_ohlc + start/end window        |
+ |   get_returns(instrument, period)  -> np.log(prices/shift)[period:]       |
+ |   get_vix_ohlc() / get_vix_prices()-> full ^VIX history, UN-windowed      |
+ +---------------------------------------------------------------------------+
+ +---------------------------------------------------------------------------+
+ | MarketClock          (Seam 2 — DST / market-open logic, pure of I/O)      |
+ |   now_eastern()                   -> delegates to module _now_eastern()   |
+ |   market_opened_today(last, now)  -> last==now.date() and >=9:30 ET       |
+ |   current_vix_value(ohlc, now_et) -> (label, value): open if opened else  |
+ |                                       last close                          |
+ +---------------------------------------------------------------------------+
+ +---------------------------------------------------------------------------+
+ | VolatilityDashboard  (Seam 3 — presentation, pure of fetching)            |
+ |   show_panel_unavailable(ax,...)  -> centered "unavailable" note          |
+ |   plot_vix_panel(ax, ohlc, current_value) -> pure render from prebuilt    |
+ |   plot_term_structure_panel(ax, instrument, fetcher=None)                 |
+ |       -> injectable fetcher (defaults to fetch_yfinance_chain);           |
+ |          network-failure-safe                                             |
+ +---------------------------------------------------------------------------+
+                 |  composed by
                  v
  +---------------------------------------------------------------------------+
- |                          VolatilityFacade                                 |
+ |                   VolatilityFacade  (thin orchestrator)                   |
  |  instrument | start_date | end_date                                       |
- |  return_periods = {daily, weekly, monthly, yearly}                       |
+ |  _repository | _clock | _dashboard   <- injected, default-constructed     |
+ |  _returns_cache                       <- lazy; populated on first access  |
  |                                                                           |
- |  [Data Acquisition]                    [Volatility]                       |
- |  _get_prices() ----> yf.Ticker          calculate_daily_volatility()      |
- |        |                 + curl_cffi            |                         |
- |        |                 session                v                         |
- |        +---> _get_returns() ----> DailyVolatility                          |
- |                  |  pct_change(period)                                     |
- |                  v                                                         |
- |            daily/weekly/monthly/yearly returns ----+                       |
- |                                                    |                     |
- |  [Calendar Returns]                                |                     |
- |  get_calendar_year_returns()                       |                     |
- |     +-> _get_prices()                              |                     |
- |     +-> calculate_yearly_return_list()             |                     |
- |                                                    |                     |
- |  [Extreme Returns]  <------------------------------+                     |
- |  find_negative_extreme_returns() (k | threshold)                         |
- |  find_positive_extreme_returns() (k | threshold)                         |
+ |  Construction does NO network I/O.                                        |
+ |  daily/weekly/monthly/yearly_returns are @property + setter, cached.      |
+ |  return_periods is a @property building the dict lazily.                  |
  |                                                                           |
- |  [Visualization: data-view-model pattern]                                 |
- |  visualize_percentage_change(period, tail_percent)                       |
- |     |                                                                     |
- |     +-> _prepare_percentage_change_data()  <<data prep>>                  |
- |     |       +-> return_periods, numpy (left/right tails)                  |
- |     |       +-> returns dict {returns, tails, period, instrument}         |
- |     |                                                                     |
-    |     +-> _plot_percentage_change()  <<visualization>>                      |
-    |             +-> ps.qq_plot()              (axes[0,0])                     |
-    |             +-> ps.histgram_plot()        (axes[0,1])                     |
-    |             +-> spl.plot_loglog_with_fit  (axes[1,0/1] - tail fits)       |
-    |             +-> _plot_term_structure_panel (axes[2,:] - IV term struct)   |
-    |             +-> _plot_vix_panel()          (axes[3,:] - ^VIX 1990->today) |
-    |                  +-> _get_vix_ohlc() -> _get_raw_ohlc(^VIX) [unfiltered]  |
-    |                  +-> _get_current_vix_value() -> _now_eastern()           |
-    |                       (today open if >=9:30 ET, else last close)         |
-    |             +-> _show_panel_unavailable()  (shared fallback note)         |
-    |             +-> matplotlib subplots (4x2 gridspec) + suptitle             |
+ |  Each former private helper (_get_prices, _get_vix_ohlc,                  |
+ |  _get_current_vix_value, _plot_*_panel, _show_panel_unavailable) is kept  |
+ |  as a delegating shim so existing callers/tests stay green.               |
  |                                                                           |
- |  [Reporting]                                                              |
- |  show_today_return()                       -> daily_returns.tail(20)      |
- |  get_past_week_price_and_log_returns()     -> _get_prices + np.log       |
- |  get_past_year_price_and_log_returns()     -> _get_prices + np.log       |
+ |  [Volatility]    calculate_daily_volatility() -> DailyVolatility          |
+ |  [Calendar]      get_calendar_year_returns() / calculate_yearly_return_.. |
+ |  [Extreme]       find_negative/positive_extreme_returns(k|threshold)      |
+ |  [Visualization] visualize_percentage_change(period, tail_percent)        |
+ |     +-> _prepare_percentage_change_data() (data view-model)               |
+ |     +-> _plot_percentage_change()                                         |
+ |           +-> ps.qq_plot / ps.histgram_plot / spl.plot_loglog_with_fit    |
+ |           +-> _plot_term_structure_panel (delegates -> dashboard)         |
+ |           +-> _plot_vix_panel             (delegates -> dashboard)        |
+ |           +-> matplotlib 4x2 gridspec + suptitle                          |
+ |  [Reporting]     show_today_return / get_past_{week,year}_price_and_log_  |
  +---------------------------------------------------------------------------+
 
  Entry Point
@@ -144,14 +149,8 @@ class MeanAbsoluteDeviationVolatility(VolatilityCalculator):
         return (returns_data - returns_data.mean()).abs().mean()
 
 class StandardDeviationVolatility(VolatilityCalculator):
-    """Gaussian-only comparison volatility (kept for reference, not headline).
-
-    Per the skill, this metric loses scientific validity once the data leaves
-    the Gaussian basin (fat tails). Use MeanAbsoluteDeviationVolatility above
-    as the headline.
-    """
+    """Gaussian-only comparison volatility (kept for reference, not headline).  """
     def calculate_volatility(self, returns_data):
-        # Handle both Series and DataFrame inputs
         return returns_data.std()
 
 class DailyVolatility:
@@ -161,31 +160,29 @@ class DailyVolatility:
     def calculate_1std_daily_volatility(self, daily_returns):
         return self.calculator.calculate_volatility(daily_returns)
 
-class VolatilityFacade:
+
+# ---------------------------------------------------------------------------
+# Seam 1: ReturnsRepository — the only object that touches the network.
+# ---------------------------------------------------------------------------
+
+
+class ReturnsRepository:
+    """Owns all yfinance OHLC fetching and the start/end date window.
+
+    Constructed cheaply (no I/O); fetches happen lazily on demand. The VIX
+    helpers deliberately ignore the ETF's start/end window so the VIX subplot
+    always shows the full 1990 -> today history.
     """
-    This class gets daily percentage change of an instrument
-    """
-    def __init__(self, instrument, start_date=None, end_date=None):
-        self.instrument = instrument
+
+    def __init__(self, start_date=None, end_date=None):
         self.start_date = start_date
         self.end_date = end_date
-        self.daily_returns = self._get_returns(instrument, 1)
-        self.weekly_returns = self._get_returns(instrument, 5)
-        self.monthly_returns = self._get_returns(instrument, 21)
-        self.yearly_returns = self._get_returns(instrument, 252)
-        self.daily_volatility = DailyVolatility()
-        self.return_periods = {
-            'daily': self.daily_returns,
-            'weekly': self.weekly_returns,
-            'monthly': self.monthly_returns,
-            'yearly': self.yearly_returns
-        }
 
-    def _get_raw_ohlc(self, instrument):
+    def _raw_ohlc(self, instrument):
         """Fetch full OHLC history for `instrument` with no date filtering.
 
-        The shared network fetch; callers that want the facade's date window
-        apply start_date/end_date themselves.
+        The shared network fetch; callers that want the repository's date
+        window apply start_date/end_date themselves.
         """
         session = requests.Session(impersonate="chrome")
         ticker = yf.Ticker(instrument, session=session)
@@ -194,16 +191,259 @@ class VolatilityFacade:
             ohlc.index = ohlc.index.tz_localize(None)
         return ohlc
 
-    def _get_prices(self, instrument):
-        ohlc = self._get_raw_ohlc(instrument)
+    def get_prices(self, instrument):
+        ohlc = self._raw_ohlc(instrument)
         prices = ohlc['Close']
-
         if self.start_date is not None:
             prices = prices[prices.index >= pd.Timestamp(self.start_date)]
         if self.end_date is not None:
             prices = prices[prices.index <= pd.Timestamp(self.end_date)]
-
         return prices
+
+    def get_returns(self, instrument, period_length):
+        prices = self.get_prices(instrument)
+        return np.log(prices / prices.shift(period_length))[period_length:]
+
+    def get_vix_ohlc(self):
+        """Full ^VIX OHLC history (1990 -> today), unfiltered."""
+        return self._raw_ohlc(VIX_TICKER)
+
+    def get_vix_prices(self):
+        """Full ^VIX daily close history (1990 -> today), unfiltered."""
+        return self.get_vix_ohlc()['Close']
+
+
+# ---------------------------------------------------------------------------
+# Seam 2: MarketClock — DST / market-open logic, pure of I/O.
+# ---------------------------------------------------------------------------
+
+
+class MarketClock:
+    """US Eastern Time clock + market-open detection for the VIX annotation.
+
+    `now_eastern` delegates to the module-level `_now_eastern()` so existing
+    tests that patch `volcalculator._now_eastern` keep working.
+    """
+
+    def now_eastern(self):
+        return _now_eastern()
+
+    def market_opened_today(self, last_date, now_et):
+        """True if `last_date` (a date) is `now_et`'s date and time >= 9:30 ET."""
+        return last_date == now_et.date() and now_et.time() >= TIME_MARKET_OPEN
+
+    def current_vix_value(self, vix_ohlc, now_et=None):
+        """Return (label, value) for the VIX "current value" annotation.
+
+        If the US market has opened today — i.e. the data's last trading day is
+        today and the time is >= 9:30 ET — return today's open (the 9:30 ET
+        print). Otherwise return the last trading day's close.
+        """
+        if now_et is None:
+            now_et = self.now_eastern()
+        if vix_ohlc.empty:
+            return None
+        last_row = vix_ohlc.iloc[-1]
+        last_date = vix_ohlc.index[-1].date()
+        if self.market_opened_today(last_date, now_et):
+            return (
+                f"VIX @ open {last_date.isoformat()} 9:30 ET",
+                float(last_row['Open']),
+            )
+        return (
+            f"VIX @ last close {last_date.isoformat()}",
+            float(last_row['Close']),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Seam 3: VolatilityDashboard — presentation, pure of fetching.
+# ---------------------------------------------------------------------------
+
+
+class VolatilityDashboard:
+    """Renders the percentage-change figure's panels from pre-built data.
+
+    Never fetches. `plot_term_structure_panel` takes an injectable `fetcher`
+    (defaults to the module-level `fetch_yfinance_chain`, which tests
+    monkeypatch); `plot_vix_panel` takes pre-built OHLC + an optional
+    `(label, value)` current-value pair.
+    """
+
+    def show_panel_unavailable(self, ax, title, message, detail=""):
+        text = message
+        if detail:
+            text = f"{message}\n{detail}"
+        ax.text(0.5, 0.5, text, ha="center", va="center", transform=ax.transAxes)
+        ax.set_title(title)
+
+    def plot_vix_panel(self, ax, vix_ohlc, current_value=None):
+        if vix_ohlc.empty:
+            self.show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
+            return
+        close = vix_ohlc['Close']
+        ax.plot(close.index, close.values, color="purple", lw=1.2, label="VIX close")
+        ax.set_title("VIX Index")
+        ax.set_ylabel("VIX")
+        ax.legend(loc="upper left")
+        ax.grid(True, alpha=0.3)
+        if current_value is not None:
+            label, value = current_value
+            ax.text(
+                0.99, 0.95, f"{label}\n{value:.2f}",
+                transform=ax.transAxes, ha="right", va="top",
+                bbox=dict(facecolor="white", alpha=0.8, edgecolor="purple"),
+            )
+
+    def plot_term_structure_panel(self, ax, instrument, fetcher=None):
+        from datetime import date as _date
+
+        from fentu.pricingservices.yfinance_fetcher import (
+            fetch_yfinance_chain as default_fetcher,
+        )
+        from fentu.pricingservices.yfinance_adapter import yfinance_chain_to_detail_rows
+        from fentu.pricingservices.iv_term_structure import build_bucket_rows
+        from fentu.pricingservices.term_structure_plotting import plot_term_structure
+
+        fetch = fetcher if fetcher is not None else default_fetcher
+        try:
+            chain_data, underlying_price = fetch(instrument)
+            if not chain_data.get("expiries") or underlying_price is None:
+                self.show_panel_unavailable(
+                    ax, "IV Term Structure", "IV term structure unavailable"
+                )
+                return
+            detail_rows = yfinance_chain_to_detail_rows(
+                chain_data,
+                underlying_price=underlying_price,
+                anchor_date=_date.today(),
+            )
+            buckets = build_bucket_rows(detail_rows)
+            plot_term_structure(
+                buckets, ax=ax, show=False,
+                title=f"{instrument} IV Term Structure",
+            )
+        except Exception as exc:
+            self.show_panel_unavailable(
+                ax, "IV Term Structure", "IV term structure unavailable",
+                type(exc).__name__,
+            )
+
+
+class VolatilityFacade:
+    """
+    This class gets daily percentage change of an instrument.
+
+    Thin orchestrator over three injectable seams:
+      - ReturnsRepository  (network I/O; lazy)
+      - MarketClock        (DST / market-open logic)
+      - VolatilityDashboard (presentation)
+
+    Construction does NO network I/O. Returns are computed lazily on first
+    access and cached. Each former private helper is preserved as a delegating
+    shim so existing callers/tests keep working.
+    """
+
+    def __init__(self, instrument, start_date=None, end_date=None,
+                 repository=None, clock=None, dashboard=None):
+        self.instrument = instrument
+        self.start_date = start_date
+        self.end_date = end_date
+        self._repository = repository or ReturnsRepository(
+            start_date=start_date, end_date=end_date)
+        self._clock = clock or MarketClock()
+        self._dashboard = dashboard or VolatilityDashboard()
+        self.daily_volatility = DailyVolatility()
+        self._returns_cache = {}
+
+    # --- lazy, cached return periods ----------------------------------------
+
+    def _get_return_period(self, key, period_length):
+        cached = self._returns_cache.get(key)
+        if cached is None:
+            self._returns_cache[key] = self._repository.get_returns(
+                self.instrument, period_length)
+        return self._returns_cache[key]
+
+    @property
+    def daily_returns(self):
+        return self._get_return_period('daily', 1)
+
+    @daily_returns.setter
+    def daily_returns(self, value):
+        self._returns_cache['daily'] = value
+
+    @property
+    def weekly_returns(self):
+        return self._get_return_period('weekly', 5)
+
+    @weekly_returns.setter
+    def weekly_returns(self, value):
+        self._returns_cache['weekly'] = value
+
+    @property
+    def monthly_returns(self):
+        return self._get_return_period('monthly', 21)
+
+    @monthly_returns.setter
+    def monthly_returns(self, value):
+        self._returns_cache['monthly'] = value
+
+    @property
+    def yearly_returns(self):
+        return self._get_return_period('yearly', 252)
+
+    @yearly_returns.setter
+    def yearly_returns(self, value):
+        self._returns_cache['yearly'] = value
+
+    @property
+    def return_periods(self):
+        return {
+            'daily': self.daily_returns,
+            'weekly': self.weekly_returns,
+            'monthly': self.monthly_returns,
+            'yearly': self.yearly_returns,
+        }
+
+    # --- delegating shims (preserve pre-refactor surface) -------------------
+
+    def _get_raw_ohlc(self, instrument):
+        return self._repository._raw_ohlc(instrument)
+
+    def _get_prices(self, instrument):
+        return self._repository.get_prices(instrument)
+
+    def _get_returns(self, instrument, period_length):
+        return self._repository.get_returns(instrument, period_length)
+
+    def _get_vix_ohlc(self):
+        return self._repository.get_vix_ohlc()
+
+    def _get_vix_prices(self):
+        return self._repository.get_vix_prices()
+
+    def _get_current_vix_value(self, vix_ohlc=None, now_et=None):
+        if vix_ohlc is None:
+            vix_ohlc = self._get_vix_ohlc()
+        return self._clock.current_vix_value(vix_ohlc, now_et=now_et)
+
+    def _show_panel_unavailable(self, ax, title, message, detail=""):
+        dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
+        return dashboard.show_panel_unavailable(ax, title, message, detail)
+
+    def _plot_term_structure_panel(self, ax, instrument):
+        dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
+        return dashboard.plot_term_structure_panel(ax, instrument)
+
+    def _plot_vix_panel(self, ax):
+        try:
+            vix_ohlc = self._get_vix_ohlc()
+            current = (self._get_current_vix_value(vix_ohlc=vix_ohlc)
+                       if not vix_ohlc.empty else None)
+            self._dashboard.plot_vix_panel(ax, vix_ohlc, current_value=current)
+        except Exception:
+            self._dashboard.show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
 
     def calculate_yearly_return_list(self, prices, yearly_returns_list, years):
         for year in years:
@@ -244,64 +484,6 @@ class VolatilityFacade:
         
         return calendar_returns
 
-    def _get_vix_ohlc(self):
-        """Full ^VIX OHLC history (1990 -> today), unfiltered.
-
-        The VIX subplot deliberately ignores the ETF's start/end window so the
-        trader sees the complete VIX context.
-        """
-        return self._get_raw_ohlc(VIX_TICKER)
-
-    def _get_vix_prices(self):
-        """Full ^VIX daily close history (1990 -> today), unfiltered."""
-        return self._get_vix_ohlc()['Close']
-
-    def _get_current_vix_value(self, vix_ohlc=None, now_et=None):
-        """Return (label, value) for the VIX "current value" annotation.
-
-        If the US market has opened today — i.e. the data's last trading day is
-        today and the time is >= 9:30 ET — return today's open (the 9:30 ET
-        print). Otherwise return the last trading day's close.
-
-        Args:
-            vix_ohlc: optional OHLC DataFrame (injected for tests); fetched if
-                omitted.
-            now_et: optional tz-aware Eastern Time datetime (injected for
-                tests); current time if omitted.
-        """
-        if vix_ohlc is None:
-            vix_ohlc = self._get_vix_ohlc()
-        if now_et is None:
-            now_et = _now_eastern()
-        if vix_ohlc.empty:
-            return None
-
-        last_row = vix_ohlc.iloc[-1]
-        last_date = vix_ohlc.index[-1].date()
-        market_opened_today = (
-            last_date == now_et.date() and now_et.time() >= TIME_MARKET_OPEN
-        )
-        if market_opened_today:
-            return (
-                f"VIX @ open {last_date.isoformat()} 9:30 ET",
-                float(last_row['Open']),
-            )
-        return (
-            f"VIX @ last close {last_date.isoformat()}",
-            float(last_row['Close']),
-        )
-
-    def _get_returns(self, instrument, period_length):
-        """
-        Helper method to get log returns for different time periods
-        Args:
-            instrument: The financial instrument ticker
-            period_length: Number of days for the period (1=daily, 5=weekly, 21=monthly, 252=yearly)
-        """
-        prices = self._get_prices(instrument)
-        returns = np.log(prices / prices.shift(period_length))[period_length:]
-        return returns
-    
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
     
@@ -382,75 +564,6 @@ class VolatilityFacade:
 
         fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
         plt.show()
-
-    def _plot_term_structure_panel(self, ax, instrument):
-        """Fetch the yfinance option chain for `instrument` and render the ATM
-        IV term-structure curve on `ax`. Network-failure-safe: on any error the
-        panel shows a short note instead of breaking the rest of the figure.
-        """
-        from datetime import date as _date
-
-        from fentu.pricingservices.yfinance_fetcher import fetch_yfinance_chain
-        from fentu.pricingservices.yfinance_adapter import yfinance_chain_to_detail_rows
-        from fentu.pricingservices.iv_term_structure import build_bucket_rows
-        from fentu.pricingservices.term_structure_plotting import plot_term_structure
-
-        try:
-            chain_data, underlying_price = fetch_yfinance_chain(instrument)
-            if not chain_data.get("expiries") or underlying_price is None:
-                self._show_panel_unavailable(ax, "IV Term Structure", "IV term structure unavailable")
-                return
-
-            detail_rows = yfinance_chain_to_detail_rows(
-                chain_data,
-                underlying_price=underlying_price,
-                anchor_date=_date.today(),
-            )
-            buckets = build_bucket_rows(detail_rows)
-            plot_term_structure(
-                buckets, ax=ax, show=False,
-                title=f"{instrument} IV Term Structure",
-            )
-        except Exception as exc:
-            self._show_panel_unavailable(ax, "IV Term Structure", "IV term structure unavailable", type(exc).__name__)
-
-    def _plot_vix_panel(self, ax):
-        """Render the ^VIX full-history close plus a current-value annotation.
-
-        Network-failure-safe: on any error the panel shows a short note instead
-        of breaking the rest of the figure, mirroring _plot_term_structure_panel.
-        """
-        try:
-            vix_ohlc = self._get_vix_ohlc()
-            if vix_ohlc.empty:
-                self._show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
-                return
-            close = vix_ohlc['Close']
-            ax.plot(close.index, close.values, color="purple", lw=1.2, label="VIX close")
-            ax.set_title("VIX Index")
-            ax.set_ylabel("VIX")
-            ax.legend(loc="upper left")
-            ax.grid(True, alpha=0.3)
-
-            current = self._get_current_vix_value(vix_ohlc=vix_ohlc)
-            if current is not None:
-                label, value = current
-                ax.text(
-                    0.99, 0.95, f"{label}\n{value:.2f}",
-                    transform=ax.transAxes, ha="right", va="top",
-                    bbox=dict(facecolor="white", alpha=0.8, edgecolor="purple"),
-                )
-        except Exception:
-            self._show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
-
-    def _show_panel_unavailable(self, ax, title, message, detail=""):
-        """Render a centered 'unavailable' note on `ax` (shared by the
-        term-structure and VIX panels)."""
-        text = message
-        if detail:
-            text = f"{message}\n{detail}"
-        ax.text(0.5, 0.5, text, ha="center", va="center", transform=ax.transAxes)
-        ax.set_title(title)
 
     def visualize_percentage_change(self, period='daily', tail_percent=0.10):
         """
