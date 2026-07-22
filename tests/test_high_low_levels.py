@@ -15,6 +15,7 @@ import pytest
 from fentu.explatoryservices.high_low_levels import (
     levels_report,
     levels_view,
+    main,
     stop_zone,
     window_high_low,
 )
@@ -150,6 +151,50 @@ class TestPlotHighLowLevels:
         assert texts.count("sell stops") == 2
         assert "USO" in ax.get_title()
         plt.close(fig)
+
+
+class TestMainCli:
+    """CLI: text report always; --plot adds the chart off ONE fetch."""
+
+    def _patched(self, mp, fetches):
+        def _fake_raw_ohlc(self, ticker):
+            fetches.append(ticker)
+            return _uso_history()
+
+        mp.setattr(
+            "fentu.explatoryservices.high_low_levels.ReturnsRepository._raw_ohlc",
+            _fake_raw_ohlc,
+        )
+
+    def test_plot_flag_prints_report_and_plots_off_one_fetch(self, capsys):
+        fetches, plotted = [], []
+        with pytest.MonkeyPatch.context() as mp:
+            self._patched(mp, fetches)
+            mp.setattr(
+                "fentu.explatoryservices.high_low_levels.plot_high_low_levels",
+                lambda ohlc, instrument: plotted.append(instrument),
+            )
+            main(["USO", "--plot"])
+
+        assert fetches == ["USO"]  # exactly one fetch feeds report + chart
+        assert plotted == ["USO"]
+        assert capsys.readouterr().out.startswith("USO @ 77.00\n")
+
+    def test_no_plot_flag_stays_text_only(self, capsys):
+        fetches = []
+        with pytest.MonkeyPatch.context() as mp:
+            self._patched(mp, fetches)
+
+            def _boom(*args, **kwargs):
+                raise AssertionError("plot must not run without --plot")
+
+            mp.setattr(
+                "fentu.explatoryservices.high_low_levels.plot_high_low_levels", _boom
+            )
+            main(["USO"])
+
+        assert fetches == ["USO"]
+        assert capsys.readouterr().out.startswith("USO @ 77.00\n")
 
 
 def _uso_history():

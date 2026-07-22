@@ -37,6 +37,11 @@ CLI
 * ``python -m fentu.explatoryservices.high_low_levels [TICKER]`` — print the
   two-window high/low levels report (default USO), or ``<TICKER> unavailable``
   on a network hiccup.
+* ``python -m fentu.explatoryservices.high_low_levels [TICKER] --plot`` — also
+  chart the regime: close since war start, the four old high/low signal lines
+  with their print dates, and the shaded stop-cluster zones just beyond them
+  (buy stops above old highs, sell stops below old lows — the 56.80 -> 56.85
+  mechanism). One fetch feeds both the report and the chart.
 """
 
 from __future__ import annotations
@@ -140,6 +145,11 @@ def levels_report(instrument=DEFAULT_INSTRUMENT, repository=None, today=None):
     repo = repository if repository is not None else ReturnsRepository()
     today = today if today is not None else date.today()
     ohlc = _safe_raw_ohlc(repo, instrument)
+    return _report_from_ohlc(ohlc, instrument, today)
+
+
+def _report_from_ohlc(ohlc, instrument, today):
+    """The report from a pre-built frame (None/empty -> "<ticker> unavailable")."""
     if ohlc is None or ohlc.empty:
         return f"{instrument} unavailable"
     last = float(ohlc["Close"].iloc[-1])
@@ -210,9 +220,14 @@ def _draw_level(ax, entry, style, right_edge):
 
 
 def main(argv=None):
-    argv = argv if argv is not None else sys.argv[1:]
-    instrument = argv[0] if argv else DEFAULT_INSTRUMENT
-    print(levels_report(instrument))
+    args = list(argv if argv is not None else sys.argv[1:])
+    want_plot = "--plot" in args
+    tickers = [a for a in args if not a.startswith("-")]
+    instrument = tickers[0] if tickers else DEFAULT_INSTRUMENT
+    ohlc = _safe_raw_ohlc(ReturnsRepository(), instrument)
+    print(_report_from_ohlc(ohlc, instrument, date.today()))
+    if want_plot and ohlc is not None and not ohlc.empty:
+        plot_high_low_levels(ohlc, instrument)
 
 
 if __name__ == "__main__":
