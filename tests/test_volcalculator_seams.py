@@ -15,7 +15,7 @@ the new seams are extracted.
 import pandas as pd
 import numpy as np
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock
 
 import matplotlib
@@ -219,15 +219,20 @@ class TestVolatilityDashboard:
     def test_plot_term_structure_panel_uses_injected_fetcher(self, monkeypatch):
         from collections import namedtuple
         Chain = namedtuple("Chain", ["calls", "puts"])
+        # Expiry is generated relative to today so it always survives the
+        # dte >= 0 filter (a hardcoded "future" date is a time bomb: it
+        # silently starts failing the day the wall clock passes it).
+        expiry = (date.today() + timedelta(days=30)).isoformat()
+        code = expiry.replace("-", "")
         calls = pd.DataFrame([{
-            "contractSymbol": "20260717C0400000", "strike": 400,
+            "contractSymbol": f"{code}C0400000", "strike": 400,
             "impliedVolatility": 0.23, "lastPrice": 3.0,
         }])
         puts = pd.DataFrame([{
-            "contractSymbol": "20260717P0400000", "strike": 400,
+            "contractSymbol": f"{code}P0400000", "strike": 400,
             "impliedVolatility": 0.25, "lastPrice": 4.0,
         }])
-        chain_data = {"expiries": ["2026-07-17"], "chains": {"2026-07-17": Chain(calls=calls, puts=puts)}}
+        chain_data = {"expiries": [expiry], "chains": {expiry: Chain(calls=calls, puts=puts)}}
 
         def _fetcher(sym, max_expiries=None):
             return chain_data, 400.0
