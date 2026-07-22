@@ -305,6 +305,36 @@ def _pick_nearest_detail_row(detail_rows, target_days):
     return match
 
 
+def _empty_bucket_row(bucket):
+    """Bucket row for a bucket with no matching detail row."""
+    return {
+        "label": bucket["label"],
+        "target_days": bucket["targetDays"],
+        "matched_expiry": None,
+        "matched_dte": None,
+        "atm_strike": None,
+        "call_iv": None,
+        "put_iv": None,
+        "atm_iv": None,
+        "has_complete_pair": False,
+    }
+
+
+def _matched_bucket_row(bucket, match):
+    """Bucket row for a bucket matched to a per-expiry detail row."""
+    return {
+        "label": bucket["label"],
+        "target_days": bucket["targetDays"],
+        "matched_expiry": str(match.get("expiry") or "").strip() or None,
+        "matched_dte": int(match.get("dte")) if match.get("dte") is not None else None,
+        "atm_strike": match.get("atm_strike"),
+        "call_iv": match.get("call_iv"),
+        "put_iv": match.get("put_iv"),
+        "atm_iv": match.get("atm_iv"),
+        "has_complete_pair": bool(match.get("has_complete_pair")),
+    }
+
+
 def build_bucket_rows(detail_rows, bucket_definitions=None):
     """Fold per-expiry detail rows into normalized tenor buckets.
 
@@ -330,43 +360,11 @@ def build_bucket_rows(detail_rows, bucket_definitions=None):
         Buckets with no match (empty input) have None / False for all
         matched fields.
     """
-    buckets = _clone_bucket_definitions(bucket_definitions)
-
-    def field(row, key):
-        value = row.get(key) if isinstance(row, dict) else None
-        return value if value is not None else None
-
     output = []
-    for bucket in buckets:
+    for bucket in _clone_bucket_definitions(bucket_definitions):
         match = _pick_nearest_detail_row(detail_rows, bucket["targetDays"])
         if match is None:
-            output.append(
-                {
-                    "label": bucket["label"],
-                    "target_days": bucket["targetDays"],
-                    "matched_expiry": None,
-                    "matched_dte": None,
-                    "atm_strike": None,
-                    "call_iv": None,
-                    "put_iv": None,
-                    "atm_iv": None,
-                    "has_complete_pair": False,
-                }
-            )
-            continue
-
-        output.append(
-            {
-                "label": bucket["label"],
-                "target_days": bucket["targetDays"],
-                "matched_expiry": str(match.get("expiry") or "").strip() or None,
-                "matched_dte": int(match.get("dte")) if match.get("dte") is not None else None,
-                "atm_strike": match.get("atm_strike"),
-                "call_iv": match.get("call_iv"),
-                "put_iv": match.get("put_iv"),
-                "atm_iv": match.get("atm_iv"),
-                "has_complete_pair": bool(match.get("has_complete_pair")),
-            }
-        )
-
+            output.append(_empty_bucket_row(bucket))
+        else:
+            output.append(_matched_bucket_row(bucket, match))
     return output

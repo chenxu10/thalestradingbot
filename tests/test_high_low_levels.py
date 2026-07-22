@@ -12,7 +12,12 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from fentu.explatoryservices.high_low_levels import levels_report, window_high_low
+from fentu.explatoryservices.high_low_levels import (
+    levels_report,
+    levels_view,
+    stop_zone,
+    window_high_low,
+)
 from fentu.explatoryservices.volcalculator import ReturnsRepository
 
 
@@ -67,6 +72,84 @@ class TestWindowHighLow:
         ohlc = _ohlc([("2026-01-15", 75.0, 70.0, 72.0)])
 
         assert window_high_low(ohlc, date(2026, 6, 1), date(2026, 6, 30)) is None
+
+
+class TestStopZone:
+    """PTJ: old high 56.80 -> buy stops at 56.85. The zone sits JUST BEYOND the
+    level: buy stops above old highs, sell stops below old lows."""
+
+    def test_buy_stops_cluster_above_the_level(self):
+        assert stop_zone(100.0, "buy") == (100.0, 101.0)
+
+    def test_sell_stops_cluster_below_the_level(self):
+        assert stop_zone(100.0, "sell") == (99.0, 100.0)
+
+    def test_unknown_side_rejected(self):
+        with pytest.raises(ValueError):
+            stop_zone(100.0, "sideways")
+
+
+class TestLevelsView:
+    """The view-model the plot renders: every window's old high/low, its print
+    date, and the stop cluster zone just beyond it (buy above highs, sell
+    below lows). Driven by the same _uso_history fixture as the text report."""
+
+    TODAY = date(2026, 7, 22)
+
+    def test_emits_one_entry_per_level_per_window(self):
+        view = levels_view(_uso_history(), today=self.TODAY)
+
+        assert [(e["label"], e["kind"]) for e in view] == [
+            ("2mo high", "high"),
+            ("2mo low", "low"),
+            ("war high", "high"),
+            ("war low", "low"),
+        ]
+
+    def test_entries_carry_price_date_and_stop_zone(self):
+        view = levels_view(_uso_history(), today=self.TODAY)
+        by_label = {e["label"]: e for e in view}
+
+        two_mo_high = by_label["2mo high"]
+        assert two_mo_high["price"] == 88.0
+        assert two_mo_high["date"] == date(2026, 5, 25)
+        assert two_mo_high["stop_side"] == "buy"
+        assert two_mo_high["stop_zone"] == pytest.approx((88.0, 88.88))
+
+        war_low = by_label["war low"]
+        assert war_low["price"] == 66.0
+        assert war_low["date"] == date(2026, 4, 8)
+        assert war_low["stop_side"] == "sell"
+        assert war_low["stop_zone"] == pytest.approx((65.34, 66.0))
+
+
+class TestPlotHighLowLevels:
+    """The chart: close since war start, the four old high/low levels as
+    signal lines with markers at their print dates, and the shaded stop
+    clusters just beyond them (buy above highs, sell below lows)."""
+
+    TODAY = date(2026, 7, 22)
+
+    def test_renders_close_levels_stop_zones_and_print_markers(self):
+        import matplotlib.pyplot as plt
+
+        from fentu.explatoryservices.high_low_levels import plot_high_low_levels
+
+        fig, ax = plt.subplots()
+        plot_high_low_levels(
+            _uso_history(), "USO", today=self.TODAY, ax=ax, show=False
+        )
+
+        # 1 close line + 4 level lines + 4 print-date markers
+        assert len(ax.lines) == 9
+        # 4 shaded stop-cluster bands, one beyond each level
+        # (axhspan artists live in ax.patches, not ax.collections)
+        assert len(ax.patches) == 4
+        texts = [t.get_text() for t in ax.texts]
+        assert texts.count("buy stops") == 2
+        assert texts.count("sell stops") == 2
+        assert "USO" in ax.get_title()
+        plt.close(fig)
 
 
 def _uso_history():

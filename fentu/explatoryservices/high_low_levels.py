@@ -51,6 +51,22 @@ from fentu.explatoryservices.volcalculator import ReturnsRepository
 DEFAULT_INSTRUMENT = "USO"
 WAR_START = date(2026, 2, 28)  # US-Iran war start
 LOOKBACK_MONTHS = 2
+STOP_BUFFER_PCT = 0.01  # illustrative stop-cluster width just beyond a level
+
+
+def stop_zone(level, side):
+    """(lower, upper) band where stops cluster just beyond `level`.
+
+    PTJ's floor lesson: old high 56.80 -> buy stops at 56.85. Buy stops sit
+    ABOVE an old high (shorts cover / breakout buyers trigger there); sell
+    stops sit BELOW an old low. The 1% width shades the cluster zone for the
+    chart; it is illustrative, not a precise estimate of stop density.
+    """
+    if side == "buy":
+        return (level, level * (1.0 + STOP_BUFFER_PCT))
+    if side == "sell":
+        return (level * (1.0 - STOP_BUFFER_PCT), level)
+    raise ValueError(f"side must be 'buy' or 'sell', got {side!r}")
 
 
 def window_high_low(ohlc, start, end):
@@ -69,12 +85,43 @@ def window_high_low(ohlc, start, end):
 
 
 def _windows(today):
-    """(label, start) per decision window, both ending at `today`."""
+    """(short_name, label, start) per decision window, both ending at `today`."""
     two_mo_back = (pd.Timestamp(today) - pd.DateOffset(months=LOOKBACK_MONTHS)).date()
     return [
-        (f"past {LOOKBACK_MONTHS}mo (since {two_mo_back})", two_mo_back),
-        (f"since {WAR_START} (war start)", WAR_START),
+        ("2mo", f"past {LOOKBACK_MONTHS}mo (since {two_mo_back})", two_mo_back),
+        ("war", f"since {WAR_START} (war start)", WAR_START),
     ]
+
+
+def levels_view(ohlc, today=None):
+    """View-model for the chart: one entry per old high/low per window.
+
+    Each entry: {label, kind, price, date, stop_side, stop_zone} where
+    stop_side is "buy" above old highs and "sell" below old lows — where
+    PTJ says the stops cluster.
+    """
+    today = today if today is not None else date.today()
+    entries = []
+    for short, _label, start in _windows(today):
+        stats = window_high_low(ohlc, start, today)
+        if stats is None:
+            continue
+        entries.append(_level_entry(short, "high", stats))
+        entries.append(_level_entry(short, "low", stats))
+    return entries
+
+
+def _level_entry(short, kind, stats):
+    stop_side = "buy" if kind == "high" else "sell"
+    price = stats[kind]
+    return {
+        "label": f"{short} {kind}",
+        "kind": kind,
+        "price": price,
+        "date": stats[f"{kind}_date"],
+        "stop_side": stop_side,
+        "stop_zone": stop_zone(price, stop_side),
+    }
 
 
 def _window_line(label, stats, last):
@@ -97,7 +144,7 @@ def levels_report(instrument=DEFAULT_INSTRUMENT, repository=None, today=None):
         return f"{instrument} unavailable"
     last = float(ohlc["Close"].iloc[-1])
     lines = [f"{instrument} @ {last:.2f}"]
-    for label, start in _windows(today):
+    for _short, label, start in _windows(today):
         lines.append(_window_line(label, window_high_low(ohlc, start, today), last))
     return "\n".join(lines)
 
@@ -108,6 +155,58 @@ def _safe_raw_ohlc(repo, instrument):
         return repo._raw_ohlc(instrument)
     except Exception:
         return None
+
+
+_LEVEL_STYLE = {
+    ("2mo", "high"): {"color": "darkred", "ls": "--"},
+    ("war", "high"): {"color": "red", "ls": ":"},
+    ("2mo", "low"): {"color": "darkgreen", "ls": "--"},
+    ("war", "low"): {"color": "green", "ls": ":"},
+}
+
+
+def plot_high_low_levels(ohlc, instrument, today=None, ax=None, show=True):
+    """Chart the regime: close since war start, old highs/lows, stop clusters.
+
+    Each level is a signal line (2mo dashed, war dotted; highs red, lows
+    green) with a marker at its print date; the shaded band JUST BEYOND it is
+    where PTJ says the stops cluster — "buy stops" above old highs, "sell
+    stops" below old lows. Pure of fetching: pass a pre-built OHLC frame.
+    """
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        _, ax = plt.subplots(figsize=(11, 6))
+    today = today if today is not None else date.today()
+    close = ohlc["Close"]
+    regime = close[close.index >= pd.Timestamp(WAR_START)]
+    if regime.empty:
+        regime = close
+
+    ax.plot(regime.index, regime.values, color="black", lw=1.2, label="close")
+    for entry in levels_view(ohlc, today=today):
+        short = entry["label"].split(" ")[0]
+        style = _LEVEL_STYLE[(short, entry["kind"])]
+        _draw_level(ax, entry, style, regime.index[-1])
+
+    ax.set_title(f"{instrument} — old highs/lows & stop clusters (PTJ moving volume)")
+    ax.legend(fontsize=8, loc="best")
+    ax.grid(True, alpha=0.3)
+    if show:
+        plt.show()
+    return ax
+
+
+def _draw_level(ax, entry, style, right_edge):
+    """One signal line + its print-date marker + the stop-cluster band."""
+    color, price = style["color"], entry["price"]
+    ax.axhline(price, color=color, ls=style["ls"], lw=1.1,
+               label=f"{entry['label']} {price:.2f}")
+    ax.plot([pd.Timestamp(entry["date"])], [price], marker="o", color=color, ms=6)
+    lo, hi = entry["stop_zone"]
+    ax.axhspan(lo, hi, color=color, alpha=0.12)
+    ax.text(right_edge, (lo + hi) / 2.0, f"{entry['stop_side']} stops",
+            color=color, fontsize=8, ha="right", va="center")
 
 
 def main(argv=None):
