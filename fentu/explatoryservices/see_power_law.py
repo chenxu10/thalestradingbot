@@ -147,6 +147,65 @@ def tail_mask(bin_centers, density, tail_percent=0.2):
     return _tail_mask(n_valid, tail_start_idx)
 
 
+def _loglog_fit_data(samples, x_min, tail_percent):
+    """Histogram + tail fit for the log-log plot (pure computation, no axes).
+
+    Returns a dict with the positive-density bins, the fitted slope/intercept,
+    the derived alpha, and the boolean mask marking tail bins.
+    """
+    bins = create_log_space_bins(x_min, samples)
+    density, bin_centers, _ = compute_histogram_with_bins(
+        samples, bins, method='manual_density'
+    )
+
+    mask = density > 0
+    valid_centers = bin_centers[mask]
+    valid_density = density[mask]
+
+    slope, intercept = fit_power_law_slope(bin_centers, density, tail_percent)
+
+    return {
+        'valid_centers': valid_centers,
+        'valid_density': valid_density,
+        'tmask': tail_mask(bin_centers, density, tail_percent),
+        'slope': slope,
+        'intercept': intercept,
+        'alpha': -slope,
+    }
+
+
+def _draw_loglog_series(ax, data, tail_percent):
+    """Render body points, tail points, and the fitted line onto the axes."""
+    valid_centers = data['valid_centers']
+    valid_density = data['valid_density']
+    tmask = data['tmask']
+
+    ax.loglog(
+        valid_centers[~tmask], valid_density[~tmask],
+        'o', alpha=0.4, color='gray', label='Data (not fitted)'
+    )
+    ax.loglog(
+        valid_centers[tmask], valid_density[tmask],
+        'o', alpha=0.7, color='blue', label=f'Tail ({int(tail_percent*100)}%)'
+    )
+
+    fit_x = valid_centers[tmask]
+    fit_y = 10 ** (data['slope'] * np.log10(fit_x) + data['intercept'])
+    ax.loglog(fit_x, fit_y, 'r-', linewidth=2, label=f"Fit (α={data['alpha']:.2f})")
+
+
+def _decorate_loglog_axes(ax, alpha, title):
+    """Axis labels, title, legend, and grid for the log-log fit plot."""
+    ax.set_xlabel('x (log scale)')
+    ax.set_ylabel('Probability density (log scale)')
+    if title:
+        ax.set_title(f'{title}: α={alpha:.2f}')
+    else:
+        ax.set_title(f'Power-law fit: α={alpha:.2f}')
+    ax.legend(loc='upper right')
+    ax.grid(True, alpha=0.3, which='both')
+
+
 def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
     """
     Plot log-log histogram with linear fit to estimate power law alpha.
@@ -167,39 +226,8 @@ def plot_loglog_with_fit(samples, x_min, ax=None, title=None, tail_percent=0.2):
     if ax is None:
         ax = plt.gca()
 
-    bins = create_log_space_bins(x_min, samples)
-    density, bin_centers, _ = compute_histogram_with_bins(
-        samples, bins, method='manual_density'
-    )
+    data = _loglog_fit_data(samples, x_min, tail_percent)
+    _draw_loglog_series(ax, data, tail_percent)
+    _decorate_loglog_axes(ax, data['alpha'], title)
 
-    mask = density > 0
-    valid_centers = bin_centers[mask]
-    valid_density = density[mask]
-
-    slope, intercept = fit_power_law_slope(bin_centers, density, tail_percent)
-    alpha = -slope
-    tmask = tail_mask(bin_centers, density, tail_percent)
-
-    ax.loglog(
-        valid_centers[~tmask], valid_density[~tmask],
-        'o', alpha=0.4, color='gray', label='Data (not fitted)'
-    )
-    ax.loglog(
-        valid_centers[tmask], valid_density[tmask],
-        'o', alpha=0.7, color='blue', label=f'Tail ({int(tail_percent*100)}%)'
-    )
-
-    fit_x = valid_centers[tmask]
-    fit_y = 10 ** (slope * np.log10(fit_x) + intercept)
-    ax.loglog(fit_x, fit_y, 'r-', linewidth=2, label=f'Fit (α={alpha:.2f})')
-
-    ax.set_xlabel('x (log scale)')
-    ax.set_ylabel('Probability density (log scale)')
-    if title:
-        ax.set_title(f'{title}: α={alpha:.2f}')
-    else:
-        ax.set_title(f'Power-law fit: α={alpha:.2f}')
-    ax.legend(loc='upper right')
-    ax.grid(True, alpha=0.3, which='both')
-
-    return ax, alpha
+    return ax, data['alpha']
