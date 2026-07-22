@@ -183,11 +183,15 @@ class ReturnsRepository:
 
         The shared network fetch; callers that want the repository's date
         window apply start_date/end_date themselves.
+
+        A spurious yfinance failure ("possibly delisted; no price data
+        found") yields an EMPTY DataFrame whose index is a plain Index with
+        no .tz attribute -- only strip tz from a real DatetimeIndex.
         """
         session = requests.Session(impersonate="chrome")
         ticker = yf.Ticker(instrument, session=session)
         ohlc = ticker.history(period="max")
-        if ohlc.index.tz is not None:
+        if isinstance(ohlc.index, pd.DatetimeIndex) and ohlc.index.tz is not None:
             ohlc.index = ohlc.index.tz_localize(None)
         return ohlc
 

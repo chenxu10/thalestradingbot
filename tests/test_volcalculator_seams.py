@@ -88,6 +88,22 @@ class TestReturnsRepositoryWindowing:
                 out = repo._raw_ohlc("FAKE")
         assert out.index.tz is None
 
+    def test_raw_ohlc_survives_empty_plain_index_response(self):
+        """Spurious yfinance failure ("possibly delisted; no price data
+        found") returns an EMPTY DataFrame whose index is a plain Index with
+        no .tz attribute. _raw_ohlc must return it untouched instead of
+        dying with AttributeError: 'Index' object has no attribute 'tz'
+        (see morning_brief._safe_raw_ohlc, which worked around this)."""
+        repo = ReturnsRepository()
+        empty = pd.DataFrame({"Close": pd.Series(dtype=float)},
+                             index=pd.Index([], dtype=object))
+        with patch("fentu.explatoryservices.volcalculator.requests.Session"):
+            with patch("fentu.explatoryservices.volcalculator.yf.Ticker") as m:
+                m.return_value = MagicMock(
+                    history=MagicMock(return_value=empty))
+                out = repo._raw_ohlc("TQQQ")
+        assert out.empty
+
     def test_get_vix_prices_returns_full_history_unfiltered(self):
         """The VIX subplot deliberately ignores the ETF's start/end window."""
         index = pd.bdate_range("1990-01-02", "2026-06-24")

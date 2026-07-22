@@ -186,6 +186,51 @@ class TestVisualize:
         assert [ax.get_title() for ax in fig.axes] == ["TQQQ", "USO", "IAU", "BRKB"]
 
 
+class FlakyRepository(FakeRepository):
+    """Fake whose fetch blows up for one ticker (spurious yfinance failure)."""
+
+    def __init__(self, prices_by_ticker, fail_on):
+        super().__init__(prices_by_ticker)
+        self._fail_on = fail_on
+
+    def get_prices(self, ticker):
+        if ticker == self._fail_on:
+            raise AttributeError("'Index' object has no attribute 'tz'")
+        return super().get_prices(ticker)
+
+    def get_returns(self, ticker, period_length):
+        if ticker == self._fail_on:
+            raise AttributeError("'Index' object has no attribute 'tz'")
+        return super().get_returns(ticker, period_length)
+
+
+class TestUnavailableHolding:
+    """A network hiccup on one holding must never crash the monitor —
+    it degrades to an 'unavailable' placeholder; the rest still render."""
+
+    def test_failed_fetch_marks_panel_unavailable_and_keeps_others(
+            self, fake_repository):
+        repo = FlakyRepository(fake_repository._prices, fail_on="TQQQ")
+        panels = PortfolioMonitor(repository=repo).prepare_panels()
+        assert [p["label"] for p in panels] == ["TQQQ", "USO", "IAU", "BRKB"]
+        assert panels[0]["available"] is False
+        assert all(p["available"] for p in panels[1:])
+
+    def test_empty_history_marks_panel_unavailable(self, fake_repository):
+        prices = dict(fake_repository._prices)
+        prices["TQQQ"] = pd.Series(dtype=float, name="Close")
+        panels = PortfolioMonitor(
+            repository=FakeRepository(prices)).prepare_panels()
+        assert panels[0]["available"] is False
+
+    def test_visualize_renders_placeholder_without_crashing(
+            self, fake_repository):
+        repo = FlakyRepository(fake_repository._prices, fail_on="TQQQ")
+        fig = PortfolioMonitor(repository=repo).visualize()
+        assert len(fig.axes) == 4
+        assert any("unavailable" in t.get_text() for t in fig.axes[0].texts)
+
+
 class TestSeeChangeCliDispatch:
     def test_portfolio_ticker_routes_to_monitor(self):
         with patch("sys.argv", ["see_change", "daily", "portfolio"]):

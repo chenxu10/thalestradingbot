@@ -106,8 +106,10 @@ class PortfolioMonitor:
                 for label, ticker in self.holdings]
 
     def _prepare_panel(self, label, ticker):
-        returns = self._fetch_returns(ticker) * 100.0  # display in percent
-        prices = self._repository.get_prices(ticker)
+        data = self._fetch_panel_data(ticker)
+        if data is None:
+            return {"label": label, "available": False}
+        returns, prices = data
         calibration = returns.iloc[:-1]  # the event never sets its own scale
         usual = float(
             self._volatility.calculate_1std_daily_volatility(calibration))
@@ -115,6 +117,7 @@ class PortfolioMonitor:
         last_move = float(returns.iloc[-1])
         return {
             "label": label,
+            "available": True,
             "window": window,
             "last_price": float(prices.iloc[-1]),
             "last_move": last_move,
@@ -123,6 +126,19 @@ class PortfolioMonitor:
             "significance": significance(last_move, usual),
             "signal": is_signal(last_move, usual),
         }
+
+    def _fetch_panel_data(self, ticker):
+        """(returns, prices) in percent, or None on any fetch failure or
+        empty history — a spurious yfinance hiccup on one holding must
+        never crash the whole monitor (morning_brief discipline)."""
+        try:
+            returns = self._fetch_returns(ticker) * 100.0  # display in percent
+            prices = self._repository.get_prices(ticker)
+        except Exception:
+            return None
+        if returns.empty or prices.empty:
+            return None
+        return returns, prices
 
     def _fetch_returns(self, ticker):
         return self._repository.get_returns(ticker, PERIOD_LENGTHS[self.period])
@@ -145,6 +161,11 @@ class PortfolioMonitor:
 
 def plot_signal_panel(ax, panel):
     """Render one holding: gray noise bars inside ±1 MAD, highlighted signals."""
+    if not panel.get("available", True):
+        ax.text(0.5, 0.5, f"{panel['label']} unavailable",
+                ha="center", va="center", transform=ax.transAxes)
+        ax.set_title(panel["label"])
+        return
     window = panel["window"]
     usual = panel["usual"]
     colors = [_bar_color(move, usual) for move in window]
