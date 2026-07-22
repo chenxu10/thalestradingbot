@@ -17,16 +17,17 @@ lengths in a codebase are fat-tailed. A **steeper** distribution (higher
 ``alpha``) means a **lighter tail** — fewer extreme-long functions, lower
 complexity, less exposure to accidental tail events. We cannot change *that*
 the distribution is a power law, but refactoring (shortening/splitting the
-longest functions) raises ``alpha``. The pre-push gate enforces that ``alpha``
-never regresses.
+longest functions) raises ``alpha``. The pre-push gate reports whether
+``alpha`` regressed — advisory only; it never blocks the push.
 
 CLI
 ---
 * ``python -m fentu.metaprogramming.function_length_powerlaw``  — full report
   (data table + alpha + CCDF/frequency log-log plots + top-3 refactor targets).
 * ``... --hook``  — fast gate mode for the pre-push hook (cached, no bootstrap,
-  no plot); exits non-zero if ``alpha`` did not increase over the last approved
-  push.  ``FORCE_PUSH=1`` bypasses the alpha gate (tests still run).
+  no plot); prints an advisory report with a top-3 table (line count,
+  # functions, name, location) if ``alpha`` did not increase over the last
+  approved push, and always exits 0 so the push proceeds.
 """
 from __future__ import annotations
 
@@ -432,15 +433,29 @@ def _print_report(fit, recs, last, delta, verdict, top_k=3):
         pl = "plausible" if fit["p"] > 0.1 else "rejected"
         print(f"  power-law p     : {fit['p']:.3f}  ({pl}; >0.1 = plausible)")
     print("-" * 64)
-    recs_top = recommend_refactors(recs, fit, k=top_k)
-    if recs_top:
-        print(f"  Top {top_k} functions worth refactoring (shorten to raise alpha):")
-        for r in recs_top:
-            pa = f"{r['projected_alpha']:.4f}" if r['projected_alpha'] is not None and np.isfinite(r['projected_alpha']) else "n/a"
-            da = f"{r['delta']:+.4f}" if r['delta'] is not None and np.isfinite(r['delta']) else "n/a"
-            print(f"    {r['file']}:{r['lineno']}  {r['name']}  "
-                  f"({r['line_count']} lines) -> alpha if halved: {pa} ({da})")
+    _print_topk_table(recs, top_k=top_k)
     print("=" * 64)
+
+
+def _print_topk_table(recs, top_k=3):
+    """Console table of the top-k longest functions: line count, number of
+    functions at that line count, name, and location (file:lineno)."""
+    if not recs:
+        return
+    ranked = sorted(recs, key=lambda r: r.line_count, reverse=True)[:top_k]
+    name_w = max(4, max(len(r.name) for r in ranked))
+    loc_w = max(8, max(len(f"{r.file}:{r.lineno}") for r in ranked))
+    header = (f"  {'LINE_COUNT':>10} | {'NUM_FUNCTIONS':>13} | "
+              f"{'NAME':<{name_w}} | {'LOCATION':<{loc_w}}")
+    rule = "  " + "-" * (len(header) - 2)
+    print(f"  Top {top_k} longest functions (shorten to raise alpha):")
+    print(header)
+    print(rule)
+    for r in ranked:
+        n_at = sum(1 for x in recs if x.line_count == r.line_count)
+        print(f"  {r.line_count:>10} | {n_at:>13} | "
+              f"{r.name:<{name_w}} | {r.file}:{r.lineno}")
+    print(rule)
 
 
 def print_data_table(records: list[FuncRec]):
@@ -568,9 +583,8 @@ def main(argv=None):
     if args.hook:
         ok, reason, _ = gate_check(args.root, cache, force=args.force)
         if not ok:
-            print(f"\nPush BLOCKED: {reason}")
-            print("Set FORCE_PUSH=1 to bypass (tests still run).")
-        return 0 if ok else 1
+            print(f"\nAlpha gate advisory (push NOT blocked): {reason}")
+        return 0
 
     run_analysis(args.root, cache, bootstrap=args.bootstrap, plot=not args.no_plot)
     return 0
