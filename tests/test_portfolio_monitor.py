@@ -38,6 +38,12 @@ def _prices_from_returns(returns, start=100.0):
     return pd.Series(prices, index=index, name="Close")
 
 
+def _prices_on_index(returns, index, start=100.0):
+    """Close prices on a caller-chosen index (e.g. month-end / year-end)."""
+    prices = start * np.exp(np.concatenate([[0.0], np.cumsum(returns)]))
+    return pd.Series(prices, index=index, name="Close")
+
+
 class FakeRepository:
     """ReturnsRepository-shaped fake: no network, deterministic prices."""
 
@@ -46,10 +52,10 @@ class FakeRepository:
         self.requested = []
 
     def get_prices(self, ticker):
+        self.requested.append(ticker)
         return self._prices[ticker]
 
     def get_returns(self, ticker, period_length):
-        self.requested.append(ticker)
         prices = self.get_prices(ticker)
         return np.log(prices / prices.shift(period_length))[period_length:]
 
@@ -140,14 +146,62 @@ class TestPreparePanels:
         panel = monitor.prepare_panels()[0]
         assert len(panel["window"]) == 10
 
-    def test_weekly_period_uses_five_day_returns(self, fake_repository):
+    def test_weekly_bars_are_non_overlapping_calendar_weeks(
+            self, fake_repository):
         monitor = PortfolioMonitor(repository=fake_repository, period="weekly")
         panel = monitor.prepare_panels()[0]
-        # Overlapping 5-day log returns, same semantics as
-        # VolatilityFacade.weekly_returns: 42 prices -> 37 returns, each a
-        # 5-day sum (calm alternating +-0.01 sum to +-0.01 -> +-1.0 percent).
-        assert len(panel["window"]) == 37
-        assert panel["last_move"] == pytest.approx(5.0)  # window containing +0.05
+        # 42 business days (Wed 2025-01-01 -> Thu 2025-02-27) resample to 9
+        # Friday buckets -> 8 NON-overlapping weekly returns (the old rolling
+        # 5-day window faked 37 mostly-redundant bars from the same data).
+        assert len(panel["window"]) == 8
+        assert (panel["window"].index.weekday == 4).all()  # all Fridays
+        # Each full week sums five alternating +-0.01 daily returns -> +-1.0%.
+        assert panel["window"].iloc[0] == pytest.approx(1.0)
+        # The last (still-open) week holds the +0.05 event: -1+1-1+5 -> +4.0%.
+        assert panel["last_move"] == pytest.approx(4.0)
+        assert panel["incomplete_label"] == "WTD"
+        assert panel["signal"] is True
+
+    def test_monthly_bars_are_calendar_months_trimmed_to_lookback(self):
+        index = pd.date_range("2020-01-31", periods=72, freq="ME")
+        prices = _prices_on_index([0.02, -0.02] * 35 + [0.09], index)
+        repo = FakeRepository({t: prices for _, t in DEFAULT_PORTFOLIO})
+        panel = PortfolioMonitor(
+            repository=repo, period="monthly").prepare_panels()[0]
+        assert len(panel["window"]) == 60  # 71 months available, capped at 60
+        assert panel["window"].index.is_month_end.all()
+        # Non-overlapping: every completed bar is exactly one month's +-2.0%.
+        assert set(np.round(panel["window"].values[:-1], 6)) == {2.0, -2.0}
+        assert panel["usual"] == pytest.approx(2.0)  # MAD of 70 alternating
+        assert panel["last_move"] == pytest.approx(9.0)
+        assert panel["multiple"] == pytest.approx(4.5)
+        assert panel["incomplete_label"] == "MTD"
+
+    def test_yearly_history_is_never_truncated(self):
+        index = pd.date_range("1961-12-31", periods=65, freq="YE")
+        prices = _prices_on_index([0.10, -0.05] * 32, index)
+        repo = FakeRepository({t: prices for _, t in DEFAULT_PORTFOLIO})
+        panel = PortfolioMonitor(
+            repository=repo, period="yearly").prepare_panels()[0]
+        # 64 yearly bars — MORE than the old fixed 60: yearly is uncapped,
+        # cutting old years would amputate the deep-tail observations.
+        assert len(panel["window"]) == 64
+        assert panel["window"].index[0] == index[1]
+        assert panel["n_calibration"] == 63
+        assert panel["insufficient_history"] is False
+        assert panel["incomplete_label"] == "YTD"
+        assert panel["last_move"] == pytest.approx(-5.0)
+
+    def test_yearly_aggregates_daily_prices_and_flags_thin_history(self):
+        prices = _prices_from_returns([0.001] * 756)  # ~3 years of calm days
+        repo = FakeRepository({t: prices for _, t in DEFAULT_PORTFOLIO})
+        panel = PortfolioMonitor(
+            repository=repo, period="yearly").prepare_panels()[0]
+        assert len(panel["window"]) == 2  # 3 year-end buckets -> 2 yearly bars
+        # Honest small sample: 1 calibration point, no fake MAD precision.
+        assert panel["n_calibration"] == 1
+        assert panel["insufficient_history"] is True
+        assert panel["multiple"] is None  # MAD of one point is 0 -> undefined
 
     def test_invalid_period_rejected(self):
         with pytest.raises(ValueError):
@@ -178,12 +232,75 @@ class TestVerdictStyling:
         assert verdict.get_color() == "red"
 
 
+class TestExpressiveAxes:
+    """The chart itself answers 'what period does this cover, and what does
+    a bar mean?' — date-span titles, period-named axes, intention legend."""
+
+    def test_daily_panel_title_axes_and_span(self, fake_repository):
+        panel = PortfolioMonitor(repository=fake_repository).prepare_panels()[0]
+        fig, ax = plt.subplots()
+        plot_signal_panel(ax, panel)
+        plt.close(fig)
+        assert ax.get_title() == "TQQQ  (Jan–Feb 2025)"
+        assert ax.get_xlabel() == "Day ending"
+        assert ax.get_ylabel() == "% change per day"
+
+    def test_yearly_panel_title_shows_year_span(self):
+        index = pd.date_range("2006-12-31", periods=20, freq="YE")
+        prices = _prices_on_index([0.08] * 19, index)
+        repo = FakeRepository({t: prices for _, t in DEFAULT_PORTFOLIO})
+        panel = PortfolioMonitor(
+            repository=repo, period="yearly").prepare_panels()[0]
+        fig, ax = plt.subplots()
+        plot_signal_panel(ax, panel)
+        plt.close(fig)
+        assert ax.get_title() == "TQQQ  (2007–2025)"
+        assert ax.get_xlabel() == "Year ending"
+        assert ax.get_ylabel() == "% change per year"
+
+    def test_figure_legend_states_the_intention(self, fake_repository):
+        fig = PortfolioMonitor(repository=fake_repository).visualize()
+        plt.close(fig)
+        assert len(fig.legends) == 1
+        labels = [t.get_text() for t in fig.legends[0].get_texts()]
+        assert any("usual band (±1 MAD)" in label for label in labels)
+        assert any("noise" in label for label in labels)
+        assert any("up signal" in label for label in labels)
+        assert any("down signal" in label for label in labels)
+
+    def test_annotation_marks_open_period_and_calibration_size(self):
+        index = pd.date_range("2006-12-31", periods=20, freq="YE")
+        prices = _prices_on_index([0.08, -0.04] * 9 + [0.08], index)
+        repo = FakeRepository({t: prices for _, t in DEFAULT_PORTFOLIO})
+        panel = PortfolioMonitor(
+            repository=repo, period="yearly").prepare_panels()[0]
+        fig, ax = plt.subplots()
+        plot_signal_panel(ax, panel)
+        plt.close(fig)
+        note = max(ax.texts, key=lambda t: len(t.get_text())).get_text()
+        assert "YTD +8.00%" in note           # the still-open year is tagged
+        assert "MAD of 18 years" in note      # honest calibration sample size
+        assert "as of 31 Dec 2025" in note
+
+    def test_insufficient_history_warning_is_rendered(self):
+        prices = _prices_from_returns([0.001] * 756)
+        repo = FakeRepository({t: prices for _, t in DEFAULT_PORTFOLIO})
+        panel = PortfolioMonitor(
+            repository=repo, period="yearly").prepare_panels()[0]
+        fig, ax = plt.subplots()
+        plot_signal_panel(ax, panel)
+        plt.close(fig)
+        note = max(ax.texts, key=lambda t: len(t.get_text())).get_text()
+        assert "insufficient history" in note
+
+
 class TestVisualize:
     def test_builds_a_two_by_two_figure_without_network(self, fake_repository):
         monitor = PortfolioMonitor(repository=fake_repository)
         fig = monitor.visualize()
         assert len(fig.axes) == 4
-        assert [ax.get_title() for ax in fig.axes] == ["TQQQ", "USO", "IAU", "BRKB"]
+        titles = [ax.get_title() for ax in fig.axes]
+        assert [t.split("  ")[0] for t in titles] == ["TQQQ", "USO", "IAU", "BRKB"]
 
 
 class FlakyRepository(FakeRepository):
