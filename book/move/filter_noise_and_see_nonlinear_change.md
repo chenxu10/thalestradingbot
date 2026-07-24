@@ -1,19 +1,20 @@
-# 过滤噪音，看见非线性变化
+# 无情地降噪是为了看到温情的变化
 
-> "The trick is to look only at the large percentage changes. Unless
-> something moves by more than its usual daily percentage change, the
-> event is deemed to be noise."
+> 落日鸟边下，秋云人外闲 —— 王维
+
+人安静下来是需要巨大能量的。譬如，打坐，静不下来。往往在大腿出力站桩以后效果更好。
+概率论，起于赌博，兴于保险，壮于上世纪八十年代衍生品交易，可能死于人工智能。
+纵观保险公司、做市商、交易所、搜索公司到今天的大模型公司，它们在社会上承担两个功能：去除噪音，管理尾部风险(无论是
+坏的灾难还是意外的技术突破)。
+
+> "诀窍在于只看大幅的百分比变动。除非某物的变动超过其日常百分比变动的正常范围，否则该事件就被视为噪音。"
 > —— 塔勒布《随机漫步的傻瓜》
 
-> "The interpretation is not linear; a 2% move is not twice as
-> significant an event as 1%, it is rather like four times."
-> —— 同上
-
-我有一个辨别世上是否真有事发生的诀窍。
+2026年当下海量信息背后蕴藏的是巨大的毒性，解毒的药方是无视一切统计不显著的噪音。
 
 某个早晨，爱德华·索普在车里听到广播："道指下跌 9 点至 11,075，市场恐慌加息。"他心算：道指此时段的日常波动约 66 点；9 点不到七分之一，纯属家常便饭——市场安静得很，何来恐慌。
 
-> "Simple math allowed me to separate hype from reality."
+> "简单的数学让我能够把炒作与现实区分开来。"
 > —— 爱德华·索普《战胜一切市场的人》
 
 两位大师，同一把尺子：**以"日常波动"为分母**。变动不超一个 MAD，是噪音；超过，才算信号。且显著性按平方计：2% 不是 1% 的两倍，而是四倍。
