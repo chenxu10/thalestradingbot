@@ -65,8 +65,8 @@ class TestReturnsRepositoryWindowing:
 
     def _repo(self, prices, start_date=None, end_date=None):
         repo = ReturnsRepository(start_date=start_date, end_date=end_date)
-        # Feed tz-naive data: tz-stripping is _raw_ohlc's job, tested separately.
-        repo._raw_ohlc = MagicMock(return_value=pd.DataFrame({"Close": prices}))
+        # Feed tz-naive data: tz-stripping is _raw_open_high_low_close's job, tested separately.
+        repo._raw_open_high_low_close = MagicMock(return_value=pd.DataFrame({"Close": prices}))
         return repo
 
     def test_get_prices_applies_start_and_end_window(self, prices):
@@ -75,8 +75,8 @@ class TestReturnsRepositoryWindowing:
         assert out.index.min() >= pd.Timestamp("2025-03-01")
         assert out.index.max() <= pd.Timestamp("2025-06-01")
 
-    def test_raw_ohlc_strips_tz_from_index(self, prices):
-        """tz-stripping is the responsibility of _raw_ohlc (the network seam)."""
+    def test_raw_open_high_low_close_strips_tz_from_index(self, prices):
+        """tz-stripping is the responsibility of _raw_open_high_low_close (the network seam)."""
         tz = prices.copy()
         tz.index = tz.index.tz_localize("UTC")
         repo = ReturnsRepository()
@@ -85,15 +85,15 @@ class TestReturnsRepositoryWindowing:
                 m.return_value = MagicMock(
                     history=MagicMock(return_value=pd.DataFrame({"Close": tz}))
                 )
-                out = repo._raw_ohlc("FAKE")
+                out = repo._raw_open_high_low_close("FAKE")
         assert out.index.tz is None
 
-    def test_raw_ohlc_survives_empty_plain_index_response(self):
+    def test_raw_open_high_low_close_survives_empty_plain_index_response(self):
         """Spurious yfinance failure ("possibly delisted; no price data
         found") returns an EMPTY DataFrame whose index is a plain Index with
-        no .tz attribute. _raw_ohlc must return it untouched instead of
+        no .tz attribute. _raw_open_high_low_close must return it untouched instead of
         dying with AttributeError: 'Index' object has no attribute 'tz'
-        (see morning_brief._safe_raw_ohlc, which worked around this)."""
+        (see morning_brief._safe_raw_open_high_low_close, which worked around this)."""
         repo = ReturnsRepository()
         empty = pd.DataFrame({"Close": pd.Series(dtype=float)},
                              index=pd.Index([], dtype=object))
@@ -101,7 +101,7 @@ class TestReturnsRepositoryWindowing:
             with patch("fentu.explatoryservices.volcalculator.yf.Ticker") as m:
                 m.return_value = MagicMock(
                     history=MagicMock(return_value=empty))
-                out = repo._raw_ohlc("TQQQ")
+                out = repo._raw_open_high_low_close("TQQQ")
         assert out.empty
 
     def test_get_vix_prices_returns_full_history_unfiltered(self):
@@ -109,7 +109,7 @@ class TestReturnsRepositoryWindowing:
         index = pd.bdate_range("1990-01-02", "2026-06-24")
         vix = pd.Series(range(len(index)), index=index, name="Close")
         repo = ReturnsRepository(start_date="2025-03-01", end_date="2025-06-01")
-        repo._raw_ohlc = MagicMock(return_value=pd.DataFrame({"Close": vix}))
+        repo._raw_open_high_low_close = MagicMock(return_value=pd.DataFrame({"Close": vix}))
         out = repo.get_vix_prices()
         assert out.index.min().year <= 1992
         assert out.index.max().year >= 2026
@@ -169,7 +169,7 @@ class TestMarketClock:
         now_et = datetime(2026, 6, 24, 10, 0, tzinfo=timezone(timedelta(hours=-4)))
         assert clock.market_opened_today(last_date, now_et) is False
 
-    def _vix_ohlc(self, last_date, last_open, last_close):
+    def _vix_open_high_low_close(self, last_date, last_open, last_close):
         dates = pd.bdate_range("1990-01-02", last_date)
         df = pd.DataFrame(
             {"Open": np.arange(len(dates), dtype=float),
@@ -182,7 +182,7 @@ class TestMarketClock:
 
     def test_current_vix_value_uses_open_when_market_opened_today(self):
         clock = MarketClock()
-        vix = self._vix_ohlc("2026-06-24", 18.5, 19.0)
+        vix = self._vix_open_high_low_close("2026-06-24", 18.5, 19.0)
         now_et = datetime(2026, 6, 24, 10, 0, tzinfo=timezone(timedelta(hours=-4)))
         label, value = clock.current_vix_value(vix, now_et=now_et)
         assert "open" in label.lower()
@@ -191,7 +191,7 @@ class TestMarketClock:
 
     def test_current_vix_value_uses_last_close_before_open(self):
         clock = MarketClock()
-        vix = self._vix_ohlc("2026-06-24", 18.5, 19.0)
+        vix = self._vix_open_high_low_close("2026-06-24", 18.5, 19.0)
         now_et = datetime(2026, 6, 24, 8, 0, tzinfo=timezone(timedelta(hours=-4)))
         label, value = clock.current_vix_value(vix, now_et=now_et)
         assert "close" in label.lower()
@@ -212,7 +212,7 @@ class TestVolatilityDashboard:
         assert any("unavailable" in t and "RuntimeError" in t for t in texts)
         plt.close(fig)
 
-    def test_plot_vix_panel_renders_from_prebuilt_ohlc(self):
+    def test_plot_vix_panel_renders_from_prebuilt_open_high_low_close(self):
         vix = pd.DataFrame(
             {"Open": np.arange(5.0), "Close": np.arange(5.0) + 1.0},
             index=pd.bdate_range("2026-06-18", periods=5),
@@ -225,7 +225,7 @@ class TestVolatilityDashboard:
         assert any("18.50" in t for t in texts), texts
         plt.close(fig)
 
-    def test_plot_vix_panel_handles_empty_ohlc(self):
+    def test_plot_vix_panel_handles_empty_open_high_low_close(self):
         fig, ax = plt.subplots()
         VolatilityDashboard().plot_vix_panel(ax, pd.DataFrame(), current_value=None)
         assert ax.get_title() == "VIX Index"

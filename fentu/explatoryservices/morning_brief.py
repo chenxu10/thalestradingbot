@@ -1,7 +1,7 @@
 """Morning brief — one-line overnight HK summary for a US-east based trader.
 
 The smallest cost / highest value feature: reuse the existing `ReturnsRepository`
-network seam (the ONLY object that touches yfinance) to fetch ^HSI OHLC, then
+network seam (the ONLY object that touches yfinance) to fetch ^HSI open_high_low_close, then
 print one line: last HSI close + overnight % move.
 
 No plotting, no scheduler, no new network path. The deep-dive (`see_change
@@ -74,10 +74,10 @@ def _overnight_reading(repo, ticker):
     is empty (no MAD to compute). The morning brief must never crash on a
     network hiccup before coffee.
     """
-    ohlc = _safe_raw_ohlc(repo, ticker)
-    if ohlc is None:
+    open_high_low_close = _safe_raw_open_high_low_close(repo, ticker)
+    if open_high_low_close is None:
         return None
-    close = ohlc.get("Close")
+    close = open_high_low_close.get("Close")
     if close is None or len(close) < 2:
         return None
     last = float(close.iloc[-1])
@@ -111,15 +111,15 @@ def _signed_mad_multiple(close, overnight_pct):
     return float(overnight_pct / mad)
 
 
-def _safe_raw_ohlc(repo, ticker):
-    """Fetch OHLC, returning None on any exception or odd shape.
+def _safe_raw_open_high_low_close(repo, ticker):
+    """Fetch open_high_low_close, returning None on any exception or odd shape.
 
-    `ReturnsRepository._raw_ohlc` assumes yfinance returns a tz-aware
+    `ReturnsRepository._raw_open_high_low_close` assumes yfinance returns a tz-aware
     DatetimeIndex; tickers that 404 yield a plain Index and crash the
     pre-existing helper. The brief stays green.
     """
     try:
-        return repo._raw_ohlc(ticker)
+        return repo._raw_open_high_low_close(ticker)
     except Exception:
         return None
 

@@ -1,6 +1,6 @@
 """High/low levels tool — test-first (Kent Beck, TDD By Example).
 
-Drives a tiny feature: given any instrument's OHLC history, report the high
+Drives a tiny feature: given any instrument's open_high_low_close history, report the high
 and low prints (and their dates) over two decision windows — the trailing two
 calendar months and the regime since the 2026-02-28 US-Iran war start — plus
 the current price's distance to each level (where the stop clusters sit, per
@@ -22,8 +22,8 @@ from fentu.explatoryservices.high_low_levels import (
 from fentu.explatoryservices.volcalculator import ReturnsRepository
 
 
-def _ohlc(rows):
-    """Build a tz-naive OHLC frame from (date_str, high, low, close) tuples."""
+def _open_high_low_close(rows):
+    """Build a tz-naive open_high_low_close frame from (date_str, high, low, close) tuples."""
     idx = pd.DatetimeIndex([r[0] for r in rows])
     return pd.DataFrame(
         {
@@ -37,14 +37,14 @@ def _ohlc(rows):
 
 class TestWindowHighLow:
     def test_returns_high_and_low_with_dates_inside_window(self):
-        ohlc = _ohlc(
+        open_high_low_close = _open_high_low_close(
             [
                 ("2026-06-05", 72.0, 70.0, 71.0),
                 ("2026-06-30", 83.0, 79.0, 80.0),
             ]
         )
 
-        result = window_high_low(ohlc, date(2026, 6, 1), date(2026, 6, 30))
+        result = window_high_low(open_high_low_close, date(2026, 6, 1), date(2026, 6, 30))
 
         assert result == {
             "high": 83.0,
@@ -55,7 +55,7 @@ class TestWindowHighLow:
 
     def test_excludes_rows_outside_the_window(self):
         # The 99/1 prints sit outside [2026-06-01, 2026-06-30] and must not leak
-        ohlc = _ohlc(
+        open_high_low_close = _open_high_low_close(
             [
                 ("2026-05-31", 99.0, 90.0, 95.0),
                 ("2026-06-05", 72.0, 70.0, 71.0),
@@ -64,15 +64,15 @@ class TestWindowHighLow:
             ]
         )
 
-        result = window_high_low(ohlc, date(2026, 6, 1), date(2026, 6, 30))
+        result = window_high_low(open_high_low_close, date(2026, 6, 1), date(2026, 6, 30))
 
         assert result["high"] == 83.0
         assert result["low"] == 70.0
 
     def test_returns_none_when_window_is_empty(self):
-        ohlc = _ohlc([("2026-01-15", 75.0, 70.0, 72.0)])
+        open_high_low_close = _open_high_low_close([("2026-01-15", 75.0, 70.0, 72.0)])
 
-        assert window_high_low(ohlc, date(2026, 6, 1), date(2026, 6, 30)) is None
+        assert window_high_low(open_high_low_close, date(2026, 6, 1), date(2026, 6, 30)) is None
 
 
 class TestStopZone:
@@ -157,13 +157,13 @@ class TestMainCli:
     """CLI: text report always; --plot adds the chart off ONE fetch."""
 
     def _patched(self, mp, fetches):
-        def _fake_raw_ohlc(self, ticker):
+        def _fake_raw_open_high_low_close(self, ticker):
             fetches.append(ticker)
             return _uso_history()
 
         mp.setattr(
-            "fentu.explatoryservices.high_low_levels.ReturnsRepository._raw_ohlc",
-            _fake_raw_ohlc,
+            "fentu.explatoryservices.high_low_levels.ReturnsRepository._raw_open_high_low_close",
+            _fake_raw_open_high_low_close,
         )
 
     def test_plot_flag_prints_report_and_plots_off_one_fetch(self, capsys):
@@ -172,7 +172,7 @@ class TestMainCli:
             self._patched(mp, fetches)
             mp.setattr(
                 "fentu.explatoryservices.high_low_levels.plot_high_low_levels",
-                lambda ohlc, instrument: plotted.append(instrument),
+                lambda open_high_low_close, instrument: plotted.append(instrument),
             )
             main(["USO", "--plot"])
 
@@ -198,13 +198,13 @@ class TestMainCli:
 
 
 def _uso_history():
-    """One OHLC history spanning pre-war, war-regime, and the trailing 2 months.
+    """One open_high_low_close history spanning pre-war, war-regime, and the trailing 2 months.
 
     Rows are chosen so each window's answer is hand-derivable: last close 77.00;
     2mo window [2026-05-22, 2026-07-22] -> high 88.00 (05-25), low 70.00 (06-05);
     war window [2026-02-28, 2026-07-22] -> high 90.00 (03-04), low 66.00 (04-08).
     """
-    return _ohlc(
+    return _open_high_low_close(
         [
             ("2026-01-15", 75.0, 70.0, 72.0),  # pre-war: excluded from both windows
             ("2026-03-04", 90.0, 80.0, 82.0),  # war regime only: the war high
@@ -217,9 +217,9 @@ def _uso_history():
     )
 
 
-def _repo_with(ohlc):
+def _repo_with(open_high_low_close):
     repo = MagicMock(spec=ReturnsRepository)
-    repo._raw_ohlc.return_value = ohlc
+    repo._raw_open_high_low_close.return_value = open_high_low_close
     return repo
 
 
@@ -250,7 +250,7 @@ class TestLevelsReport:
 
         report = levels_report("BNO", repository=repo, today=self.TODAY)
 
-        repo._raw_ohlc.assert_called_once_with("BNO")
+        repo._raw_open_high_low_close.assert_called_once_with("BNO")
         assert report.splitlines()[0] == "BNO @ 77.00"
         assert "high 88.00 (2026-05-25, +14.3% above)" in report
 
@@ -259,12 +259,12 @@ class TestLevelsReport:
 
         report = levels_report(repository=repo, today=self.TODAY)
 
-        repo._raw_ohlc.assert_called_once_with("USO")
+        repo._raw_open_high_low_close.assert_called_once_with("USO")
         assert report.splitlines()[0] == "USO @ 77.00"
 
     def test_unavailable_on_fetch_exception(self):
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_ohlc.side_effect = RuntimeError("network down")
+        repo._raw_open_high_low_close.side_effect = RuntimeError("network down")
 
         assert (
             levels_report("USO", repository=repo, today=self.TODAY)
@@ -280,7 +280,7 @@ class TestLevelsReport:
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr("fentu.explatoryservices.high_low_levels.date", FakeDate)
             mp.setattr(
-                "fentu.explatoryservices.high_low_levels.ReturnsRepository._raw_ohlc",
+                "fentu.explatoryservices.high_low_levels.ReturnsRepository._raw_open_high_low_close",
                 lambda self, ticker: _uso_history(),
             )
             report = levels_report()

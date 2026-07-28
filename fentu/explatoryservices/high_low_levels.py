@@ -17,27 +17,15 @@ teams/paultudorjones.pdf, verbatim):
     "By watching Eli, I learned that even though markets look their very best
     when they are setting new highs, that is often the best time to sell."
 
-How this tool uses that wisdom: it prints the OLD HIGH / OLD LOW over two
-decision windows — the trailing two calendar months (recent congestion) and
-the regime since the 2026-02-28 US-Iran war start — because stops cluster
-just beyond those prints (old high 56.80 -> buy stops at 56.85). You cannot
-stage exits against stop clusters you cannot see. The signed % distance from
-the last close to each level is the "room to run" before price enters new
-high/low ground — the turning-point zone where, per Tullis, very little
-volume may trade, so you get out when the market lets you out (half below
-the level, half beyond) instead of waiting for the print. And the war-regime
-window is the contrarian lens: a market looking its very best at new highs
-is often the best time to sell.
-
 Built for USO (oil, the war instrument), but `instrument` is any yfinance
 ticker — the same levels logic applies to BNO, CL=F, GLD, SPY, ...
 
 CLI
 ---
-* ``python -m fentu.explatoryservices.high_low_levels [TICKER]`` — print the
+* ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER]`` — print the
   two-window high/low levels report (default USO), or ``<TICKER> unavailable``
   on a network hiccup.
-* ``python -m fentu.explatoryservices.high_low_levels [TICKER] --plot`` — also
+* ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER] --plot`` — also
   chart the regime: close since war start, the four old high/low signal lines
   with their print dates, and the shaded stop-cluster zones just beyond them
   (buy stops above old highs, sell stops below old lows — the 56.80 -> 56.85
@@ -74,9 +62,9 @@ def stop_zone(level, side):
     raise ValueError(f"side must be 'buy' or 'sell', got {side!r}")
 
 
-def window_high_low(ohlc, start, end):
+def window_high_low(open_high_low_close, start, end):
     """High/low prints and their dates for rows with start <= index <= end."""
-    window = ohlc[(ohlc.index >= pd.Timestamp(start)) & (ohlc.index <= pd.Timestamp(end))]
+    window = open_high_low_close[(open_high_low_close.index >= pd.Timestamp(start)) & (open_high_low_close.index <= pd.Timestamp(end))]
     if window.empty:
         return None
     high = float(window["High"].max())
@@ -98,7 +86,7 @@ def _windows(today):
     ]
 
 
-def levels_view(ohlc, today=None):
+def levels_view(open_high_low_close, today=None):
     """View-model for the chart: one entry per old high/low per window.
 
     Each entry: {label, kind, price, date, stop_side, stop_zone} where
@@ -108,7 +96,7 @@ def levels_view(ohlc, today=None):
     today = today if today is not None else date.today()
     entries = []
     for short, _label, start in _windows(today):
-        stats = window_high_low(ohlc, start, today)
+        stats = window_high_low(open_high_low_close, start, today)
         if stats is None:
             continue
         entries.append(_level_entry(short, "high", stats))
@@ -144,25 +132,25 @@ def levels_report(instrument=DEFAULT_INSTRUMENT, repository=None, today=None):
     """Multi-line high/low levels report for `instrument` (any yfinance ticker)."""
     repo = repository if repository is not None else ReturnsRepository()
     today = today if today is not None else date.today()
-    ohlc = _safe_raw_ohlc(repo, instrument)
-    return _report_from_ohlc(ohlc, instrument, today)
+    open_high_low_close = _safe_raw_open_high_low_close(repo, instrument)
+    return _report_from_open_high_low_close(open_high_low_close, instrument, today)
 
 
-def _report_from_ohlc(ohlc, instrument, today):
+def _report_from_open_high_low_close(open_high_low_close, instrument, today):
     """The report from a pre-built frame (None/empty -> "<ticker> unavailable")."""
-    if ohlc is None or ohlc.empty:
+    if open_high_low_close is None or open_high_low_close.empty:
         return f"{instrument} unavailable"
-    last = float(ohlc["Close"].iloc[-1])
+    last = float(open_high_low_close["Close"].iloc[-1])
     lines = [f"{instrument} @ {last:.2f}"]
     for _short, label, start in _windows(today):
-        lines.append(_window_line(label, window_high_low(ohlc, start, today), last))
+        lines.append(_window_line(label, window_high_low(open_high_low_close, start, today), last))
     return "\n".join(lines)
 
 
-def _safe_raw_ohlc(repo, instrument):
-    """Fetch OHLC, returning None on any exception (network hiccups stay green)."""
+def _safe_raw_open_high_low_close(repo, instrument):
+    """Fetch open_high_low_close, returning None on any exception (network hiccups stay green)."""
     try:
-        return repo._raw_ohlc(instrument)
+        return repo._raw_open_high_low_close(instrument)
     except Exception:
         return None
 
@@ -175,26 +163,26 @@ _LEVEL_STYLE = {
 }
 
 
-def plot_high_low_levels(ohlc, instrument, today=None, ax=None, show=True):
+def plot_high_low_levels(open_high_low_close, instrument, today=None, ax=None, show=True):
     """Chart the regime: close since war start, old highs/lows, stop clusters.
 
     Each level is a signal line (2mo dashed, war dotted; highs red, lows
     green) with a marker at its print date; the shaded band JUST BEYOND it is
     where PTJ says the stops cluster — "buy stops" above old highs, "sell
-    stops" below old lows. Pure of fetching: pass a pre-built OHLC frame.
+    stops" below old lows. Pure of fetching: pass a pre-built open_high_low_close frame.
     """
     import matplotlib.pyplot as plt
 
     if ax is None:
         _, ax = plt.subplots(figsize=(11, 6))
     today = today if today is not None else date.today()
-    close = ohlc["Close"]
+    close = open_high_low_close["Close"]
     regime = close[close.index >= pd.Timestamp(WAR_START)]
     if regime.empty:
         regime = close
 
     ax.plot(regime.index, regime.values, color="black", lw=1.2, label="close")
-    for entry in levels_view(ohlc, today=today):
+    for entry in levels_view(open_high_low_close, today=today):
         short = entry["label"].split(" ")[0]
         style = _LEVEL_STYLE[(short, entry["kind"])]
         _draw_level(ax, entry, style, regime.index[-1])
@@ -224,10 +212,10 @@ def main(argv=None):
     want_plot = "--plot" in args
     tickers = [a for a in args if not a.startswith("-")]
     instrument = tickers[0] if tickers else DEFAULT_INSTRUMENT
-    ohlc = _safe_raw_ohlc(ReturnsRepository(), instrument)
-    print(_report_from_ohlc(ohlc, instrument, date.today()))
-    if want_plot and ohlc is not None and not ohlc.empty:
-        plot_high_low_levels(ohlc, instrument)
+    open_high_low_close = _safe_raw_open_high_low_close(ReturnsRepository(), instrument)
+    print(_report_from_open_high_low_close(open_high_low_close, instrument, date.today()))
+    if want_plot and open_high_low_close is not None and not open_high_low_close.empty:
+        plot_high_low_levels(open_high_low_close, instrument)
 
 
 if __name__ == "__main__":
