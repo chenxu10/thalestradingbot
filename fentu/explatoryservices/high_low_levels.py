@@ -18,7 +18,9 @@ teams/paultudorjones.pdf, verbatim):
     when they are setting new highs, that is often the best time to sell."
 
 Built for USO (oil, the war instrument), but `instrument` is any yfinance
-ticker — the same levels logic applies to BNO, CL=F, GLD, SPY, ...
+ticker — the same levels logic applies to BNO, CL=F, GLD, SPY, ... USO reports
+the trailing 2mo plus the regime since the 2026-02-28 US-Iran war start; every
+other ticker reports the trailing 2mo and 6mo windows instead.
 
 CLI
 ---
@@ -44,6 +46,7 @@ from fentu.explatoryservices.volcalculator import ReturnsRepository
 DEFAULT_INSTRUMENT = "USO"
 WAR_START = date(2026, 2, 28)  # US-Iran war start
 LOOKBACK_MONTHS = 2
+LOOKBACK_MONTHS_LONG = 6
 STOP_BUFFER_PCT = 0.01  # illustrative stop-cluster width just beyond a level
 
 
@@ -77,16 +80,24 @@ def window_high_low(open_high_low_close, start, end):
     }
 
 
-def _windows(today):
-    """(short_name, label, start) per decision window, both ending at `today`."""
+def _windows(today, instrument):
+    """(short_name, label, start) per decision window, both ending at `today`.
+
+    USO (the war instrument) reports the trailing 2mo plus the regime since
+    the 2026-02-28 US-Iran war start. Every other ticker reports the trailing
+    2mo and 6mo windows instead — the "war" window is USO-specific.
+    """
     two_mo_back = (pd.Timestamp(today) - pd.DateOffset(months=LOOKBACK_MONTHS)).date()
-    return [
-        ("2mo", f"past {LOOKBACK_MONTHS}mo (since {two_mo_back})", two_mo_back),
-        ("war", f"since {WAR_START} (war start)", WAR_START),
-    ]
+    six_mo_back = (pd.Timestamp(today) - pd.DateOffset(months=LOOKBACK_MONTHS_LONG)).date()
+    windows = [("2mo", f"past {LOOKBACK_MONTHS}mo (since {two_mo_back})", two_mo_back)]
+    if instrument == DEFAULT_INSTRUMENT:
+        windows.append(("war", f"since {WAR_START} (war start)", WAR_START))
+    else:
+        windows.append(("6mo", f"past {LOOKBACK_MONTHS_LONG}mo (since {six_mo_back})", six_mo_back))
+    return windows
 
 
-def levels_view(open_high_low_close, today=None):
+def levels_view(open_high_low_close, instrument=DEFAULT_INSTRUMENT, today=None):
     """View-model for the chart: one entry per old high/low per window.
 
     Each entry: {label, kind, price, date, stop_side, stop_zone} where
@@ -95,7 +106,7 @@ def levels_view(open_high_low_close, today=None):
     """
     today = today if today is not None else date.today()
     entries = []
-    for short, _label, start in _windows(today):
+    for short, _label, start in _windows(today, instrument):
         stats = window_high_low(open_high_low_close, start, today)
         if stats is None:
             continue
@@ -142,7 +153,7 @@ def _report_from_open_high_low_close(open_high_low_close, instrument, today):
         return f"{instrument} unavailable"
     last = float(open_high_low_close["Close"].iloc[-1])
     lines = [f"{instrument} @ {last:.2f}"]
-    for _short, label, start in _windows(today):
+    for _short, label, start in _windows(today, instrument):
         lines.append(_window_line(label, window_high_low(open_high_low_close, start, today), last))
     return "\n".join(lines)
 
@@ -158,15 +169,17 @@ def _safe_raw_open_high_low_close(repo, instrument):
 _LEVEL_STYLE = {
     ("2mo", "high"): {"color": "darkred", "ls": "--"},
     ("war", "high"): {"color": "red", "ls": ":"},
+    ("6mo", "high"): {"color": "red", "ls": ":"},
     ("2mo", "low"): {"color": "darkgreen", "ls": "--"},
     ("war", "low"): {"color": "green", "ls": ":"},
+    ("6mo", "low"): {"color": "green", "ls": ":"},
 }
 
 
 def plot_high_low_levels(open_high_low_close, instrument, today=None, ax=None, show=True):
     """Chart the regime: close since war start, old highs/lows, stop clusters.
 
-    Each level is a signal line (2mo dashed, war dotted; highs red, lows
+    Each level is a signal line (2mo dashed, war/6mo dotted; highs red, lows
     green) with a marker at its print date; the shaded band JUST BEYOND it is
     where PTJ says the stops cluster — "buy stops" above old highs, "sell
     stops" below old lows. Pure of fetching: pass a pre-built open_high_low_close frame.
@@ -177,12 +190,15 @@ def plot_high_low_levels(open_high_low_close, instrument, today=None, ax=None, s
         _, ax = plt.subplots(figsize=(11, 6))
     today = today if today is not None else date.today()
     close = open_high_low_close["Close"]
-    regime = close[close.index >= pd.Timestamp(WAR_START)]
+    regime_start = WAR_START if instrument == DEFAULT_INSTRUMENT else (
+        pd.Timestamp(today) - pd.DateOffset(months=LOOKBACK_MONTHS_LONG)
+    )
+    regime = close[close.index >= pd.Timestamp(regime_start)]
     if regime.empty:
         regime = close
 
     ax.plot(regime.index, regime.values, color="black", lw=1.2, label="close")
-    for entry in levels_view(open_high_low_close, today=today):
+    for entry in levels_view(open_high_low_close, instrument=instrument, today=today):
         short = entry["label"].split(" ")[0]
         style = _LEVEL_STYLE[(short, entry["kind"])]
         _draw_level(ax, entry, style, regime.index[-1])

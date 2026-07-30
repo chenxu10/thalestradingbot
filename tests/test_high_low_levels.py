@@ -123,6 +123,24 @@ class TestLevelsView:
         assert war_low["stop_side"] == "sell"
         assert war_low["stop_zone"] == pytest.approx((65.34, 66.0))
 
+    def test_non_uso_ticker_uses_6mo_instead_of_war(self):
+        # As of 2026-07-22 the 6mo window starts 2026-01-22, so the pre-war
+        # 2026-01-15 row stays out; the war-regime 03-04 high and 04-08 low
+        # fall inside 6mo -> high 90.00, low 66.00.
+        view = levels_view(_uso_history(), instrument="BNO", today=self.TODAY)
+
+        assert [(e["label"], e["kind"]) for e in view] == [
+            ("2mo high", "high"),
+            ("2mo low", "low"),
+            ("6mo high", "high"),
+            ("6mo low", "low"),
+        ]
+        by_label = {e["label"]: e for e in view}
+        assert by_label["6mo high"]["price"] == 90.0
+        assert by_label["6mo high"]["date"] == date(2026, 3, 4)
+        assert by_label["6mo low"]["price"] == 66.0
+        assert by_label["6mo low"]["date"] == date(2026, 4, 8)
+
 
 class TestPlotHighLowLevels:
     """The chart: close since war start, the four old high/low levels as
@@ -253,6 +271,19 @@ class TestLevelsReport:
         repo._raw_open_high_low_close.assert_called_once_with("BNO")
         assert report.splitlines()[0] == "BNO @ 77.00"
         assert "high 88.00 (2026-05-25, +14.3% above)" in report
+
+    def test_non_uso_ticker_reports_6mo_window_not_war(self):
+        # BNO gets the 2mo + 6mo windows; the war-specific line is absent.
+        repo = _repo_with(_uso_history())
+
+        report = levels_report("BNO", repository=repo, today=self.TODAY)
+
+        assert "since 2026-01-22" in report
+        assert "war start" not in report
+        # 6mo window catches the 03-04 high and 04-08 low; last close 77.00
+        # -> +16.9% above / -14.3% below.
+        assert "high 90.00 (2026-03-04, +16.9% above)" in report
+        assert "low 66.00 (2026-04-08, -14.3% below)" in report
 
     def test_defaults_to_uso_when_no_instrument_given(self):
         repo = _repo_with(_uso_history())
