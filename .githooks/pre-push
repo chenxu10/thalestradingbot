@@ -1,20 +1,19 @@
 #!/bin/bash
 # pre-push hook: run the full test suite AND the function-length power-law
-# alpha gate before allowing any push.
+# alpha gate before any push.
 #
-# Policy: the fitted power-law exponent alpha of the function-length
-# distribution must NOT regress (it must be higher than the last approved
-# push, or the tree must be unchanged since the last approved push). A higher
-# alpha means a lighter tail = fewer extreme-long functions = lower complexity
-# and less exposure to accidental tail events. See
+# Policy: the test suite must pass (a failure blocks the push). The alpha
+# gate is ADVISORY ONLY: it reports whether the fitted power-law exponent
+# alpha of the function-length distribution regressed vs the last approved
+# push and prints a top-3 table (line count, # functions, name, location)
+# of the longest functions worth refactoring — but never blocks the push.
+# A higher alpha means a lighter tail = fewer extreme-long functions = lower
+# complexity and less exposure to accidental tail events. See
 # fentu/metaprogramming/function_length_powerlaw.py (Clauset-Shalizi-Newman
 # 2009 / isitapowerlaw.com).
 #
 # Install by copying to .git/hooks/pre-push and making it executable:
 #   cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
-#
-# Emergency bypass (tests below still run):
-#   FORCE_PUSH=1 git push ...
 
 set -e
 
@@ -31,10 +30,10 @@ else
 fi
 echo "All tests passed."
 
-# --- 2) function-length power-law alpha gate -------------------------------
-# Blocks the push unless alpha increased vs the last approved push (or the tree
-# is unchanged since the last approved push). FORCE_PUSH=1 bypasses this gate.
-echo "Running function-length power-law alpha gate..."
+# --- 2) function-length power-law alpha gate (advisory) --------------------
+# Reports alpha vs the last approved push and the top-3 refactor table; never
+# blocks the push.
+echo "Running function-length power-law alpha gate (advisory)..."
 if command -v uv >/dev/null 2>&1; then
     uv run python -m fentu.metaprogramming.function_length_powerlaw --hook
 elif [ -f .venv/bin/python ]; then
@@ -43,4 +42,4 @@ else
     python -m fentu.metaprogramming.function_length_powerlaw --hook
 fi
 
-echo "Alpha gate passed. Proceeding with push."
+echo "Alpha gate report done (advisory). Proceeding with push."

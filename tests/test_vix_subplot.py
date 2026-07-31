@@ -33,13 +33,13 @@ def _et(year, month, day, hour, minute=0):
     return datetime(year, month, day, hour, minute, tzinfo=timezone(ET_OFFSET))
 
 
-def _ticker_side_effect(vix_ohlc, etf_prices):
-    """yf.Ticker side_effect: serve VIX OHLC for ^VIX, ETF Close otherwise."""
+def _ticker_side_effect(vix_open_high_low_close, etf_prices):
+    """yf.Ticker side_effect: serve VIX open_high_low_close for ^VIX, ETF Close otherwise."""
 
     def _side_effect(symbol, session=None):
         inst = MagicMock()
         if symbol == VIX_TICKER:
-            inst.history.return_value = vix_ohlc
+            inst.history.return_value = vix_open_high_low_close
         else:
             inst.history.return_value = pd.DataFrame({"Close": etf_prices})
         return inst
@@ -47,8 +47,8 @@ def _ticker_side_effect(vix_ohlc, etf_prices):
     return _side_effect
 
 
-def _vix_ohlc_full_history(last_date, last_open, last_close):
-    """Build a mock ^VIX OHLC DataFrame from 1990-01-02 up to `last_date`."""
+def _vix_open_high_low_close_full_history(last_date, last_open, last_close):
+    """Build a mock ^VIX open_high_low_close DataFrame from 1990-01-02 up to `last_date`."""
     dates = pd.bdate_range("1990-01-02", last_date)
     rng = np.random.default_rng(42)
     close = 15 + np.cumsum(rng.normal(0, 0.3, len(dates)))
@@ -69,15 +69,15 @@ class TestVixSubplot:
         return pd.Series(prices, index=dates, name="Close")
 
     @pytest.fixture
-    def vix_ohlc(self):
-        return _vix_ohlc_full_history("2026-06-24", last_open=18.5, last_close=19.0)
+    def vix_open_high_low_close(self):
+        return _vix_open_high_low_close_full_history("2026-06-24", last_open=18.5, last_close=19.0)
 
     @pytest.fixture
-    def facade(self, etf_prices, vix_ohlc):
+    def facade(self, etf_prices, vix_open_high_low_close):
         with patch("fentu.explatoryservices.volcalculator.requests.Session"):
             with patch(
                 "fentu.explatoryservices.volcalculator.yf.Ticker",
-                side_effect=_ticker_side_effect(vix_ohlc, etf_prices),
+                side_effect=_ticker_side_effect(vix_open_high_low_close, etf_prices),
             ):
                 yield VolatilityFacade(
                     "QQQ", start_date="2025-03-01", end_date="2025-06-01"

@@ -36,23 +36,23 @@ Topology Diagram (ASCII)
  +---------------------------------------------------------------------------+
  | ReturnsRepository   (Seam 1 — the ONLY object that touches the network)   |
  |   __init__(start_date, end_date)   <- cheap, no I/O                       |
- |   _raw_ohlc(instrument)            -> yf.Ticker + curl_cffi session;      |
+ |   _raw_open_high_low_close(instrument)            -> yf.Ticker + curl_cffi session;      |
  |                                       strips tz from the index            |
- |   get_prices(instrument)           -> _raw_ohlc + start/end window        |
+ |   get_prices(instrument)           -> _raw_open_high_low_close + start/end window        |
  |   get_returns(instrument, period)  -> np.log(prices/shift)[period:]       |
- |   get_vix_ohlc() / get_vix_prices()-> full ^VIX history, UN-windowed      |
+ |   get_vix_open_high_low_close() / get_vix_prices()-> full ^VIX history, UN-windowed      |
  +---------------------------------------------------------------------------+
  +---------------------------------------------------------------------------+
  | MarketClock          (Seam 2 — DST / market-open logic, pure of I/O)      |
  |   now_eastern()                   -> delegates to module _now_eastern()   |
  |   market_opened_today(last, now)  -> last==now.date() and >=9:30 ET       |
- |   current_vix_value(ohlc, now_et) -> (label, value): open if opened else  |
+ |   current_vix_value(open_high_low_close, now_et) -> (label, value): open if opened else  |
  |                                       last close                          |
  +---------------------------------------------------------------------------+
  +---------------------------------------------------------------------------+
  | VolatilityDashboard  (Seam 3 — presentation, pure of fetching)            |
  |   show_panel_unavailable(ax,...)  -> centered "unavailable" note          |
- |   plot_vix_panel(ax, ohlc, current_value) -> pure render from prebuilt    |
+ |   plot_vix_panel(ax, open_high_low_close, current_value) -> pure render from prebuilt    |
  |   plot_term_structure_panel(ax, instrument, fetcher=None)                 |
  |       -> injectable fetcher (defaults to fetch_yfinance_chain);           |
  |          network-failure-safe                                             |
@@ -69,7 +69,7 @@ Topology Diagram (ASCII)
  |  daily/weekly/monthly/yearly_returns are @property + setter, cached.      |
  |  return_periods is a @property building the dict lazily.                  |
  |                                                                           |
- |  Each former private helper (_get_prices, _get_vix_ohlc,                  |
+ |  Each former private helper (_get_prices, _get_vix_open_high_low_close,                  |
  |  _get_current_vix_value, _plot_*_panel, _show_panel_unavailable) is kept  |
  |  as a delegating shim so existing callers/tests stay green.               |
  |                                                                           |
@@ -167,7 +167,7 @@ class DailyVolatility:
 
 
 class ReturnsRepository:
-    """Owns all yfinance OHLC fetching and the start/end date window.
+    """Owns all yfinance open_high_low_close fetching and the start/end date window.
 
     Constructed cheaply (no I/O); fetches happen lazily on demand. The VIX
     helpers deliberately ignore the ETF's start/end window so the VIX subplot
@@ -178,22 +178,40 @@ class ReturnsRepository:
         self.start_date = start_date
         self.end_date = end_date
 
-    def _raw_ohlc(self, instrument):
-        """Fetch full OHLC history for `instrument` with no date filtering.
+    def _raw_open_high_low_close(self, instrument):
+        """Fetch full open_high_low_close history for `instrument` with no date filtering.
 
         The shared network fetch; callers that want the repository's date
         window apply start_date/end_date themselves.
+
+        A spurious yfinance failure ("possibly delisted; no price data
+        found") yields an EMPTY DataFrame whose index is a plain Index with
+        no .tz attribute -- only strip tz from a real DatetimeIndex.
         """
         session = requests.Session(impersonate="chrome")
         ticker = yf.Ticker(instrument, session=session)
-        ohlc = ticker.history(period="max")
-        if ohlc.index.tz is not None:
-            ohlc.index = ohlc.index.tz_localize(None)
-        return ohlc
+        open_high_low_close = ticker.history(period="max")
+        if isinstance(open_high_low_close.index, pd.DatetimeIndex) and open_high_low_close.index.tz is not None:
+            open_high_low_close.index = open_high_low_close.index.tz_localize(None)
+        return open_high_low_close
+
+    def try_fetch_open_high_low_close(self, instrument):
+        """Fetch open_high_low_close, return None on any hiccup instead of raising.
+
+        ``_raw_open_high_low_close`` assumes yfinance returns a tz-aware
+        DatetimeIndex; tickers that 404 yield a plain Index and crash the
+        helper. Callers that want a do-or-die result should use
+        ``_raw_open_high_low_close`` directly; callers that must stay green on a
+        network hiccup (CLIs, cron) should call this safe wrapper.
+        """
+        try:
+            return self._raw_open_high_low_close(instrument)
+        except Exception:
+            return None
 
     def get_prices(self, instrument):
-        ohlc = self._raw_ohlc(instrument)
-        prices = ohlc['Close']
+        open_high_low_close = self._raw_open_high_low_close(instrument)
+        prices = open_high_low_close['Close']
         if self.start_date is not None:
             prices = prices[prices.index >= pd.Timestamp(self.start_date)]
         if self.end_date is not None:
@@ -204,13 +222,13 @@ class ReturnsRepository:
         prices = self.get_prices(instrument)
         return np.log(prices / prices.shift(period_length))[period_length:]
 
-    def get_vix_ohlc(self):
-        """Full ^VIX OHLC history (1990 -> today), unfiltered."""
-        return self._raw_ohlc(VIX_TICKER)
+    def get_vix_open_high_low_close(self):
+        """Full ^VIX open_high_low_close history (1990 -> today), unfiltered."""
+        return self._raw_open_high_low_close(VIX_TICKER)
 
     def get_vix_prices(self):
         """Full ^VIX daily close history (1990 -> today), unfiltered."""
-        return self.get_vix_ohlc()['Close']
+        return self.get_vix_open_high_low_close()['Close']
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +250,7 @@ class MarketClock:
         """True if `last_date` (a date) is `now_et`'s date and time >= 9:30 ET."""
         return last_date == now_et.date() and now_et.time() >= TIME_MARKET_OPEN
 
-    def current_vix_value(self, vix_ohlc, now_et=None):
+    def current_vix_value(self, vix_open_high_low_close, now_et=None):
         """Return (label, value) for the VIX "current value" annotation.
 
         If the US market has opened today — i.e. the data's last trading day is
@@ -241,10 +259,10 @@ class MarketClock:
         """
         if now_et is None:
             now_et = self.now_eastern()
-        if vix_ohlc.empty:
+        if vix_open_high_low_close.empty:
             return None
-        last_row = vix_ohlc.iloc[-1]
-        last_date = vix_ohlc.index[-1].date()
+        last_row = vix_open_high_low_close.iloc[-1]
+        last_date = vix_open_high_low_close.index[-1].date()
         if self.market_opened_today(last_date, now_et):
             return (
                 f"VIX @ open {last_date.isoformat()} 9:30 ET",
@@ -266,7 +284,7 @@ class VolatilityDashboard:
 
     Never fetches. `plot_term_structure_panel` takes an injectable `fetcher`
     (defaults to the module-level `fetch_yfinance_chain`, which tests
-    monkeypatch); `plot_vix_panel` takes pre-built OHLC + an optional
+    monkeypatch); `plot_vix_panel` takes pre-built open_high_low_close + an optional
     `(label, value)` current-value pair.
     """
 
@@ -277,11 +295,11 @@ class VolatilityDashboard:
         ax.text(0.5, 0.5, text, ha="center", va="center", transform=ax.transAxes)
         ax.set_title(title)
 
-    def plot_vix_panel(self, ax, vix_ohlc, current_value=None):
-        if vix_ohlc.empty:
+    def plot_vix_panel(self, ax, vix_open_high_low_close, current_value=None):
+        if vix_open_high_low_close.empty:
             self.show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
             return
-        close = vix_ohlc['Close']
+        close = vix_open_high_low_close['Close']
         ax.plot(close.index, close.values, color="purple", lw=1.2, label="VIX close")
         ax.set_title("VIX Index")
         ax.set_ylabel("VIX")
@@ -408,8 +426,8 @@ class VolatilityFacade:
 
     # --- delegating shims (preserve pre-refactor surface) -------------------
 
-    def _get_raw_ohlc(self, instrument):
-        return self._repository._raw_ohlc(instrument)
+    def _get_raw_open_high_low_close(self, instrument):
+        return self._repository._raw_open_high_low_close(instrument)
 
     def _get_prices(self, instrument):
         return self._repository.get_prices(instrument)
@@ -417,16 +435,16 @@ class VolatilityFacade:
     def _get_returns(self, instrument, period_length):
         return self._repository.get_returns(instrument, period_length)
 
-    def _get_vix_ohlc(self):
-        return self._repository.get_vix_ohlc()
+    def _get_vix_open_high_low_close(self):
+        return self._repository.get_vix_open_high_low_close()
 
     def _get_vix_prices(self):
         return self._repository.get_vix_prices()
 
-    def _get_current_vix_value(self, vix_ohlc=None, now_et=None):
-        if vix_ohlc is None:
-            vix_ohlc = self._get_vix_ohlc()
-        return self._clock.current_vix_value(vix_ohlc, now_et=now_et)
+    def _get_current_vix_value(self, vix_open_high_low_close=None, now_et=None):
+        if vix_open_high_low_close is None:
+            vix_open_high_low_close = self._get_vix_open_high_low_close()
+        return self._clock.current_vix_value(vix_open_high_low_close, now_et=now_et)
 
     def _show_panel_unavailable(self, ax, title, message, detail=""):
         dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
@@ -438,10 +456,10 @@ class VolatilityFacade:
 
     def _plot_vix_panel(self, ax):
         try:
-            vix_ohlc = self._get_vix_ohlc()
-            current = (self._get_current_vix_value(vix_ohlc=vix_ohlc)
-                       if not vix_ohlc.empty else None)
-            self._dashboard.plot_vix_panel(ax, vix_ohlc, current_value=current)
+            vix_open_high_low_close = self._get_vix_open_high_low_close()
+            current = (self._get_current_vix_value(vix_open_high_low_close=vix_open_high_low_close)
+                       if not vix_open_high_low_close.empty else None)
+            self._dashboard.plot_vix_panel(ax, vix_open_high_low_close, current_value=current)
         except Exception:
             self._dashboard.show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
 

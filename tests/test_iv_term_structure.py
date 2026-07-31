@@ -15,7 +15,7 @@ Tests cover:
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import pytest
 
@@ -646,16 +646,20 @@ class TestPlotTermStructurePanelWiring:
         from fentu.explatoryservices.volcalculator import VolatilityFacade
 
         Chain = namedtuple("Chain", ["calls", "puts"])
-        # Future expiry relative to today so it survives the dte >= 0 filter.
+        # Expiry is generated relative to today so it always survives the
+        # dte >= 0 filter (a hardcoded "future" date is a time bomb: it
+        # silently starts failing the day the wall clock passes it).
+        expiry = (date.today() + timedelta(days=30)).isoformat()
+        code = expiry.replace("-", "")
         calls = pd.DataFrame([
-            {"contractSymbol": "20260717C0400000", "strike": 400, "impliedVolatility": 0.23, "lastPrice": 3.0},
-            {"contractSymbol": "20260717C0405000", "strike": 405, "impliedVolatility": 0.30, "lastPrice": 1.0},
+            {"contractSymbol": f"{code}C0400000", "strike": 400, "impliedVolatility": 0.23, "lastPrice": 3.0},
+            {"contractSymbol": f"{code}C0405000", "strike": 405, "impliedVolatility": 0.30, "lastPrice": 1.0},
         ])
         puts = pd.DataFrame([
-            {"contractSymbol": "20260717P0400000", "strike": 400, "impliedVolatility": 0.25, "lastPrice": 4.0},
-            {"contractSymbol": "20260717P0405000", "strike": 405, "impliedVolatility": 0.30, "lastPrice": 1.0},
+            {"contractSymbol": f"{code}P0400000", "strike": 400, "impliedVolatility": 0.25, "lastPrice": 4.0},
+            {"contractSymbol": f"{code}P0405000", "strike": 405, "impliedVolatility": 0.30, "lastPrice": 1.0},
         ])
-        chain_data = {"expiries": ["2026-07-17"], "chains": {"2026-07-17": Chain(calls=calls, puts=puts)}}
+        chain_data = {"expiries": [expiry], "chains": {expiry: Chain(calls=calls, puts=puts)}}
         self._stub_fetcher(monkeypatch, chain_data, 400.0)
 
         fig, ax = plt.subplots()
