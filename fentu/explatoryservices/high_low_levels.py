@@ -167,7 +167,7 @@ def levels_report(instrument=DEFAULT_INSTRUMENT, repository=None, today=None):
     """Multi-line high/low levels report for `instrument` (any yfinance ticker)."""
     repo = repository if repository is not None else ReturnsRepository()
     today = today if today is not None else date.today()
-    open_high_low_close = _safe_raw_open_high_low_close(repo, instrument)
+    open_high_low_close = repo.try_fetch_open_high_low_close(instrument)
     return _report_from_open_high_low_close(open_high_low_close, instrument, today)
 
 
@@ -181,13 +181,6 @@ def _report_from_open_high_low_close(open_high_low_close, instrument, today):
         lines.append(_window_line(label, window_high_low(open_high_low_close, start, today), last))
     return "\n".join(lines)
 
-
-def _safe_raw_open_high_low_close(repo, instrument):
-    """Fetch open_high_low_close, returning None on any exception (network hiccups stay green)."""
-    try:
-        return repo._raw_open_high_low_close(instrument)
-    except Exception:
-        return None
 
 
 _LEVEL_STYLE = {
@@ -253,7 +246,7 @@ def main(argv=None):
     want_plot = "--plot" in args
     tickers = [a for a in args if not a.startswith("-")]
     instrument = tickers[0] if tickers else DEFAULT_INSTRUMENT
-    open_high_low_close = _safe_raw_open_high_low_close(ReturnsRepository(), instrument)
+    open_high_low_close = ReturnsRepository().try_fetch_open_high_low_close(instrument)
     print(_report_from_open_high_low_close(open_high_low_close, instrument, date.today()))
     if want_plot and open_high_low_close is not None and not open_high_low_close.empty:
         plot_high_low_levels(open_high_low_close, instrument)

@@ -195,6 +195,20 @@ class ReturnsRepository:
             open_high_low_close.index = open_high_low_close.index.tz_localize(None)
         return open_high_low_close
 
+    def try_fetch_open_high_low_close(self, instrument):
+        """Fetch open_high_low_close, return None on any hiccup instead of raising.
+
+        ``_raw_open_high_low_close`` assumes yfinance returns a tz-aware
+        DatetimeIndex; tickers that 404 yield a plain Index and crash the
+        helper. Callers that want a do-or-die result should use
+        ``_raw_open_high_low_close`` directly; callers that must stay green on a
+        network hiccup (CLIs, cron) should call this safe wrapper.
+        """
+        try:
+            return self._raw_open_high_low_close(instrument)
+        except Exception:
+            return None
+
     def get_prices(self, instrument):
         open_high_low_close = self._raw_open_high_low_close(instrument)
         prices = open_high_low_close['Close']

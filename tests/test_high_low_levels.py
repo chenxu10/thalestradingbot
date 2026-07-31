@@ -301,7 +301,7 @@ def _coincident_history():
 
 def _repo_with(open_high_low_close):
     repo = MagicMock(spec=ReturnsRepository)
-    repo._raw_open_high_low_close.return_value = open_high_low_close
+    repo.try_fetch_open_high_low_close.return_value = open_high_low_close
     return repo
 
 
@@ -332,7 +332,7 @@ class TestLevelsReport:
 
         report = levels_report("BNO", repository=repo, today=self.TODAY)
 
-        repo._raw_open_high_low_close.assert_called_once_with("BNO")
+        repo.try_fetch_open_high_low_close.assert_called_once_with("BNO")
         assert report.splitlines()[0] == "BNO @ 77.00"
         assert "high 88.00 (2026-05-25, +14.3% above)" in report
 
@@ -354,12 +354,12 @@ class TestLevelsReport:
 
         report = levels_report(repository=repo, today=self.TODAY)
 
-        repo._raw_open_high_low_close.assert_called_once_with("USO")
+        repo.try_fetch_open_high_low_close.assert_called_once_with("USO")
         assert report.splitlines()[0] == "USO @ 77.00"
 
     def test_unavailable_on_fetch_exception(self):
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.side_effect = RuntimeError("network down")
+        repo.try_fetch_open_high_low_close.return_value = None
 
         assert (
             levels_report("USO", repository=repo, today=self.TODAY)

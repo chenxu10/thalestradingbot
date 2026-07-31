@@ -60,7 +60,7 @@ class TestMorningBrief:
         # HSI: 22000 -> 23000 = +4.545% overnight
         hsi = _open_high_low_close([22000.0, 23000.0])
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = hsi
+        repo.try_fetch_open_high_low_close.return_value = hsi
 
         brief = morning_brief(repository=repo)
 
@@ -69,7 +69,7 @@ class TestMorningBrief:
     def test_negative_overnight_move(self):
         hsi = _open_high_low_close([23000.0, 22000.0])  # -4.348%
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = hsi
+        repo.try_fetch_open_high_low_close.return_value = hsi
 
         brief = morning_brief(repository=repo)
 
@@ -88,7 +88,7 @@ class TestMorningBrief:
     def test_handles_empty_hsi_gracefully(self):
         empty = pd.DataFrame({"Close": pd.Series([], dtype=float)})
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = empty
+        repo.try_fetch_open_high_low_close.return_value = empty
 
         brief = morning_brief(repository=repo)
 
@@ -97,7 +97,7 @@ class TestMorningBrief:
     def test_handles_fetch_exception_without_crashing(self):
         """The brief must never crash on a network hiccup before coffee."""
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.side_effect = RuntimeError("network down")
+        repo.try_fetch_open_high_low_close.return_value = None
 
         brief = morning_brief(repository=repo)
 
@@ -122,7 +122,7 @@ class TestMorningBriefMadChute:
             _alternating_mad_window(self.MAD), overnight_pct=0.40
         )
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = hsi
+        repo.try_fetch_open_high_low_close.return_value = hsi
 
         brief = morning_brief(repository=repo)
 
@@ -136,7 +136,7 @@ class TestMorningBriefMadChute:
             _alternating_mad_window(self.MAD), overnight_pct=-1.30
         )
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = hsi
+        repo.try_fetch_open_high_low_close.return_value = hsi
 
         brief = morning_brief(repository=repo)
 
@@ -151,7 +151,7 @@ class TestMorningBriefMadChute:
             _alternating_mad_window(self.MAD), overnight_pct=-1.00
         )
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = hsi
+        repo.try_fetch_open_high_low_close.return_value = hsi
 
         brief = morning_brief(repository=repo)
 
@@ -166,7 +166,7 @@ class TestMorningBriefMadChute:
             _alternating_mad_window(self.MAD), overnight_pct=1.30
         )
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = hsi
+        repo.try_fetch_open_high_low_close.return_value = hsi
 
         brief = morning_brief(repository=repo)
 
@@ -183,7 +183,7 @@ class TestMorningBriefMadChute:
             _alternating_mad_window(self.MAD), overnight_pct=-10.00
         )
         repo = MagicMock(spec=ReturnsRepository)
-        repo._raw_open_high_low_close.return_value = hsi
+        repo.try_fetch_open_high_low_close.return_value = hsi
 
         brief = morning_brief(repository=repo)
 

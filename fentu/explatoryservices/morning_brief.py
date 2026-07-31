@@ -74,7 +74,7 @@ def _overnight_reading(repo, ticker):
     is empty (no MAD to compute). The morning brief must never crash on a
     network hiccup before coffee.
     """
-    open_high_low_close = _safe_raw_open_high_low_close(repo, ticker)
+    open_high_low_close = repo.try_fetch_open_high_low_close(ticker)
     if open_high_low_close is None:
         return None
     close = open_high_low_close.get("Close")
@@ -110,18 +110,6 @@ def _signed_mad_multiple(close, overnight_pct):
         return None
     return float(overnight_pct / mad)
 
-
-def _safe_raw_open_high_low_close(repo, ticker):
-    """Fetch open_high_low_close, returning None on any exception or odd shape.
-
-    `ReturnsRepository._raw_open_high_low_close` assumes yfinance returns a tz-aware
-    DatetimeIndex; tickers that 404 yield a plain Index and crash the
-    pre-existing helper. The brief stays green.
-    """
-    try:
-        return repo._raw_open_high_low_close(ticker)
-    except Exception:
-        return None
 
 
 def main():

@@ -93,7 +93,7 @@ class TestReturnsRepositoryWindowing:
         found") returns an EMPTY DataFrame whose index is a plain Index with
         no .tz attribute. _raw_open_high_low_close must return it untouched instead of
         dying with AttributeError: 'Index' object has no attribute 'tz'
-        (see morning_brief._safe_raw_open_high_low_close, which worked around this)."""
+        (see ReturnsRepository.try_fetch_open_high_low_close, which worked around this)."""
         repo = ReturnsRepository()
         empty = pd.DataFrame({"Close": pd.Series(dtype=float)},
                              index=pd.Index([], dtype=object))
