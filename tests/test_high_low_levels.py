@@ -141,6 +141,26 @@ class TestLevelsView:
         assert by_label["6mo low"]["price"] == 66.0
         assert by_label["6mo low"]["date"] == date(2026, 4, 8)
 
+    def test_coincident_window_levels_merge_into_one_entry(self):
+        # TQQQ on 2026-07-31: the 6mo high was printed inside the trailing 2mo
+        # window, so both windows quote the SAME level (same price, same date).
+        # Drawing both stacks two styles at one price — the second hides the
+        # first while the legend still lists both, and the swatch colors stop
+        # matching the screen. Merge into one "2mo+6mo high" entry instead.
+        view = levels_view(_coincident_history(), instrument="TQQQ", today=self.TODAY)
+
+        assert [(e["label"], e["kind"]) for e in view] == [
+            ("2mo+6mo high", "high"),
+            ("2mo low", "low"),
+            ("6mo low", "low"),
+        ]
+        merged = view[0]
+        assert merged["short"] == "2mo"  # style key: the first window's style
+        assert merged["price"] == 90.0
+        assert merged["date"] == date(2026, 6, 3)
+        assert merged["stop_side"] == "buy"
+        assert merged["stop_zone"] == pytest.approx((90.0, 90.9))
+
 
 class TestPlotHighLowLevels:
     """The chart: close since war start, the four old high/low levels as
@@ -168,6 +188,32 @@ class TestPlotHighLowLevels:
         assert texts.count("buy stops") == 2
         assert texts.count("sell stops") == 2
         assert "USO" in ax.get_title()
+        plt.close(fig)
+
+    def test_coincident_levels_draw_one_line_one_band_one_swatch(self):
+        import matplotlib.pyplot as plt
+
+        from fentu.explatoryservices.high_low_levels import plot_high_low_levels
+
+        fig, ax = plt.subplots()
+        plot_high_low_levels(
+            _coincident_history(), "TQQQ", today=self.TODAY, ax=ax, show=False
+        )
+
+        # 1 close + 3 DISTINCT level lines + 3 print-date markers
+        assert len(ax.lines) == 7
+        # 3 shaded stop-cluster bands — no double-shaded color blend
+        assert len(ax.patches) == 3
+        texts = [t.get_text() for t in ax.texts]
+        assert texts.count("buy stops") == 1
+        assert texts.count("sell stops") == 2
+        # one legend entry per VISIBLE line; the merged line carries the 2mo
+        # style, so its swatch color matches what is on the screen
+        line = next(l for l in ax.lines if l.get_label() == "2mo+6mo high 90.00")
+        assert line.get_color() == "darkred"
+        assert line.get_linestyle() == "--"
+        labels = [t.get_text() for t in ax.get_legend().get_texts()]
+        assert labels == ["close", "2mo+6mo high 90.00", "2mo low 72.00", "6mo low 70.00"]
         plt.close(fig)
 
 
@@ -231,6 +277,24 @@ def _uso_history():
             ("2026-06-05", 72.0, 70.0, 71.0),  # both windows: the 2mo low
             ("2026-06-30", 83.0, 79.0, 80.0),
             ("2026-07-21", 78.0, 76.0, 77.0),  # last close 77.00
+        ]
+    )
+
+
+def _coincident_history():
+    """History whose 6mo high was printed inside the trailing 2mo window.
+
+    As of TODAY=2026-07-22: 2mo window [2026-05-22, 2026-07-22] -> high 90.00
+    (06-03), low 72.00 (07-20); 6mo window [2026-01-22, 2026-07-22] -> the
+    SAME high 90.00 (06-03), low 70.00 (03-04). Both windows quote the
+    identical high — the TQQQ overplotting case.
+    """
+    return _open_high_low_close(
+        [
+            ("2026-03-04", 80.0, 70.0, 75.0),  # 6mo window only: the 6mo low
+            ("2026-06-03", 90.0, 85.0, 88.0),  # both windows: the high
+            ("2026-07-20", 76.0, 72.0, 73.0),  # both windows: the 2mo low
+            ("2026-07-21", 78.0, 76.0, 77.0),  # last close
         ]
     )
 

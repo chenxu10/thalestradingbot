@@ -28,10 +28,11 @@ CLI
   two-window high/low levels report (default USO), or ``<TICKER> unavailable``
   on a network hiccup.
 * ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER] --plot`` — also
-  chart the regime: close since war start, the four old high/low signal lines
-  with their print dates, and the shaded stop-cluster zones just beyond them
-  (buy stops above old highs, sell stops below old lows — the 56.80 -> 56.85
-  mechanism). One fetch feeds both the report and the chart.
+  chart the regime: close since war start, the old high/low signal lines with
+  their print dates (one line per DISTINCT level — windows printing the same
+  level merge, e.g. "2mo+6mo high"), and the shaded stop-cluster zones just
+  beyond them (buy stops above old highs, sell stops below old lows — the
+  56.80 -> 56.85 mechanism). One fetch feeds both the report and the chart.
 """
 
 from __future__ import annotations
@@ -98,11 +99,19 @@ def _windows(today, instrument):
 
 
 def levels_view(open_high_low_close, instrument=DEFAULT_INSTRUMENT, today=None):
-    """View-model for the chart: one entry per old high/low per window.
+    """View-model for the chart: one entry per DISTINCT old high/low.
 
-    Each entry: {label, kind, price, date, stop_side, stop_zone} where
+    Each entry: {label, short, kind, price, date, stop_side, stop_zone} where
     stop_side is "buy" above old highs and "sell" below old lows — where
-    PTJ says the stops cluster.
+    PTJ says the stops cluster. `short` is the first window quoting the
+    level; it keys the line style.
+
+    Two windows can print the SAME level (e.g. the 6mo high fell inside the
+    trailing 2mo window -> 2mo high == 6mo high, the same print on the same
+    date). Drawing both would stack two styles at one price — the second
+    hides the first while the legend still lists both, so the swatch colors
+    stop matching the screen. Coincident levels merge into one entry whose
+    label joins the window names ("2mo+6mo high").
     """
     today = today if today is not None else date.today()
     entries = []
@@ -112,7 +121,7 @@ def levels_view(open_high_low_close, instrument=DEFAULT_INSTRUMENT, today=None):
             continue
         entries.append(_level_entry(short, "high", stats))
         entries.append(_level_entry(short, "low", stats))
-    return entries
+    return _merge_coincident_levels(entries)
 
 
 def _level_entry(short, kind, stats):
@@ -120,12 +129,27 @@ def _level_entry(short, kind, stats):
     price = stats[kind]
     return {
         "label": f"{short} {kind}",
+        "short": short,
         "kind": kind,
         "price": price,
         "date": stats[f"{kind}_date"],
         "stop_side": stop_side,
         "stop_zone": stop_zone(price, stop_side),
     }
+
+
+def _merge_coincident_levels(entries):
+    """One entry per (kind, price): same-print window levels join labels."""
+    merged = []
+    by_key = {}
+    for entry in entries:
+        first = by_key.get((entry["kind"], entry["price"]))
+        if first is None:
+            by_key[(entry["kind"], entry["price"])] = entry
+            merged.append(entry)
+        else:
+            first["label"] = f"{first['short']}+{entry['short']} {first['kind']}"
+    return merged
 
 
 def _window_line(label, stats, last):
@@ -179,10 +203,12 @@ _LEVEL_STYLE = {
 def plot_high_low_levels(open_high_low_close, instrument, today=None, ax=None, show=True):
     """Chart the regime: close since war start, old highs/lows, stop clusters.
 
-    Each level is a signal line (2mo dashed, war/6mo dotted; highs red, lows
-    green) with a marker at its print date; the shaded band JUST BEYOND it is
-    where PTJ says the stops cluster — "buy stops" above old highs, "sell
-    stops" below old lows. Pure of fetching: pass a pre-built open_high_low_close frame.
+    Each DISTINCT level is a signal line (2mo dashed, war/6mo dotted; highs
+    red, lows green) with a marker at its print date — windows printing the
+    same level share one merged line ("2mo+6mo high"), so every legend swatch
+    matches a visible line. The shaded band JUST BEYOND a level is where PTJ
+    says the stops cluster — "buy stops" above old highs, "sell stops" below
+    old lows. Pure of fetching: pass a pre-built open_high_low_close frame.
     """
     import matplotlib.pyplot as plt
 
@@ -199,8 +225,7 @@ def plot_high_low_levels(open_high_low_close, instrument, today=None, ax=None, s
 
     ax.plot(regime.index, regime.values, color="black", lw=1.2, label="close")
     for entry in levels_view(open_high_low_close, instrument=instrument, today=today):
-        short = entry["label"].split(" ")[0]
-        style = _LEVEL_STYLE[(short, entry["kind"])]
+        style = _LEVEL_STYLE[(entry["short"], entry["kind"])]
         _draw_level(ax, entry, style, regime.index[-1])
 
     ax.set_title(f"{instrument} — old highs/lows & stop clusters (PTJ moving volume)")
