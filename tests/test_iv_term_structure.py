@@ -631,9 +631,9 @@ class TestPlotTermStructure:
         buckets = self._buckets([("1D", 0.20)])
 
         fig, ax = plt.subplots()
-        plot_term_structure(buckets, ax=ax, show=False, title="QQQ IV Term Structure")
+        plot_term_structure(buckets, ax=ax, show=False, title="QQQ ATM IV Term Structure")
 
-        assert ax.get_title() == "QQQ IV Term Structure"
+        assert ax.get_title() == "QQQ ATM IV Term Structure"
         assert ax.get_ylabel() == "ATM IV"
 
     def test_default_title_when_none_provided(self):
@@ -642,7 +642,7 @@ class TestPlotTermStructure:
         fig, ax = plt.subplots()
         plot_term_structure(buckets, ax=ax, show=False)
 
-        assert ax.get_title() == "IV Term Structure"
+        assert ax.get_title() == "ATM IV Term Structure"
 
     def test_all_none_buckets_plots_no_line(self):
         buckets = self._buckets([("1D", None), ("1W", None)])
@@ -709,7 +709,7 @@ class TestPlotTermStructurePanelWiring:
         facade = VolatilityFacade.__new__(VolatilityFacade)
         facade._plot_term_structure_panel(ax, "QQQ")
 
-        assert ax.get_title() == "QQQ IV Term Structure"
+        assert ax.get_title() == "QQQ ATM IV Term Structure"
         assert len(ax.lines) == 1
         line = ax.lines[0]
         assert list(line.get_ydata()) == [0.21, 0.22, 0.23, 0.24, 0.25]
@@ -726,7 +726,7 @@ class TestPlotTermStructurePanelWiring:
         facade = VolatilityFacade.__new__(VolatilityFacade)
         facade._plot_term_structure_panel(ax, "QQQ")
 
-        assert ax.get_title() == "IV Term Structure"
+        assert ax.get_title() == "ATM IV Term Structure"
         assert len(ax.lines) == 0
         assert any("unavailable" in t.get_text() for t in ax.texts)
 
@@ -742,7 +742,7 @@ class TestPlotTermStructurePanelWiring:
         facade = VolatilityFacade.__new__(VolatilityFacade)
         facade._plot_term_structure_panel(ax, "QQQ")
 
-        assert ax.get_title() == "IV Term Structure"
+        assert ax.get_title() == "ATM IV Term Structure"
         assert len(ax.lines) == 0
         texts = [t.get_text() for t in ax.texts]
         assert any("unavailable" in t and "RuntimeError" in t for t in texts)
