@@ -14,15 +14,31 @@ from __future__ import annotations
 from datetime import date, datetime
 
 
+# Each bucket only matches a listed expiry whose dte lies within
+# +/- toleranceDays of the bucket's targetDays; otherwise the bucket stays
+# EMPTY. Matching nearest regardless of distance would fabricate tenors the
+# market never quoted -- e.g. with only one expiry 30 days out, every bucket
+# from 1D to 6M would plot that 30-day IV, and the trader would read a flat
+# "term structure" where 6 of 7 points are fictitious.
 DEFAULT_BUCKET_DEFINITIONS = (
-    {"label": "1D", "targetDays": 1},
-    {"label": "3D", "targetDays": 3},
-    {"label": "1W", "targetDays": 7},
-    {"label": "3W", "targetDays": 21},
-    {"label": "1M", "targetDays": 30},
-    {"label": "3M", "targetDays": 90},
-    {"label": "6M", "targetDays": 180},
+    {"label": "1D", "targetDays": 1, "toleranceDays": 2},
+    {"label": "3D", "targetDays": 3, "toleranceDays": 2},
+    {"label": "1W", "targetDays": 7, "toleranceDays": 3},
+    {"label": "3W", "targetDays": 21, "toleranceDays": 7},
+    {"label": "1M", "targetDays": 30, "toleranceDays": 10},
+    {"label": "3M", "targetDays": 90, "toleranceDays": 21},
+    {"label": "6M", "targetDays": 180, "toleranceDays": 45},
 )
+
+
+def _default_tolerance_days(target_days):
+    """Fallback match tolerance for buckets that don't declare one.
+
+    A quarter of the tenor, floored at 2 days: front buckets legitimately
+    share the nearest listed expiry (yfinance's shortest QQQ expiry is
+    usually 1-2 calendar days out), far buckets must not.
+    """
+    return max(2, int(round(0.25 * target_days)))
 
 
 def _parse_anchor_date(value):
@@ -270,11 +286,25 @@ def _clone_bucket_definitions(definitions):
             target_days = int(entry.get("targetDays"))
         except (TypeError, ValueError):
             target_days = 0
-        normalized.append({"label": label, "targetDays": max(0, target_days)})
+        target_days = max(0, target_days)
+        try:
+            tolerance_days = int(entry.get("toleranceDays"))
+        except (TypeError, ValueError):
+            tolerance_days = _default_tolerance_days(target_days)
+        normalized.append({
+            "label": label,
+            "targetDays": target_days,
+            "toleranceDays": max(0, tolerance_days),
+        })
     return normalized
 
 
-def _pick_nearest_detail_row(detail_rows, target_days):
+def _pick_nearest_detail_row(detail_rows, target_days, max_distance):
+    """Nearest detail row to `target_days`, or None if none is within
+    `max_distance` days. A bucket with no listed expiry inside its tolerance
+    must stay empty: showing a far expiry's IV under this bucket's label
+    would fabricate a tenor the market never quoted.
+    """
     match = None
     match_distance = None
     for row in detail_rows or []:
@@ -289,6 +319,8 @@ def _pick_nearest_detail_row(detail_rows, target_days):
             continue
 
         distance = abs(dte - target_days)
+        if distance > max_distance:
+            continue
         if (
             match is None
             or distance < match_distance
@@ -338,31 +370,41 @@ def _matched_bucket_row(bucket, match):
 def build_bucket_rows(detail_rows, bucket_definitions=None):
     """Fold per-expiry detail rows into normalized tenor buckets.
 
-    Each bucket is matched to the detail row whose dte is nearest the bucket's
-    targetDays.For the 1D bucket it scans every detail row's dte 
-    (days-to-expiry, computed at yfinance_adapter.py:calculate_calendar_dte → 
-    iv_term_structure.py:65) and finds the one with abs(dte - 1) 
-    minimal. In practice yfinance's shortest QQQ expiry is 
-    usually 1–2 calendar days out
+    Each bucket is matched to the detail row whose dte is nearest the
+    bucket's targetDays AND within the bucket's toleranceDays. A bucket with
+    no listed expiry inside its tolerance stays empty (None matched fields)
+    rather than borrowing a far expiry's IV -- a "6M" point read off a
+    30-day option would fabricate a tenor the market never quoted. For the
+    1D bucket (toleranceDays 2) it scans every detail row's dte
+    (days-to-expiry, computed at yfinance_adapter.py:calculate_calendar_dte →
+    iv_term_structure.py:65) and takes the nearest with abs(dte - 1) <= 2.
+    In practice yfinance's shortest QQQ expiry is usually 1–2 calendar days
+    out.
 
     Args:
         detail_rows: output of build_expiry_detail_rows (or any list of dicts
             shaped {expiry, dte, atm_strike, call_iv, put_iv, atm_iv,
             has_complete_pair}). Rows with missing/blank expiry or non-integer
             dte are ignored.
-        bucket_definitions: optional list of {label, targetDays}; defaults to
-            DEFAULT_BUCKET_DEFINITIONS (1D/3D/1W/3W/1M/3M/6M). Malformed entries
-            are coerced to safe defaults (label "Bucket", targetDays 0).
+        bucket_definitions: optional list of {label, targetDays,
+            toleranceDays}; defaults to DEFAULT_BUCKET_DEFINITIONS
+            (1D/3D/1W/3W/1M/3M/6M). toleranceDays is optional per bucket;
+            missing/malformed values fall back to
+            _default_tolerance_days(targetDays) (quarter-tenor, floor 2).
+            Malformed entries are coerced to safe defaults (label "Bucket",
+            targetDays 0).
 
     Returns: list of bucket rows in bucket-definition order, each shaped
         {label, target_days, matched_expiry, matched_dte, atm_strike,
          call_iv, put_iv, atm_iv, has_complete_pair}.
-        Buckets with no match (empty input) have None / False for all
-        matched fields.
+        Buckets with no match (empty input, or no row within tolerance)
+        have None / False for all matched fields.
     """
     output = []
     for bucket in _clone_bucket_definitions(bucket_definitions):
-        match = _pick_nearest_detail_row(detail_rows, bucket["targetDays"])
+        match = _pick_nearest_detail_row(
+            detail_rows, bucket["targetDays"], bucket["toleranceDays"]
+        )
         if match is None:
             output.append(_empty_bucket_row(bucket))
         else:

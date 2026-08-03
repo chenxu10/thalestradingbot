@@ -193,9 +193,11 @@ class TestBuildBucketRows:
     """Final computation step: fold per-expiry detail rows into tenor buckets.
 
     Each bucket (1D/3D/1W/3W/1M/3M/6M by default) is matched to the detail row
-    whose dte is nearest the bucket's targetDays. The output is the normalized
-    term-structure curve -- the decision-relevant artifact that the plot renders
-    and that Thales will compare against realized vol.
+    whose dte is nearest the bucket's targetDays AND within the bucket's
+    toleranceDays; a bucket with no expiry inside its tolerance stays empty
+    rather than fabricating a tenor from a far expiry. The output is the
+    normalized term-structure curve -- the decision-relevant artifact that the
+    plot renders and that Thales will compare against realized vol.
     """
 
     def test_default_buckets_match_nearest_dte(self):
@@ -211,15 +213,18 @@ class TestBuildBucketRows:
 
         buckets = build_bucket_rows(detail_rows)
 
-        # bucket: (label, targetDays) -> expected matched dte
+        # bucket: (label, targetDays, toleranceDays) -> expected matched dte.
+        # dte 60 is OUTSIDE the 1M tolerance (dist 30 > 10) and the 3M
+        # tolerance (dist 30 > 21), so it is excluded from both, not merely
+        # farther away than the winner.
         expected_matches = {
-            "1D": 2,    # target 1:  nearest is 2 (dist 1)
-            "3D": 2,    # target 3:  nearest is 2 (dist 1) vs 8 (dist 5) -> 2
-            "1W": 8,    # target 7:  nearest is 8 (dist 1)
-            "3W": 22,   # target 21: nearest is 22 (dist 1)
-            "1M": 22,   # target 30: nearest is 22 (dist 8) vs 60 (dist 30) -> 22
-            "3M": 95,   # target 90: nearest is 95 (dist 5) vs 60 (dist 30) -> 95
-            "6M": 200,  # target 180: nearest is 200 (dist 20) vs 95 (dist 85) -> 200
+            "1D": 2,    # target 1 tol 2:  nearest is 2 (dist 1)
+            "3D": 2,    # target 3 tol 2:  nearest is 2 (dist 1) vs 8 (dist 5) -> 2
+            "1W": 8,    # target 7 tol 3:  nearest is 8 (dist 1)
+            "3W": 22,   # target 21 tol 7: nearest is 22 (dist 1)
+            "1M": 22,   # target 30 tol 10: 22 (dist 8); 60 (dist 30) excluded
+            "3M": 95,   # target 90 tol 21: 95 (dist 5); 60 (dist 30) excluded
+            "6M": 200,  # target 180 tol 45: 200 (dist 20); 95 (dist 85) excluded
         }
 
         assert [b["label"] for b in buckets] == [
@@ -310,20 +315,57 @@ class TestBuildBucketRows:
         assert [b["label"] for b in buckets] == ["45D", "1Y"]
         assert buckets[0]["matched_dte"] == 45
         assert buckets[0]["atm_iv"] == 0.245
-        # 1Y bucket: only row is at dte 45 (dist 320) -- still nearest, so matched.
-        assert buckets[1]["matched_dte"] == 45
-        assert buckets[1]["atm_iv"] == 0.245
+        # 1Y bucket: only row is at dte 45 (dist 320), far outside the
+        # fallback tolerance (quarter-tenor: 91 days) -> stays empty.
+        assert buckets[1]["matched_dte"] is None
+        assert buckets[1]["atm_iv"] is None
 
-    def test_custom_bucket_far_from_any_row_still_matches_nearest(self):
-        # No maxDte-style cutoff here; nearest is unconditional. Filtering of
-        # too-far matches is the caller's job, not build_bucket_rows'.
+    def test_custom_bucket_far_from_any_row_stays_empty(self):
+        # The tolerance cutoff is the whole point: a 1Y bucket must NOT show
+        # a 5-day option's IV. Empty is truthful; nearest would be fabricated.
         detail_rows = [_detail_row(5, 0.205)]
         custom = [{"label": "1Y", "targetDays": 365}]
 
         buckets = build_bucket_rows(detail_rows, custom)
 
+        assert buckets[0]["matched_expiry"] is None
+        assert buckets[0]["matched_dte"] is None
+        assert buckets[0]["atm_iv"] is None
+        assert buckets[0]["has_complete_pair"] is False
+
+    def test_explicit_wide_tolerance_allows_far_match(self):
+        # toleranceDays is the caller's escape hatch: declare a wide one and
+        # the same far row matches again.
+        detail_rows = [_detail_row(5, 0.205)]
+        custom = [{"label": "1Y", "targetDays": 365, "toleranceDays": 400}]
+
+        buckets = build_bucket_rows(detail_rows, custom)
+
         assert buckets[0]["matched_dte"] == 5
         assert buckets[0]["atm_iv"] == 0.205
+
+    def test_tolerance_boundary_is_inclusive(self):
+        # dist == toleranceDays matches; dist == toleranceDays + 1 does not.
+        custom = [{"label": "1M", "targetDays": 30, "toleranceDays": 10}]
+
+        inside = build_bucket_rows([_detail_row(20, 0.220)], custom)
+        outside = build_bucket_rows([_detail_row(19, 0.219)], custom)
+
+        assert inside[0]["matched_dte"] == 20
+        assert outside[0]["matched_dte"] is None
+
+    def test_sparse_chain_only_fills_buckets_near_a_listed_expiry(self):
+        # The fabricated-tenor regression pin: one expiry at dte 30 must fill
+        # ONLY the 1M bucket, not a flat 7-point curve.
+        detail_rows = [_detail_row(30, 0.230)]
+
+        buckets = build_bucket_rows(detail_rows)
+
+        matched = {b["label"]: b["matched_dte"] for b in buckets}
+        assert matched == {
+            "1D": None, "3D": None, "1W": None, "3W": None,
+            "1M": 30, "3M": None, "6M": None,
+        }
 
     def test_ignores_rows_with_missing_or_non_integer_dte(self):
         detail_rows = [
@@ -641,25 +683,26 @@ class TestPlotTermStructurePanelWiring:
         )
 
     def test_panel_renders_curve_from_fetched_chain(self, monkeypatch):
-        from collections import namedtuple
-        pd = pytest.importorskip("pandas")
         from fentu.explatoryservices.volcalculator import VolatilityFacade
 
-        Chain = namedtuple("Chain", ["calls", "puts"])
-        # Expiry is generated relative to today so it always survives the
+        # Expiries are generated relative to today so they always survive the
         # dte >= 0 filter (a hardcoded "future" date is a time bomb: it
-        # silently starts failing the day the wall clock passes it).
-        expiry = (date.today() + timedelta(days=30)).isoformat()
-        code = expiry.replace("-", "")
-        calls = pd.DataFrame([
-            {"contractSymbol": f"{code}C0400000", "strike": 400, "impliedVolatility": 0.23, "lastPrice": 3.0},
-            {"contractSymbol": f"{code}C0405000", "strike": 405, "impliedVolatility": 0.30, "lastPrice": 1.0},
+        # silently starts failing the day the wall clock passes it). Each
+        # expiry gets a distinct IV so the plotted y-values pin WHICH expiry
+        # each bucket matched. No expiry is listed near the 3W or 6M targets,
+        # so those buckets must stay EMPTY -- the pre-fix behavior matched
+        # every bucket to the nearest expiry regardless of distance and drew
+        # a fabricated flat 7-point curve from sparse data.
+        def _expiry(days):
+            return (date.today() + timedelta(days=days)).isoformat()
+
+        chain_data = _fake_chain([
+            (_expiry(1), 400, 0.20, 0.22),   # -> 1D, atm_iv 0.21
+            (_expiry(3), 400, 0.21, 0.23),   # -> 3D, atm_iv 0.22
+            (_expiry(7), 400, 0.22, 0.24),   # -> 1W, atm_iv 0.23
+            (_expiry(30), 400, 0.23, 0.25),  # -> 1M, atm_iv 0.24
+            (_expiry(91), 400, 0.24, 0.26),  # -> 3M, atm_iv 0.25
         ])
-        puts = pd.DataFrame([
-            {"contractSymbol": f"{code}P0400000", "strike": 400, "impliedVolatility": 0.25, "lastPrice": 4.0},
-            {"contractSymbol": f"{code}P0405000", "strike": 405, "impliedVolatility": 0.30, "lastPrice": 1.0},
-        ])
-        chain_data = {"expiries": [expiry], "chains": {expiry: Chain(calls=calls, puts=puts)}}
         self._stub_fetcher(monkeypatch, chain_data, 400.0)
 
         fig, ax = plt.subplots()
@@ -668,9 +711,12 @@ class TestPlotTermStructurePanelWiring:
 
         assert ax.get_title() == "QQQ IV Term Structure"
         assert len(ax.lines) == 1
+        line = ax.lines[0]
+        assert list(line.get_ydata()) == [0.21, 0.22, 0.23, 0.24, 0.25]
         fig.canvas.draw()
         labels = [t.get_text() for t in ax.get_xticklabels()]
-        assert labels == ["1D", "3D", "1W", "3W", "1M", "3M", "6M"]
+        assert labels == ["1D", "3D", "1W", "1M", "3M"]
+        assert "3W" not in labels and "6M" not in labels
 
     def test_panel_shows_note_when_no_expiries(self, monkeypatch):
         from fentu.explatoryservices.volcalculator import VolatilityFacade
