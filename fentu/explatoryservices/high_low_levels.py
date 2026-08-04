@@ -18,21 +18,24 @@ teams/paultudorjones.pdf, verbatim):
     when they are setting new highs, that is often the best time to sell."
 
 Built for USO (oil, the war instrument), but `instrument` is any yfinance
-ticker — the same levels logic applies to BNO, CL=F, GLD, SPY, ... USO reports
-the trailing 2mo plus the regime since the 2026-02-28 US-Iran war start; every
-other ticker reports the trailing 2mo and 6mo windows instead.
+ticker — the same levels logic applies to BNO, CL=F, GLD, SPY, BRK-B, TQQQ, ...
+Every ticker reports the trailing 2mo and 6mo windows; USO additionally reports
+the regime since the 2026-02-28 US-Iran war start. The trailing-6mo window's
+high/low ARE the resistance/support levels — the levels the price has to clear
+(or hold) after six months of prints.
 
 CLI
 ---
 * ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER]`` — print the
-  two-window high/low levels report (default USO), or ``<TICKER> unavailable``
+  high/low levels report (default USO), or ``<TICKER> unavailable``
   on a network hiccup.
 * ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER] --plot`` — also
   chart the regime: close since war start, the old high/low signal lines with
   their print dates (one line per DISTINCT level — windows printing the same
-  level merge, e.g. "2mo+6mo high"), and the shaded stop-cluster zones just
-  beyond them (buy stops above old highs, sell stops below old lows — the
-  56.80 -> 56.85 mechanism). One fetch feeds both the report and the chart.
+  level merge, e.g. "2mo+6mo high"), the six-month resistance/support as SOLID
+  lines, and the shaded stop-cluster zones just beyond them (buy stops above
+  old highs, sell stops below old lows — the 56.80 -> 56.85 mechanism). One
+  fetch feeds both the report and the chart.
 """
 
 from __future__ import annotations
@@ -84,17 +87,17 @@ def window_high_low(open_high_low_close, start, end):
 def _windows(today, instrument):
     """(short_name, label, start) per decision window, both ending at `today`.
 
-    USO (the war instrument) reports the trailing 2mo plus the regime since
-    the 2026-02-28 US-Iran war start. Every other ticker reports the trailing
-    2mo and 6mo windows instead — the "war" window is USO-specific.
+    Every instrument reports the trailing 2mo and 6mo windows; USO (the war
+    instrument) additionally reports the regime since the 2026-02-28 US-Iran
+    war start. The 6mo window is universal — it is the source of every
+    ticker's resistance/support levels.
     """
     two_mo_back = (pd.Timestamp(today) - pd.DateOffset(months=LOOKBACK_MONTHS)).date()
     six_mo_back = (pd.Timestamp(today) - pd.DateOffset(months=LOOKBACK_MONTHS_LONG)).date()
     windows = [("2mo", f"past {LOOKBACK_MONTHS}mo (since {two_mo_back})", two_mo_back)]
     if instrument == DEFAULT_INSTRUMENT:
         windows.append(("war", f"since {WAR_START} (war start)", WAR_START))
-    else:
-        windows.append(("6mo", f"past {LOOKBACK_MONTHS_LONG}mo (since {six_mo_back})", six_mo_back))
+    windows.append(("6mo", f"past {LOOKBACK_MONTHS_LONG}mo (since {six_mo_back})", six_mo_back))
     return windows
 
 
@@ -127,8 +130,11 @@ def levels_view(open_high_low_close, instrument=DEFAULT_INSTRUMENT, today=None):
 def _level_entry(short, kind, stats):
     stop_side = "buy" if kind == "high" else "sell"
     price = stats[kind]
+    name = kind
+    if short == "6mo":
+        name = "resistance" if kind == "high" else "support"
     return {
-        "label": f"{short} {kind}",
+        "label": f"{short} {name}",
         "short": short,
         "kind": kind,
         "price": price,
@@ -186,22 +192,24 @@ def _report_from_open_high_low_close(open_high_low_close, instrument, today):
 _LEVEL_STYLE = {
     ("2mo", "high"): {"color": "darkred", "ls": "--"},
     ("war", "high"): {"color": "red", "ls": ":"},
-    ("6mo", "high"): {"color": "red", "ls": ":"},
+    ("6mo", "high"): {"color": "red", "ls": "-"},
     ("2mo", "low"): {"color": "darkgreen", "ls": "--"},
     ("war", "low"): {"color": "green", "ls": ":"},
-    ("6mo", "low"): {"color": "green", "ls": ":"},
+    ("6mo", "low"): {"color": "green", "ls": "-"},
 }
 
 
 def plot_high_low_levels(open_high_low_close, instrument, today=None, ax=None, show=True):
-    """Chart the regime: close since war start, old highs/lows, stop clusters.
+    """Chart the regime: close since (war start | 6mo ago), old highs/lows.
 
-    Each DISTINCT level is a signal line (2mo dashed, war/6mo dotted; highs
-    red, lows green) with a marker at its print date — windows printing the
-    same level share one merged line ("2mo+6mo high"), so every legend swatch
-    matches a visible line. The shaded band JUST BEYOND a level is where PTJ
-    says the stops cluster — "buy stops" above old highs, "sell stops" below
-    old lows. Pure of fetching: pass a pre-built open_high_low_close frame.
+    Each DISTINCT level is a signal line (2mo dashed, war dotted, the
+    trailing-6mo resistance/support SOLID — the six-month high/low, named
+    support/resistance regardless of ticker) with a marker at its print date.
+    Windows printing the same level share one merged line ("2mo+6mo high"), so
+    every legend swatch matches a visible line. The shaded band JUST BEYOND a
+    level is where PTJ says the stops cluster — "buy stops" above old highs,
+    "sell stops" below old lows. Pure of fetching: pass a pre-built
+    open_high_low_close frame.
     """
     import matplotlib.pyplot as plt
 
