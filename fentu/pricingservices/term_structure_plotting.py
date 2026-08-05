@@ -20,7 +20,7 @@ def plot_term_structure(bucket_rows, ax=None, show=True, title=None):
             are skipped.
         ax: existing Axes to draw on; if None a new figure/Axes is created.
         show: if True, call plt.show() (mirrors plotting_service convention).
-        title: axes title; defaults to "IV Term Structure".
+        title: axes title; defaults to "ATM IV Term Structure".
 
     Returns: the Axes the curve was drawn on.
     """
@@ -43,7 +43,7 @@ def plot_term_structure(bucket_rows, ax=None, show=True, title=None):
 
     ax.set_ylabel("ATM IV")
     ax.set_xlabel("Tenor")
-    ax.set_title(title if title is not None else "IV Term Structure")
+    ax.set_title(title if title is not None else "ATM IV Term Structure")
 
     if show:
         plt.show()

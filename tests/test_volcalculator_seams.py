@@ -255,8 +255,14 @@ class TestVolatilityDashboard:
 
         fig, ax = plt.subplots()
         VolatilityDashboard().plot_term_structure_panel(ax, "QQQ", fetcher=_fetcher)
-        assert ax.get_title() == "QQQ IV Term Structure"
+        assert ax.get_title() == "QQQ ATM IV Term Structure"
         assert len(ax.lines) == 1
+        # A single expiry 30 days out fills ONLY the 1M bucket; the other six
+        # tenors must stay empty rather than borrow the 30-day IV.
+        assert list(ax.lines[0].get_ydata()) == [0.24]
+        fig.canvas.draw()
+        labels = [t.get_text() for t in ax.get_xticklabels()]
+        assert labels == ["1M"]
         plt.close(fig)
 
     def test_plot_term_structure_panel_graceful_on_fetch_exception(self):
@@ -265,7 +271,7 @@ class TestVolatilityDashboard:
 
         fig, ax = plt.subplots()
         VolatilityDashboard().plot_term_structure_panel(ax, "QQQ", fetcher=boom)
-        assert ax.get_title() == "IV Term Structure"
+        assert ax.get_title() == "ATM IV Term Structure"
         assert len(ax.lines) == 0
         texts = [t.get_text() for t in ax.texts]
         assert any("unavailable" in t and "RuntimeError" in t for t in texts)

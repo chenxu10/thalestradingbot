@@ -328,7 +328,7 @@ class VolatilityDashboard:
             chain_data, underlying_price = fetch(instrument)
             if not chain_data.get("expiries") or underlying_price is None:
                 self.show_panel_unavailable(
-                    ax, "IV Term Structure", "IV term structure unavailable"
+                    ax, "ATM IV Term Structure", "IV term structure unavailable"
                 )
                 return
             detail_rows = yfinance_chain_to_detail_rows(
@@ -339,11 +339,11 @@ class VolatilityDashboard:
             buckets = build_bucket_rows(detail_rows)
             plot_term_structure(
                 buckets, ax=ax, show=False,
-                title=f"{instrument} IV Term Structure",
+                title=f"{instrument} ATM IV Term Structure",
             )
         except Exception as exc:
             self.show_panel_unavailable(
-                ax, "IV Term Structure", "IV term structure unavailable",
+                ax, "ATM IV Term Structure", "IV term structure unavailable",
                 type(exc).__name__,
             )
 
