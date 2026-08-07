@@ -1,11 +1,4 @@
 """Morning brief — one-line overnight HK summary for a US-east based trader.
-
-Written test-first (Kent Beck, TDD By Example). Drives a tiny new feature:
-`morning_brief()` reuses the existing `ReturnsRepository` network seam (the
-ONLY object that touches yfinance) to fetch ^HSI open_high_low_close and print a one-line
-briefing. No new plotting, no scheduler, no new network path.
-
-(^VHSI removed — delisted on yfinance feeds: HTTP 404 / no timezone found.)
 """
 import pandas as pd
 import numpy as np
