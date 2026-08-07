@@ -499,42 +499,40 @@ class VolatilityFacade:
                 )
 
     def _build_percentage_change_figure_layout(self):
-        """Build the 2x2-on-top + full-width term-structure + VIX figure.
+        """Build the 2x2-on-top + full-width VIX figure.
 
-        Returns: (fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix) where
-        ax_term and ax_vix each span the full width of their bottom rows.
+        Returns: (fig, ax_qq, ax_hist, ax_left, ax_right, ax_vix) where
+        ax_vix spans the full width of its bottom row.
         """
-        fig = plt.figure(figsize=(12, 15))
+        fig = plt.figure(figsize=(12, 12))
         gs = fig.add_gridspec(
-            4, 2,
-            height_ratios=[1, 1, 1, 1],
+            3, 2,
+            height_ratios=[1, 1, 1],
             hspace=0.45, wspace=0.25,
         )
         ax_qq = fig.add_subplot(gs[0, 0])
         ax_hist = fig.add_subplot(gs[0, 1])
         ax_left = fig.add_subplot(gs[1, 0])
         ax_right = fig.add_subplot(gs[1, 1])
-        ax_term = fig.add_subplot(gs[2, :])
-        ax_vix = fig.add_subplot(gs[3, :])
-        return fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix
+        ax_vix = fig.add_subplot(gs[2, :])
+        return fig, ax_qq, ax_hist, ax_left, ax_right, ax_vix
 
     def _plot_percentage_change(self, data, tail_percent):
         """
         Plot percentage change visualizations.
 
         Layout: a 2x2 block of QQ / histogram / left-tail / right-tail on top,
-        with the IV term-structure curve occupying the full-width row beneath.
+        with the VIX index curve occupying the full-width row beneath.
 
         Args:
             data: dict from _prepare_percentage_change_data
             tail_percent: Fraction of extreme tail to fit for alpha estimation
         """
-        fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix = self._build_percentage_change_figure_layout()
+        fig, ax_qq, ax_hist, ax_left, ax_right, ax_vix = self._build_percentage_change_figure_layout()
 
         ps.qq_plot(data['returns'], ax=ax_qq, show=False)
         ps.histgram_plot(data['returns'], ax=ax_hist, show=False)
         self._plot_tail_fits(data['tails'], [ax_left, ax_right], tail_percent)
-        self._plot_term_structure_panel(ax_term, data['instrument'])
         self._plot_vix_panel(ax_vix)
 
         fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")
