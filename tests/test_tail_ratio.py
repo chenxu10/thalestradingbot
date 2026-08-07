@@ -8,4 +8,4 @@ def test_wing_to_body_ratio_known_case():
     ratio = wing_to_body_ratio(wing_price, straddle_price)
 
     assert round(ratio, 4) == 0.0639
-# MARKER-1786138595
+
