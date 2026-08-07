@@ -308,40 +308,6 @@ class VolatilityDashboard:
                 bbox=dict(facecolor="white", alpha=0.8, edgecolor="purple"),
             )
 
-    def plot_term_structure_panel(self, ax, instrument, fetcher=None):
-        from datetime import date as _date
-
-        from fentu.pricingservices.yfinance_fetcher import (
-            fetch_yfinance_chain as default_fetcher,
-        )
-        from fentu.pricingservices.yfinance_adapter import yfinance_chain_to_detail_rows
-        from fentu.pricingservices.iv_term_structure import build_bucket_rows
-        from fentu.pricingservices.term_structure_plotting import plot_term_structure
-
-        fetch = fetcher if fetcher is not None else default_fetcher
-        try:
-            chain_data, underlying_price = fetch(instrument)
-            if not chain_data.get("expiries") or underlying_price is None:
-                self.show_panel_unavailable(
-                    ax, "ATM IV Term Structure", "IV term structure unavailable"
-                )
-                return
-            detail_rows = yfinance_chain_to_detail_rows(
-                chain_data,
-                underlying_price=underlying_price,
-                anchor_date=_date.today(),
-            )
-            buckets = build_bucket_rows(detail_rows)
-            plot_term_structure(
-                buckets, ax=ax, show=False,
-                title=f"{instrument} ATM IV Term Structure",
-            )
-        except Exception as exc:
-            self.show_panel_unavailable(
-                ax, "ATM IV Term Structure", "IV term structure unavailable",
-                type(exc).__name__,
-            )
-
 
 class VolatilityFacade:
     """
