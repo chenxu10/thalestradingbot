@@ -34,8 +34,8 @@ Every test is **F**ast (in-memory numbers, no feed, no network), **I**ndependent
 | Order | Test | Reason |
 |---|---|---|
 | 1 | **T1 ratio** | **Starter Test** — green in minutes, answers "where does this belong?" (pure function). ✅ **DONE** — `fentu/pricingservices/tail_ratio.py`, one assertion, suite green. |
-| 2 | **T2 percentile** | Second pure function, no I/O — **Obvious Implementation**. |
-| 3 | **T3 daily series** | Data plumbing, still pure: list in, list out. **One Step Test** from known to unknown. |
+| 2 | **T2 percentile** | Second pure function, no I/O — **Obvious Implementation**. ✅ **DONE** — `tail_ratio.py:6`, 10-year series fixture (2016–2026), suite green. |
+| 3 | **T3 daily series** | Data plumbing, still pure: list in, list out. **One Step Test** from known to unknown. ✅ **DONE** — `tail_ratio.py:18` `daily_series`, same-date matching across 3m/6m, no invented data, reuses `wing_to_body_ratio`. |
 | 4 | **T4 signals** | The business decision — crossing rule earns its regression guard forever. |
 | 5 | **T5 render** | Last: the plotting library is the only untrusted dependency; T1–T4 are the green ratchet under it. |
 
