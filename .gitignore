@@ -18,5 +18,6 @@ featurerequest/
 protocols/
 teams/
 strategies/
-*.log
-*.pid
+
+.xingjian.log
+.xingjian.pid
