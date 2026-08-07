@@ -18,3 +18,5 @@ featurerequest/
 protocols/
 teams/
 strategies/
+*.log
+*.pid
