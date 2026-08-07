@@ -1,7 +1,6 @@
 """High/low levels over decision windows — where the stop clusters sit.
 
-Paul Tudor Jones on moving volume (Market Wizards interview,
-teams/paultudorjones.pdf, verbatim):
+Paul Tudor Jones on moving volume:
 
     "Tullis taught me about moving volume. When you are trading size, you
     have to get out when the market lets you out, not when you want to get
@@ -19,23 +18,10 @@ teams/paultudorjones.pdf, verbatim):
 
 Built for USO (oil, the war instrument), but `instrument` is any yfinance
 ticker — the same levels logic applies to BNO, CL=F, GLD, SPY, BRK-B, TQQQ, ...
-Every ticker reports the trailing 2mo and 6mo windows; USO additionally reports
-the regime since the 2026-02-28 US-Iran war start. The trailing-6mo window's
-high/low ARE the resistance/support levels — the levels the price has to clear
-(or hold) after six months of prints.
 
 CLI
 ---
-* ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER]`` — print the
-  high/low levels report (default USO), or ``<TICKER> unavailable``
-  on a network hiccup.
-* ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER] --plot`` — also
-  chart the regime: close since war start, the old high/low signal lines with
-  their print dates (one line per DISTINCT level — windows printing the same
-  level merge, e.g. "2mo+6mo high"), the six-month resistance/support as SOLID
-  lines, and the shaded stop-cluster zones just beyond them (buy stops above
-  old highs, sell stops below old lows — the 56.80 -> 56.85 mechanism). One
-  fetch feeds both the report and the chart.
+* ``uv run python -m fentu.explatoryservices.high_low_levels [TICKER] --plot``
 """
 
 from __future__ import annotations
