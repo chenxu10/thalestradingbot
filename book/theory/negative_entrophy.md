@@ -57,6 +57,6 @@ I(E) = -log₂( P(E) )  比特
 6. 花书Deep Learning信息论的基本概念
 7. Taleb left tail constraint + maximal entrophy
 8. Deng YU
-9. simon xiaoshu environemnt structure
+
 
 
