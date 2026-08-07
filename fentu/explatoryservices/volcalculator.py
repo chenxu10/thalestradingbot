@@ -53,9 +53,7 @@ Topology Diagram (ASCII)
  | VolatilityDashboard  (Seam 3 — presentation, pure of fetching)            |
  |   show_panel_unavailable(ax,...)  -> centered "unavailable" note          |
  |   plot_vix_panel(ax, open_high_low_close, current_value) -> pure render from prebuilt    |
- |   plot_term_structure_panel(ax, instrument, fetcher=None)                 |
- |       -> injectable fetcher (defaults to fetch_yfinance_chain);           |
- |          network-failure-safe                                             |
+ |       open_high_low_close + optional (label, value) current-value pair   |
  +---------------------------------------------------------------------------+
                  |  composed by
                  v
@@ -80,9 +78,8 @@ Topology Diagram (ASCII)
  |     +-> _prepare_percentage_change_data() (data view-model)               |
  |     +-> _plot_percentage_change()                                         |
  |           +-> ps.qq_plot / ps.histgram_plot / spl.plot_loglog_with_fit    |
- |           +-> _plot_term_structure_panel (delegates -> dashboard)         |
  |           +-> _plot_vix_panel             (delegates -> dashboard)        |
- |           +-> matplotlib 4x2 gridspec + suptitle                          |
+ |           +-> matplotlib 3x2 gridspec + suptitle                          |
  |  [Reporting]     show_today_return / get_past_{week,year}_price_and_log_  |
  +---------------------------------------------------------------------------+
 
@@ -282,9 +279,7 @@ class MarketClock:
 class VolatilityDashboard:
     """Renders the percentage-change figure's panels from pre-built data.
 
-    Never fetches. `plot_term_structure_panel` takes an injectable `fetcher`
-    (defaults to the module-level `fetch_yfinance_chain`, which tests
-    monkeypatch); `plot_vix_panel` takes pre-built open_high_low_close + an optional
+    Never fetches. `plot_vix_panel` takes pre-built open_high_low_close + an optional
     `(label, value)` current-value pair.
     """
 
@@ -311,40 +306,6 @@ class VolatilityDashboard:
                 0.99, 0.95, f"{label}\n{value:.2f}",
                 transform=ax.transAxes, ha="right", va="top",
                 bbox=dict(facecolor="white", alpha=0.8, edgecolor="purple"),
-            )
-
-    def plot_term_structure_panel(self, ax, instrument, fetcher=None):
-        from datetime import date as _date
-
-        from fentu.pricingservices.yfinance_fetcher import (
-            fetch_yfinance_chain as default_fetcher,
-        )
-        from fentu.pricingservices.yfinance_adapter import yfinance_chain_to_detail_rows
-        from fentu.pricingservices.iv_term_structure import build_bucket_rows
-        from fentu.pricingservices.term_structure_plotting import plot_term_structure
-
-        fetch = fetcher if fetcher is not None else default_fetcher
-        try:
-            chain_data, underlying_price = fetch(instrument)
-            if not chain_data.get("expiries") or underlying_price is None:
-                self.show_panel_unavailable(
-                    ax, "ATM IV Term Structure", "IV term structure unavailable"
-                )
-                return
-            detail_rows = yfinance_chain_to_detail_rows(
-                chain_data,
-                underlying_price=underlying_price,
-                anchor_date=_date.today(),
-            )
-            buckets = build_bucket_rows(detail_rows)
-            plot_term_structure(
-                buckets, ax=ax, show=False,
-                title=f"{instrument} ATM IV Term Structure",
-            )
-        except Exception as exc:
-            self.show_panel_unavailable(
-                ax, "ATM IV Term Structure", "IV term structure unavailable",
-                type(exc).__name__,
             )
 
 
@@ -450,10 +411,6 @@ class VolatilityFacade:
         dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
         return dashboard.show_panel_unavailable(ax, title, message, detail)
 
-    def _plot_term_structure_panel(self, ax, instrument):
-        dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
-        return dashboard.plot_term_structure_panel(ax, instrument)
-
     def _plot_vix_panel(self, ax):
         try:
             vix_open_high_low_close = self._get_vix_open_high_low_close()
@@ -542,42 +499,40 @@ class VolatilityFacade:
                 )
 
     def _build_percentage_change_figure_layout(self):
-        """Build the 2x2-on-top + full-width term-structure + VIX figure.
+        """Build the 2x2-on-top + full-width VIX figure.
 
-        Returns: (fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix) where
-        ax_term and ax_vix each span the full width of their bottom rows.
+        Returns: (fig, ax_qq, ax_hist, ax_left, ax_right, ax_vix) where
+        ax_vix spans the full width of its bottom row.
         """
-        fig = plt.figure(figsize=(12, 15))
+        fig = plt.figure(figsize=(12, 12))
         gs = fig.add_gridspec(
-            4, 2,
-            height_ratios=[1, 1, 1, 1],
+            3, 2,
+            height_ratios=[1, 1, 1],
             hspace=0.45, wspace=0.25,
         )
         ax_qq = fig.add_subplot(gs[0, 0])
         ax_hist = fig.add_subplot(gs[0, 1])
         ax_left = fig.add_subplot(gs[1, 0])
         ax_right = fig.add_subplot(gs[1, 1])
-        ax_term = fig.add_subplot(gs[2, :])
-        ax_vix = fig.add_subplot(gs[3, :])
-        return fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix
+        ax_vix = fig.add_subplot(gs[2, :])
+        return fig, ax_qq, ax_hist, ax_left, ax_right, ax_vix
 
     def _plot_percentage_change(self, data, tail_percent):
         """
         Plot percentage change visualizations.
 
         Layout: a 2x2 block of QQ / histogram / left-tail / right-tail on top,
-        with the IV term-structure curve occupying the full-width row beneath.
+        with the VIX index curve occupying the full-width row beneath.
 
         Args:
             data: dict from _prepare_percentage_change_data
             tail_percent: Fraction of extreme tail to fit for alpha estimation
         """
-        fig, ax_qq, ax_hist, ax_left, ax_right, ax_term, ax_vix = self._build_percentage_change_figure_layout()
+        fig, ax_qq, ax_hist, ax_left, ax_right, ax_vix = self._build_percentage_change_figure_layout()
 
         ps.qq_plot(data['returns'], ax=ax_qq, show=False)
         ps.histgram_plot(data['returns'], ax=ax_hist, show=False)
         self._plot_tail_fits(data['tails'], [ax_left, ax_right], tail_percent)
-        self._plot_term_structure_panel(ax_term, data['instrument'])
         self._plot_vix_panel(ax_vix)
 
         fig.suptitle(f"{data['instrument']} {data['period'].capitalize()} Returns")

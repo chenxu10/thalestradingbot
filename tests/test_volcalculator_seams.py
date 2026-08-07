@@ -7,7 +7,7 @@ Test the three extracted seams of volcalculator.py:
 
 These tests are written test-first (Kent Beck, TDD By Example) to drive the
 God-Object `VolatilityFacade` apart along its seams. Existing tests in
-test_volcalculator_time_range.py / test_vix_subplot.py / test_iv_term_structure.py
+test_volcalculator_time_range.py / test_vix_subplot.py
 / test_volatility_metric.py / test_price_log_returns.py stay green throughout:
 the facade keeps delegating shims so its observed behaviour is preserved while
 the new seams are extracted.
@@ -230,49 +230,4 @@ class TestVolatilityDashboard:
         VolatilityDashboard().plot_vix_panel(ax, pd.DataFrame(), current_value=None)
         assert ax.get_title() == "VIX Index"
         assert any("unavailable" in t.get_text() for t in ax.texts)
-        plt.close(fig)
-
-    def test_plot_term_structure_panel_uses_injected_fetcher(self, monkeypatch):
-        from collections import namedtuple
-        Chain = namedtuple("Chain", ["calls", "puts"])
-        # Expiry is generated relative to today so it always survives the
-        # dte >= 0 filter (a hardcoded "future" date is a time bomb: it
-        # silently starts failing the day the wall clock passes it).
-        expiry = (date.today() + timedelta(days=30)).isoformat()
-        code = expiry.replace("-", "")
-        calls = pd.DataFrame([{
-            "contractSymbol": f"{code}C0400000", "strike": 400,
-            "impliedVolatility": 0.23, "lastPrice": 3.0,
-        }])
-        puts = pd.DataFrame([{
-            "contractSymbol": f"{code}P0400000", "strike": 400,
-            "impliedVolatility": 0.25, "lastPrice": 4.0,
-        }])
-        chain_data = {"expiries": [expiry], "chains": {expiry: Chain(calls=calls, puts=puts)}}
-
-        def _fetcher(sym, max_expiries=None):
-            return chain_data, 400.0
-
-        fig, ax = plt.subplots()
-        VolatilityDashboard().plot_term_structure_panel(ax, "QQQ", fetcher=_fetcher)
-        assert ax.get_title() == "QQQ ATM IV Term Structure"
-        assert len(ax.lines) == 1
-        # A single expiry 30 days out fills ONLY the 1M bucket; the other six
-        # tenors must stay empty rather than borrow the 30-day IV.
-        assert list(ax.lines[0].get_ydata()) == [0.24]
-        fig.canvas.draw()
-        labels = [t.get_text() for t in ax.get_xticklabels()]
-        assert labels == ["1M"]
-        plt.close(fig)
-
-    def test_plot_term_structure_panel_graceful_on_fetch_exception(self):
-        def boom(sym, max_expiries=None):
-            raise RuntimeError("network down")
-
-        fig, ax = plt.subplots()
-        VolatilityDashboard().plot_term_structure_panel(ax, "QQQ", fetcher=boom)
-        assert ax.get_title() == "ATM IV Term Structure"
-        assert len(ax.lines) == 0
-        texts = [t.get_text() for t in ax.texts]
-        assert any("unavailable" in t and "RuntimeError" in t for t in texts)
         plt.close(fig)
