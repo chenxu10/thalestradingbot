@@ -411,10 +411,6 @@ class VolatilityFacade:
         dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
         return dashboard.show_panel_unavailable(ax, title, message, detail)
 
-    def _plot_term_structure_panel(self, ax, instrument):
-        dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
-        return dashboard.plot_term_structure_panel(ax, instrument)
-
     def _plot_vix_panel(self, ax):
         try:
             vix_open_high_low_close = self._get_vix_open_high_low_close()
