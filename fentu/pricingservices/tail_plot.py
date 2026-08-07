@@ -24,6 +24,17 @@ import numpy as np
 import yfinance as yf
 from py_vollib.black_scholes import black_scholes
 
+from fentu.pricingservices.option_quotes import (
+    atm_strike,
+    call_iv,
+    days_to_expiry,
+    fetch_spot,
+    otm_put_mid,
+    otm_strike,
+    pick_expiry,
+    put_iv,
+    straddle_mid,
+)
 from fentu.pricingservices.tail_ratio import percentile
 
 MATURITIES = {"3m": 63}  # trading days to expiry
@@ -51,41 +62,25 @@ def bs_straddle(spot, vol, t_years, rate=0.0):
 def fetch_today_quotes():
     """Real mid-market quotes for today: spot, ATM straddle, OTM wings."""
     ticker = yf.Ticker("QQQ")
-    spot = float(ticker.history(period="1d")["Close"].iloc[-1])
+    spot = fetch_spot("QQQ")
 
     today = datetime.now().date()
     quotes = {}
     for label, days in MATURITIES.items():
-        expiry = None
-        for exp in ticker.options:
-            exp_date = datetime.strptime(exp, "%Y-%m-%d").date()
-            dte = (exp_date - today).days
-            if 0 < dte <= days * 1.7 and (expiry is None or abs(dte - days) < abs((datetime.strptime(expiry, "%Y-%m-%d").date() - today).days - days)):
-                expiry = exp
+        expiry = pick_expiry(ticker, days)
         if expiry is None:
             continue
         chain = ticker.option_chain(expiry)
-        atm_k = min(set(chain.calls["strike"]), key=lambda k: abs(k - float(spot)))
-        straddle = 0.0
-        for side in (chain.calls, chain.puts):
-            row = side[side["strike"] == atm_k].iloc[0]
-            straddle += (row["bid"] + row["ask"]) / 2.0
-        wing = {}
-        atm_iv = None
-        for pct in WING_LEVELS:
-            k = int(round(spot * (1 - pct) / 5.0) * 5)
-            row = chain.puts[chain.puts["strike"] == k].iloc[0]
-            wing[pct] = (row["bid"] + row["ask"]) / 2.0
-            if pct == 0.20:
-                atm_iv = float(chain.calls[chain.calls["strike"] == atm_k].iloc[0]["impliedVolatility"])
-                wing_iv = float(row["impliedVolatility"])
+        atm_k = atm_strike(chain, spot)
+        wing = {pct: otm_put_mid(chain, otm_strike(spot, pct)) for pct in WING_LEVELS}
+        atm_iv = call_iv(chain, atm_k)
         quotes[label] = {
             "expiry": expiry,
-            "dte": (datetime.strptime(expiry, "%Y-%m-%d").date() - today).days,
+            "dte": days_to_expiry(expiry),
             "spot": spot,
-            "straddle": straddle,
+            "straddle": straddle_mid(chain, atm_k),
             "wing": wing,
-            "skew_pts": {pct: (float(chain.puts[chain.puts["strike"] == int(round(spot * (1 - pct) / 5.0) * 5)].iloc[0]["impliedVolatility"]) - atm_iv) * 100.0 for pct in WING_LEVELS},
+            "skew_pts": {pct: (put_iv(chain, otm_strike(spot, pct)) - atm_iv) * 100.0 for pct in WING_LEVELS},
         }
     return quotes
 
