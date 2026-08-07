@@ -279,9 +279,7 @@ class MarketClock:
 class VolatilityDashboard:
     """Renders the percentage-change figure's panels from pre-built data.
 
-    Never fetches. `plot_term_structure_panel` takes an injectable `fetcher`
-    (defaults to the module-level `fetch_yfinance_chain`, which tests
-    monkeypatch); `plot_vix_panel` takes pre-built open_high_low_close + an optional
+    Never fetches. `plot_vix_panel` takes pre-built open_high_low_close + an optional
     `(label, value)` current-value pair.
     """
 
