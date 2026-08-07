@@ -7,7 +7,7 @@ Test the three extracted seams of volcalculator.py:
 
 These tests are written test-first (Kent Beck, TDD By Example) to drive the
 God-Object `VolatilityFacade` apart along its seams. Existing tests in
-test_volcalculator_time_range.py / test_vix_subplot.py / test_iv_term_structure.py
+test_volcalculator_time_range.py / test_vix_subplot.py
 / test_volatility_metric.py / test_price_log_returns.py stay green throughout:
 the facade keeps delegating shims so its observed behaviour is preserved while
 the new seams are extracted.
