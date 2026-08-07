@@ -53,9 +53,7 @@ Topology Diagram (ASCII)
  | VolatilityDashboard  (Seam 3 — presentation, pure of fetching)            |
  |   show_panel_unavailable(ax,...)  -> centered "unavailable" note          |
  |   plot_vix_panel(ax, open_high_low_close, current_value) -> pure render from prebuilt    |
- |   plot_term_structure_panel(ax, instrument, fetcher=None)                 |
- |       -> injectable fetcher (defaults to fetch_yfinance_chain);           |
- |          network-failure-safe                                             |
+ |       open_high_low_close + optional (label, value) current-value pair   |
  +---------------------------------------------------------------------------+
                  |  composed by
                  v
@@ -80,9 +78,8 @@ Topology Diagram (ASCII)
  |     +-> _prepare_percentage_change_data() (data view-model)               |
  |     +-> _plot_percentage_change()                                         |
  |           +-> ps.qq_plot / ps.histgram_plot / spl.plot_loglog_with_fit    |
- |           +-> _plot_term_structure_panel (delegates -> dashboard)         |
  |           +-> _plot_vix_panel             (delegates -> dashboard)        |
- |           +-> matplotlib 4x2 gridspec + suptitle                          |
+ |           +-> matplotlib 3x2 gridspec + suptitle                          |
  |  [Reporting]     show_today_return / get_past_{week,year}_price_and_log_  |
  +---------------------------------------------------------------------------+
 
