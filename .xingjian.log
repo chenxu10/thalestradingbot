@@ -1,3 +1,9 @@
 xingjian: watching **/*.py every 0.5s
 xingjian: GREEN → auto-commit | RED → reset --hard
 xingjian: Ctrl-C to stop
+xingjian: watching **/*.py every 0.5s
+xingjian: GREEN → auto-commit | RED → reset --hard
+xingjian: Ctrl-C to stop
+
+--- save detected, scanning assertions ---
+xingjian: scanning assertions in tail_ratio.py ...
