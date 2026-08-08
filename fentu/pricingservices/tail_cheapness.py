@@ -4,25 +4,18 @@ Self-checking asserts at module top level: xingjian executes this file on every
 save, so these are the honest red/green gate for T2.
 """
 
+import numpy as np
+
 
 def percentile(series, q):
-    """q-th percentile of series, linear interpolation (numpy/Excel INC style).
+    """q-th percentile of series, linear interpolation, delegated to numpy.
 
-    Method pinned here and in tests: q=10 of [0.30, 0.29, 0.25, 0.24, 0.26]
-    is 0.244 under linear interpolation, 0.24 under nearest-rank — a silent
-    method swap cannot pass.
+    Method pinned: np.percentile(..., method="linear") — a silent method swap
+    cannot pass the q=10 -> 0.244 assertion.
     """
     if not series:
         raise ValueError("percentile of an empty series is undefined")
-    if not 0 <= q <= 100:
-        raise ValueError(f"q must be in [0, 100], got {q}")
-    s = sorted(series)
-    pos = (len(s) - 1) * (q / 100)
-    lo = int(pos)
-    if lo == len(s) - 1:
-        return s[lo]
-    frac = pos - lo
-    return s[lo] + frac * (s[lo + 1] - s[lo])
+    return float(np.percentile(series, q, method="linear"))
 
 
 # T2: hand-built series from the story's T4 example, known percentile values.
