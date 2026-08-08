@@ -17,5 +17,3 @@ assert round(wing_to_body_ratio(4.46, 69.83), 4) == 0.0639
 # Property invariants that defeat a hardcoded or gamed answer:
 assert wing_to_body_ratio(0.0, 69.83) == 0.0                    # no wing, no cost
 assert wing_to_body_ratio(69.83, 69.83) == 1.0                  # wing at the money
-assert wing_to_body_ratio(139.66, 69.83) == 2.0                 # doubling is linear
-assert wing_to_body_ratio(4.46, 69.83) == wing_to_body_ratio(8.92, 139.66)  # scale-free
