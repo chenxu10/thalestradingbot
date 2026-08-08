@@ -7,3 +7,7 @@ xingjian: Ctrl-C to stop
 
 --- save detected, scanning assertions ---
 xingjian: scanning assertions in tail_ratio.py ...
+✅ green → committed 5a766cf: xingjian: working 10:56:28
+
+--- save detected, scanning assertions ---
+xingjian: scanning assertions in test_tail_ratio.py ...
