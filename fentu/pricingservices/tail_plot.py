@@ -68,20 +68,19 @@ def fetch_today_quotes():
     quotes = {}
     for label, days in MATURITIES.items():
         expiry = pick_expiry(ticker, days)
-        if expiry is None:
-            continue
-        chain = ticker.option_chain(expiry)
-        atm_k = atm_strike(chain, spot)
-        wing = {pct: otm_put_mid(chain, otm_strike(spot, pct)) for pct in WING_LEVELS}
-        atm_iv = call_iv(chain, atm_k)
-        quotes[label] = {
-            "expiry": expiry,
-            "dte": days_to_expiry(expiry),
-            "spot": spot,
-            "straddle": straddle_mid(chain, atm_k),
-            "wing": wing,
-            "skew_pts": {pct: (put_iv(chain, otm_strike(spot, pct)) - atm_iv) * 100.0 for pct in WING_LEVELS},
-        }
+        if expiry is not None:
+            chain = ticker.option_chain(expiry)
+            atm_k = atm_strike(chain, spot)
+            wing = {pct: otm_put_mid(chain, otm_strike(spot, pct)) for pct in WING_LEVELS}
+            atm_iv = call_iv(chain, atm_k)
+            quotes[label] = {
+                "expiry": expiry,
+                "dte": days_to_expiry(expiry),
+                "spot": spot,
+                "straddle": straddle_mid(chain, atm_k),
+                "wing": wing,
+                "skew_pts": {pct: (put_iv(chain, otm_strike(spot, pct)) - atm_iv) * 100.0 for pct in WING_LEVELS},
+            }
     return quotes
 
 
