@@ -148,18 +148,17 @@ def plot_tail_cheapness(save_path=None):
             ax.text(dates[len(dates) // 5], (q25 + q75) / 2, "normal range", color="#666666", fontsize=8, va="center")
             ax.text(dates[len(dates) // 5], q75 * 1.5, "expensive zone\n(tail pricier than 75%\nof the last 10 years)", color="#2ca02c", fontsize=8, va="center")
 
-    for pct in WING_LEVELS:
-        real_ratio = quotes["3m"]["wing"][pct] / quotes["3m"]["straddle"]
-        ax.scatter(
-            [date.today()],
-            [real_ratio],
-            marker="o",
-            s=140,
-            color=LEVEL_COLORS[pct],
-            edgecolors="black",
-            zorder=5,
-            label=f"TODAY real (3m, {int(pct*100)}% OTM): {real_ratio:.4f}",
-        )
+    real_ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
+    ax.scatter(
+        [date.today()],
+        [real_ratio],
+        marker="o",
+        s=140,
+        color=LEVEL_COLORS[DECISION_LEVEL],
+        edgecolors="black",
+        zorder=5,
+        label=f"TODAY real (3m, {int(DECISION_LEVEL*100)}% OTM): {real_ratio:.4f}",
+    )
 
     today_ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
     vals_decision = [r * anchor[("3m", DECISION_LEVEL)] for d, p_, r in hist["3m"] if p_ == DECISION_LEVEL and math.isfinite(r)]
