@@ -15,6 +15,7 @@ Reconstruction assumptions (stated on the chart):
   against the model-implied point at today's real ATM IV + skew offsets.
 """
 
+import logging
 import math
 import os
 from datetime import date, datetime, timedelta
@@ -39,6 +40,8 @@ from fentu.pricingservices.option_quotes import (
     straddle_mid,
 )
 from fentu.pricingservices.tail_ratio import percentile
+
+logger = logging.getLogger(__name__)
 
 MATURITIES = {"3m": 63}  # trading days to expiry
 WING_LEVELS = [0.20, 0.25, 0.30]  # OTM fractions
@@ -67,7 +70,6 @@ def fetch_today_quotes():
     ticker = yf.Ticker("QQQ")
     spot = fetch_spot("QQQ")
 
-    today = datetime.now().date()
     quotes = {}
     for label, days in MATURITIES.items():
         expiry = pick_expiry(ticker, days)
@@ -138,15 +140,27 @@ def historical_ratios(quotes, years=10):
     """
     history = download_price_history(years)
     vix_last = float(history.vix.loc[history.dates[-1]].iloc[0])
-    return {
-        label: reconstruct_ratios(
-            history,
-            quotes[label]["skew_pts"],
-            days / 252.0,
-            quotes[label]["atm_iv"] / (vix_last / 100.0),
+    logger.info(
+        "history: %d aligned VIX/QQQ closes (%s .. %s), vix_last=%.2f",
+        len(history.dates),
+        history.dates[0].date(),
+        history.dates[-1].date(),
+        vix_last,
+    )
+    ratios = {}
+    for label, days in MATURITIES.items():
+        vol_anchor = quotes[label]["atm_iv"] / (vix_last / 100.0)
+        ratios[label] = reconstruct_ratios(
+            history, quotes[label]["skew_pts"], days / 252.0, vol_anchor
         )
-        for label, days in MATURITIES.items()
-    }
+        logger.info(
+            "label %s: atm_iv=%.4f, vol_anchor=%.3f, reconstructed %d points",
+            label,
+            quotes[label]["atm_iv"],
+            vol_anchor,
+            len(ratios[label]),
+        )
+    return ratios
 
 
 def split_terminal(hist):
@@ -166,23 +180,46 @@ def split_terminal(hist):
 
 def plot_tail_cheapness(save_path=None):
     quotes = fetch_today_quotes()
+    for label, q in quotes.items():
+        wings = ", ".join(f"{int(p * 100)}%: {w:.3f}" for p, w in q["wing"].items())
+        logger.info(
+            "label %s: expiry=%s dte=%d spot=%.2f atm_iv=%.4f straddle=%.2f wing {%s}",
+            label,
+            q["expiry"],
+            q["dte"],
+            q["spot"],
+            q["atm_iv"],
+            q["straddle"],
+            wings,
+        )
     hist = historical_ratios(quotes)
     series, model_today = split_terminal(hist)
+    logger.info("series points per wing: %s", {pct: len(series[pct]) for pct in WING_LEVELS})
     today = date.today()
     if save_path is None:
         save_path = f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
 
     fig, ax = plt.subplots(figsize=(13, 7))
     today_ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
+    logger.info("today real ratio (%d%% OTM wing/straddle) = %.4f", int(DECISION_LEVEL * 100), today_ratio)
 
     _plot_wing_series(ax, series)
     q25 = _plot_decision_annotations(ax, series)
     _plot_today_marker(ax, today_ratio, model_today)
     verdict = _verdict(today_ratio, q25)
+    logger.info(
+        "decision wing: q25 buy line=%.4f, model-implied today=%s, verdict=%s (today %.4f vs q25 %.4f)",
+        q25,
+        model_today[DECISION_LEVEL],
+        verdict,
+        today_ratio,
+        q25,
+    )
     _decorate_axes(ax, quotes, today, today_ratio, q25, verdict)
 
     fig.tight_layout()
     fig.savefig(save_path, dpi=150)
+    logger.info("saved %s", save_path)
     print(f"saved {save_path}")
     return save_path, today_ratio, q25
 
@@ -263,5 +300,6 @@ def _decorate_axes(ax, quotes, today, today_ratio, q25, verdict):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     path, today_ratio, q25 = plot_tail_cheapness()
     plt.show()
