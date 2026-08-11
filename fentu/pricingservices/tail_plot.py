@@ -3,7 +3,7 @@
 Run it:
     uv run python -m fentu.pricingservices.tail_plot
 
-Output: figures/tail_cheapness_aug7_2026.png
+Output: figures/tail_cheapness_<date>.png (named after today's date)
 
 Reconstruction assumptions (stated on the chart):
 - 10y history: wing/body ratio reconstructed from REAL VIX (the body's own
@@ -115,9 +115,12 @@ def historical_ratios(years=10):
     return hist, quotes
 
 
-def plot_tail_cheapness(save_path="figures/tail_cheapness_aug7_2026.png"):
+def plot_tail_cheapness(save_path=None):
     hist, quotes = historical_ratios()
     fig, ax = plt.subplots(figsize=(13, 7))
+    today = date.today()
+    if save_path is None:
+        save_path = f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
 
     anchor = {}
     for label in hist:
@@ -163,7 +166,7 @@ def plot_tail_cheapness(save_path="figures/tail_cheapness_aug7_2026.png"):
     q25 = percentile(vals_decision, 25)
     verdict = "CHEAP - buy the tail" if today_ratio < q25 else "NOT cheap - wait, let the strangles fund"
     ax.set_title(
-        f"QQQ tail cheapness - Aug 7 2026 (spot ${quotes['3m']['spot']:.2f})\n"
+        f"QQQ tail cheapness - {today.strftime('%b')} {today.day} {today.year} (spot ${quotes['3m']['spot']:.2f})\n"
         f"{int(DECISION_LEVEL*100)}% OTM put / ATM straddle today = {today_ratio:.4f} vs 25th pct buy line {q25:.4f} -> {verdict}"
     )
     ax.set_ylabel("far-OTM put price / ATM straddle price (log scale)")
