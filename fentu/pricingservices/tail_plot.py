@@ -11,6 +11,8 @@ Reconstruction assumptions (stated on the chart):
   constant and a flat term structure. The vol LEVEL is anchored to today's
   real ATM IV (the market's vol premium) — NOT to today's wing ratio, so
   today's real wing quote stays an independent, out-of-sample test point.
+- The tenor is the REAL option's actual calendar DTE (~90 days), so the
+  model prices the same maturity as the quotes it is compared against.
 - Today's dots: REAL mid-market quotes from the yfinance chain, compared
   against the model-implied point at today's real ATM IV + skew offsets.
 """
@@ -43,7 +45,7 @@ from fentu.pricingservices.tail_ratio import percentile
 
 logger = logging.getLogger(__name__)
 
-MATURITIES = {"3m": 63}  # trading days to expiry
+MATURITIES = {"3m": 90}  # calendar days to expiry (pick_expiry matches calendar DTE); ~3 months ~ 63 trading days
 WING_LEVELS = [0.20, 0.25, 0.30]  # OTM fractions
 DECISION_LEVEL = 0.25  # the wing this plot decides on
 LEVEL_COLORS = {0.20: "#1f77b4", 0.25: "#ff7f0e", 0.30: "#9467bd"}
@@ -103,8 +105,8 @@ def download_price_history(years=10):
     """Phase A: download and align VIX/QQQ closes over the window."""
     end = datetime.now().date()
     start = end - timedelta(days=int(years * 365.25))
-    vix = yf.download("^VIX", start=start, end=end, progress=False)["Close"]
-    qqq = yf.download("QQQ", start=start, end=end, progress=False)["Close"]
+    vix = yf.download("^VIX", start=start, end=end, progress=False, auto_adjust=False)["Close"]
+    qqq = yf.download("QQQ", start=start, end=end, progress=False, auto_adjust=False)["Close"]
     dates = vix.index.intersection(qqq.index)
     if len(dates) == 0:
         raise RuntimeError("no overlapping VIX/QQQ history downloaded — check network and retry")
@@ -136,7 +138,9 @@ def historical_ratios(quotes, years=10):
 
     The vol level is anchored to today's real ATM IV (vol premium) — NOT to
     today's wing ratio — so the terminal reconstructed point is model-implied
-    and today's real wing quote remains an independent test point.
+    and today's real wing quote remains an independent test point. The tenor
+    is the REAL option's calendar DTE (quotes[label]["dte"]), so model and
+    real quote price the same maturity — wing/body ratios are tenor-sensitive.
     """
     history = download_price_history(years)
     vix_last = float(history.vix.loc[history.dates[-1]].iloc[0])
@@ -148,16 +152,17 @@ def historical_ratios(quotes, years=10):
         vix_last,
     )
     ratios = {}
-    for label, days in MATURITIES.items():
+    for label in MATURITIES:
         vol_anchor = quotes[label]["atm_iv"] / (vix_last / 100.0)
-        ratios[label] = reconstruct_ratios(
-            history, quotes[label]["skew_pts"], days / 252.0, vol_anchor
-        )
+        t_years = quotes[label]["dte"] / 365.0
+        ratios[label] = reconstruct_ratios(history, quotes[label]["skew_pts"], t_years, vol_anchor)
         logger.info(
-            "label %s: atm_iv=%.4f, vol_anchor=%.3f, reconstructed %d points",
+            "label %s: atm_iv=%.4f, vol_anchor=%.3f, dte=%d days -> t=%.4f y, reconstructed %d points",
             label,
             quotes[label]["atm_iv"],
             vol_anchor,
+            quotes[label]["dte"],
+            t_years,
             len(ratios[label]),
         )
     return ratios
@@ -225,11 +230,17 @@ def plot_tail_cheapness(save_path=None):
 
 
 def _plot_wing_series(ax, series):
-    for pct in WING_LEVELS:
-        sr = series[pct]
-        color = LEVEL_COLORS[pct]
-        lw = 1.6 if pct == DECISION_LEVEL else 0.8
-        ax.plot([d for d, r in sr], [r for d, r in sr], lw=lw, color=color, alpha=0.8, label=f"{int(pct*100)}% OTM wing / body (reconstructed)")
+    """Plot only the decision wing's reconstructed ratio series (the 20%/30% lines removed)."""
+    sr = series[DECISION_LEVEL]
+    color = LEVEL_COLORS[DECISION_LEVEL]
+    ax.plot(
+        [d for d, r in sr],
+        [r for d, r in sr],
+        lw=1.6,
+        color=color,
+        alpha=0.8,
+        label=f"{int(DECISION_LEVEL*100)}% OTM wing / body (reconstructed)",
+    )
 
 
 def _plot_decision_annotations(ax, series):
