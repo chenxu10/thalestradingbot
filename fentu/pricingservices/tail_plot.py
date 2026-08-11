@@ -8,8 +8,11 @@ Output: figures/tail_cheapness_<date>.png (named after today's date)
 Reconstruction assumptions (stated on the chart):
 - 10y history: wing/body ratio reconstructed from REAL VIX (the body's own
   price) and REAL QQQ closes via BSM, with TODAY's real skew offsets held
-  constant and a flat term structure, anchored to today's real ratio.
-- Today's dots: REAL mid-market quotes from the yfinance chain.
+  constant and a flat term structure. The vol LEVEL is anchored to today's
+  real ATM IV (the market's vol premium) — NOT to today's wing ratio, so
+  today's real wing quote stays an independent, out-of-sample test point.
+- Today's dots: REAL mid-market quotes from the yfinance chain, compared
+  against the model-implied point at today's real ATM IV + skew offsets.
 """
 
 import math
@@ -77,6 +80,7 @@ def fetch_today_quotes():
                 "expiry": expiry,
                 "dte": days_to_expiry(expiry),
                 "spot": spot,
+                "atm_iv": atm_iv,
                 "straddle": straddle_mid(chain, atm_k),
                 "wing": wing,
                 "skew_pts": {pct: (put_iv(chain, otm_strike(spot, pct)) - atm_iv) * 100.0 for pct in WING_LEVELS},
@@ -105,12 +109,17 @@ def download_price_history(years=10):
     return PriceHistory(dates, vix.loc[dates], qqq.loc[dates])
 
 
-def reconstruct_ratios(history, skew, t_years):
-    """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction."""
+def reconstruct_ratios(history, skew, t_years, vol_anchor):
+    """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction.
+
+    Each day's VIX is scaled by vol_anchor (today's real ATM IV / VIX), so the
+    reconstructed vol LEVEL matches today's market while each day's relative
+    vol move stays real. Skew offsets are today's real ones, held constant.
+    """
     ratios = []
     for idx in history.dates:
         s = float(history.qqq.loc[idx].iloc[0])
-        v = float(history.vix.loc[idx].iloc[0]) / 100.0
+        v = float(history.vix.loc[idx].iloc[0]) / 100.0 * vol_anchor
         if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
             continue
         body = bs_straddle(s, v, t_years)
@@ -121,37 +130,44 @@ def reconstruct_ratios(history, skew, t_years):
 
 
 def historical_ratios(quotes, years=10):
-    """Wing/body ratio history reconstructed from real VIX + QQQ closes."""
+    """Wing/body ratio history reconstructed from real VIX + QQQ closes.
+
+    The vol level is anchored to today's real ATM IV (vol premium) — NOT to
+    today's wing ratio — so the terminal reconstructed point is model-implied
+    and today's real wing quote remains an independent test point.
+    """
     history = download_price_history(years)
+    vix_last = float(history.vix.loc[history.dates[-1]].iloc[0])
     return {
-        label: reconstruct_ratios(history, quotes[label]["skew_pts"], days / 252.0)
+        label: reconstruct_ratios(
+            history,
+            quotes[label]["skew_pts"],
+            days / 252.0,
+            quotes[label]["atm_iv"] / (vix_last / 100.0),
+        )
         for label, days in MATURITIES.items()
     }
 
 
-def anchored_series(hist, quotes):
-    """Phase 1 (data): anchor today's real ratios onto the 10y reconstruction.
+def split_terminal(hist):
+    """Phase 1 (data): split off the terminal model point from each wing series.
 
-    Returns (anchor, series): per-(label, pct) real/reconstructed ratios, and
-    the per-wing 3m series anchored onto today ('3m' entries). Pure — no plt.
+    Returns (series, model_today): per-wing (date, ratio) pairs minus the last
+    close, and the last-close model ratio per wing. The verdict compares
+    today's REAL ratio against the series only, keeping it out-of-sample.
     """
-    anchor = {}
-    for label in hist:
-        for pct in WING_LEVELS:
-            recon_today = [r for d, p_, r in hist[label] if p_ == pct and math.isfinite(r)][-1]
-            real_today = quotes[label]["wing"][pct] / quotes[label]["straddle"]
-            anchor[(label, pct)] = real_today / recon_today
-
-    series = {}
+    series, model_today = {}, {}
     for pct in WING_LEVELS:
-        series[pct] = [(d, r * anchor[("3m", pct)]) for d, p_, r in hist["3m"] if p_ == pct]
-    return anchor, series
+        pts = [(d, r) for d, p_, r in hist["3m"] if p_ == pct and math.isfinite(r)]
+        series[pct] = pts[:-1]
+        model_today[pct] = pts[-1] if pts else None
+    return series, model_today
 
 
 def plot_tail_cheapness(save_path=None):
     quotes = fetch_today_quotes()
     hist = historical_ratios(quotes)
-    anchor, series = anchored_series(hist, quotes)
+    series, model_today = split_terminal(hist)
     today = date.today()
     if save_path is None:
         save_path = f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
@@ -161,7 +177,7 @@ def plot_tail_cheapness(save_path=None):
 
     _plot_wing_series(ax, series)
     q25 = _plot_decision_annotations(ax, series)
-    _plot_today_marker(ax, today_ratio)
+    _plot_today_marker(ax, today_ratio, model_today)
     verdict = _verdict(today_ratio, q25)
     _decorate_axes(ax, quotes, today, today_ratio, q25, verdict)
 
@@ -182,6 +198,8 @@ def _plot_wing_series(ax, series):
 def _plot_decision_annotations(ax, series):
     """Buy/expensive bands and zone labels for the decision wing. Returns the 25th-pct buy line."""
     sr = series[DECISION_LEVEL]
+    if not sr:
+        return float("nan")
     dates = [d for d, r in sr]
     vals = [r for d, r in sr if math.isfinite(r)]
     q25 = percentile(vals, 25)
@@ -202,7 +220,18 @@ def _plot_decision_annotations(ax, series):
     return q25
 
 
-def _plot_today_marker(ax, today_ratio):
+def _plot_today_marker(ax, today_ratio, model_today):
+    m_date, m_ratio = model_today[DECISION_LEVEL]
+    ax.scatter(
+        [m_date],
+        [m_ratio],
+        marker="D",
+        s=90,
+        facecolors="none",
+        edgecolors="gray",
+        zorder=4,
+        label=f"model-implied today (BSM, real ATM IV + skew): {m_ratio:.4f}",
+    )
     ax.scatter(
         [date.today()],
         [today_ratio],
@@ -225,7 +254,7 @@ def _decorate_axes(ax, quotes, today, today_ratio, q25, verdict):
         f"{int(DECISION_LEVEL*100)}% OTM put / ATM straddle today = {today_ratio:.4f} vs 25th pct buy line {q25:.4f} -> {verdict}"
     )
     ax.set_ylabel("far-OTM put price / ATM straddle price (log scale)")
-    ax.set_xlabel("10 years of history (reconstructed: real VIX + QQQ closes, BSM, anchored to today's real ratio)")
+    ax.set_xlabel("10 years of history (reconstructed: real VIX + QQQ closes, BSM, vol anchored to today's real ATM IV)")
     ax.set_yscale("log")
     ax.set_yticks([0.01, 0.02, 0.05, 0.1, 0.2])
     ax.get_yaxis().set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
