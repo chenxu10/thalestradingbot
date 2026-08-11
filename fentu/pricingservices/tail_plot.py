@@ -115,13 +115,12 @@ def historical_ratios(years=10):
     return hist, quotes
 
 
-def plot_tail_cheapness(save_path=None):
-    hist, quotes = historical_ratios()
-    fig, ax = plt.subplots(figsize=(13, 7))
-    today = date.today()
-    if save_path is None:
-        save_path = f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
+def anchored_series(hist, quotes):
+    """Phase 1 (data): anchor today's real ratios onto the 10y reconstruction.
 
+    Returns (anchor, series): per-(label, pct) real/reconstructed ratios, and
+    the per-wing 3m series anchored onto today ('3m' entries). Pure — no plt.
+    """
     anchor = {}
     for label in hist:
         for pct in WING_LEVELS:
@@ -129,13 +128,27 @@ def plot_tail_cheapness(save_path=None):
             real_today = quotes[label]["wing"][pct] / quotes[label]["straddle"]
             anchor[(label, pct)] = real_today / recon_today
 
+    series = {}
     for pct in WING_LEVELS:
-        series = [(d, r * anchor[("3m", pct)]) for d, p_, r in hist["3m"] if p_ == pct]
-        dates = [d for d, r in series]
-        vals = [r for d, r in series if math.isfinite(r)]
+        series[pct] = [(d, r * anchor[("3m", pct)]) for d, p_, r in hist["3m"] if p_ == pct]
+    return anchor, series
+
+
+def plot_tail_cheapness(save_path=None):
+    hist, quotes = historical_ratios()
+    anchor, series = anchored_series(hist, quotes)
+    fig, ax = plt.subplots(figsize=(13, 7))
+    today = date.today()
+    if save_path is None:
+        save_path = f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
+
+    for pct in WING_LEVELS:
+        sr = series[pct]
+        dates = [d for d, r in sr]
+        vals = [r for d, r in sr if math.isfinite(r)]
         color = LEVEL_COLORS[pct]
         lw = 1.6 if pct == DECISION_LEVEL else 0.8
-        ax.plot(dates, [r for d, r in series], lw=lw, color=color, alpha=0.8, label=f"{int(pct*100)}% OTM wing / body (reconstructed)")
+        ax.plot(dates, [r for d, r in sr], lw=lw, color=color, alpha=0.8, label=f"{int(pct*100)}% OTM wing / body (reconstructed)")
 
         if pct == DECISION_LEVEL:
             q25 = percentile(vals, 25)
