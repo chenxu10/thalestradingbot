@@ -84,8 +84,17 @@ def fetch_today_quotes():
     return quotes
 
 
-def historical_ratios(years=10):
-    """Wing/body ratio history reconstructed from real VIX + QQQ closes."""
+class PriceHistory:
+    """Aligned VIX/QQQ closes over the window: the (dates, vix, qqq) data clump."""
+
+    def __init__(self, dates, vix, qqq):
+        self.dates = dates
+        self.vix = vix
+        self.qqq = qqq
+
+
+def download_price_history(years=10):
+    """Phase A: download and align VIX/QQQ closes over the window."""
     end = datetime.now().date()
     start = end - timedelta(days=int(years * 365.25))
     vix = yf.download("^VIX", start=start, end=end, progress=False)["Close"]
@@ -93,26 +102,31 @@ def historical_ratios(years=10):
     dates = vix.index.intersection(qqq.index)
     if len(dates) == 0:
         raise RuntimeError("no overlapping VIX/QQQ history downloaded — check network and retry")
-    vix = vix.loc[dates]
-    qqq = qqq.loc[dates]
+    return PriceHistory(dates, vix.loc[dates], qqq.loc[dates])
 
-    quotes = fetch_today_quotes()
-    hist = {}
-    for label, days in MATURITIES.items():
-        skew = quotes[label]["skew_pts"]
-        t_years = days / 252.0
-        ratios = []
-        for idx in dates:
-            s = float(qqq.loc[idx].iloc[0])
-            v = float(vix.loc[idx].iloc[0]) / 100.0
-            if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
-                continue
-            body = bs_straddle(s, v, t_years)
-            for pct in WING_LEVELS:
-                w = bs_put(s, s * (1 - pct), v + skew[pct] / 100.0, t_years)
-                ratios.append((idx.date(), pct, w / body if body > 0 else float("nan")))
-        hist[label] = ratios
-    return hist, quotes
+
+def reconstruct_ratios(history, skew, t_years):
+    """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction."""
+    ratios = []
+    for idx in history.dates:
+        s = float(history.qqq.loc[idx].iloc[0])
+        v = float(history.vix.loc[idx].iloc[0]) / 100.0
+        if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
+            continue
+        body = bs_straddle(s, v, t_years)
+        for pct in WING_LEVELS:
+            w = bs_put(s, s * (1 - pct), v + skew[pct] / 100.0, t_years)
+            ratios.append((idx.date(), pct, w / body if body > 0 else float("nan")))
+    return ratios
+
+
+def historical_ratios(quotes, years=10):
+    """Wing/body ratio history reconstructed from real VIX + QQQ closes."""
+    history = download_price_history(years)
+    return {
+        label: reconstruct_ratios(history, quotes[label]["skew_pts"], days / 252.0)
+        for label, days in MATURITIES.items()
+    }
 
 
 def anchored_series(hist, quotes):
@@ -135,7 +149,8 @@ def anchored_series(hist, quotes):
 
 
 def plot_tail_cheapness(save_path=None):
-    hist, quotes = historical_ratios()
+    quotes = fetch_today_quotes()
+    hist = historical_ratios(quotes)
     anchor, series = anchored_series(hist, quotes)
     today = date.today()
     if save_path is None:
