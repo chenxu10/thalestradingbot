@@ -137,48 +137,74 @@ def anchored_series(hist, quotes):
 def plot_tail_cheapness(save_path=None):
     hist, quotes = historical_ratios()
     anchor, series = anchored_series(hist, quotes)
-    fig, ax = plt.subplots(figsize=(13, 7))
     today = date.today()
     if save_path is None:
         save_path = f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
 
+    fig, ax = plt.subplots(figsize=(13, 7))
+    today_ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
+
+    _plot_wing_series(ax, series)
+    q25 = _plot_decision_annotations(ax, series)
+    _plot_today_marker(ax, today_ratio)
+    verdict = _verdict(today_ratio, q25)
+    _decorate_axes(ax, quotes, today, today_ratio, q25, verdict)
+
+    fig.tight_layout()
+    fig.savefig(save_path, dpi=150)
+    print(f"saved {save_path}")
+    return save_path, today_ratio, q25
+
+
+def _plot_wing_series(ax, series):
     for pct in WING_LEVELS:
         sr = series[pct]
-        dates = [d for d, r in sr]
-        vals = [r for d, r in sr if math.isfinite(r)]
         color = LEVEL_COLORS[pct]
         lw = 1.6 if pct == DECISION_LEVEL else 0.8
-        ax.plot(dates, [r for d, r in sr], lw=lw, color=color, alpha=0.8, label=f"{int(pct*100)}% OTM wing / body (reconstructed)")
+        ax.plot([d for d, r in sr], [r for d, r in sr], lw=lw, color=color, alpha=0.8, label=f"{int(pct*100)}% OTM wing / body (reconstructed)")
 
-        if pct == DECISION_LEVEL:
-            q25 = percentile(vals, 25)
-            q50 = percentile(vals, 50)
-            q75 = percentile(vals, 75)
-            ax.axhline(q25, color="#d62728", ls="--", lw=1.5, label=f"red line: 25th pct of 10y ratio, {int(pct*100)}% OTM wing -> buy line ({q25:.4f})")
-            ax.axhline(q50, color="#1f77b4", ls="-.", lw=1.5, label=f"blue line: 50th pct (median) of 10y ratio, {int(pct*100)}% OTM wing ({q50:.4f})")
-            ax.axhline(q75, color="#2ca02c", ls="--", lw=1.5, label=f"green line: 75th pct of 10y ratio, {int(pct*100)}% OTM wing -> expensive line ({q75:.4f})")
-            ax.fill_between(dates, 0, q25, color="#d62728", alpha=0.12)
-            ax.fill_between(dates, q25, q75, color="#cccccc", alpha=0.15)
-            ax.text(dates[len(dates) // 5], q25 * 0.6, "BUY ZONE\n(tail cheaper than 75%\nof the last 10 years)", color="#d62728", fontsize=8, va="center")
-            ax.text(dates[len(dates) // 5], q50, "median", color="#1f77b4", fontsize=8, va="bottom")
-            ax.text(dates[len(dates) // 5], q75 * 1.5, "expensive zone\n(tail pricier than 75%\nof the last 10 years)", color="#2ca02c", fontsize=8, va="center")
 
-    real_ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
+def _plot_decision_annotations(ax, series):
+    """Buy/expensive bands and zone labels for the decision wing. Returns the 25th-pct buy line."""
+    sr = series[DECISION_LEVEL]
+    dates = [d for d, r in sr]
+    vals = [r for d, r in sr if math.isfinite(r)]
+    q25 = percentile(vals, 25)
+    q50 = percentile(vals, 50)
+    q75 = percentile(vals, 75)
+    for text, y, color, dash in [
+        (f"red line: 25th pct of 10y ratio, {int(DECISION_LEVEL*100)}% OTM wing -> buy line ({q25:.4f})", q25, "#d62728", "--"),
+        (f"blue line: 50th pct (median) of 10y ratio, {int(DECISION_LEVEL*100)}% OTM wing ({q50:.4f})", q50, "#1f77b4", "-."),
+        (f"green line: 75th pct of 10y ratio, {int(DECISION_LEVEL*100)}% OTM wing -> expensive line ({q75:.4f})", q75, "#2ca02c", "--"),
+    ]:
+        ax.axhline(y, color=color, ls=dash, lw=1.5, label=text)
+    ax.fill_between(dates, 0, q25, color="#d62728", alpha=0.12)
+    ax.fill_between(dates, q25, q75, color="#cccccc", alpha=0.15)
+    x_text = dates[len(dates) // 5]
+    ax.text(x_text, q25 * 0.6, "BUY ZONE\n(tail cheaper than 75%\nof the last 10 years)", color="#d62728", fontsize=8, va="center")
+    ax.text(x_text, q50, "median", color="#1f77b4", fontsize=8, va="bottom")
+    ax.text(x_text, q75 * 1.5, "expensive zone\n(tail pricier than 75%\nof the last 10 years)", color="#2ca02c", fontsize=8, va="center")
+    return q25
+
+
+def _plot_today_marker(ax, today_ratio):
     ax.scatter(
         [date.today()],
-        [real_ratio],
+        [today_ratio],
         marker="o",
         s=140,
         color=LEVEL_COLORS[DECISION_LEVEL],
         edgecolors="black",
         zorder=5,
-        label=f"TODAY real (3m, {int(DECISION_LEVEL*100)}% OTM): {real_ratio:.4f}",
+        label=f"TODAY real (3m, {int(DECISION_LEVEL*100)}% OTM): {today_ratio:.4f}",
     )
 
-    today_ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
-    vals_decision = [r * anchor[("3m", DECISION_LEVEL)] for d, p_, r in hist["3m"] if p_ == DECISION_LEVEL and math.isfinite(r)]
-    q25 = percentile(vals_decision, 25)
-    verdict = "CHEAP - buy the tail" if today_ratio < q25 else "NOT cheap - wait, let the strangles fund"
+
+def _verdict(today_ratio, q25):
+    return "CHEAP - buy the tail" if today_ratio < q25 else "NOT cheap - wait, let the strangles fund"
+
+
+def _decorate_axes(ax, quotes, today, today_ratio, q25, verdict):
     ax.set_title(
         f"QQQ tail cheapness - {today.strftime('%b')} {today.day} {today.year} (spot ${quotes['3m']['spot']:.2f})\n"
         f"{int(DECISION_LEVEL*100)}% OTM put / ATM straddle today = {today_ratio:.4f} vs 25th pct buy line {q25:.4f} -> {verdict}"
@@ -190,10 +216,6 @@ def plot_tail_cheapness(save_path=None):
     ax.get_yaxis().set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
     ax.legend(loc="upper left", fontsize=8, ncol=2)
     ax.grid(alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(save_path, dpi=150)
-    print(f"saved {save_path}")
-    return save_path, today_ratio, q25
 
 
 if __name__ == "__main__":
