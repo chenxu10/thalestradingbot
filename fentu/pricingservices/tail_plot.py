@@ -162,7 +162,7 @@ def historical_ratios(quotes, years=10):
     They do not scale with today's ATM-IV/VXN basis.
 
     Today's vol level only enters the separate model-implied display point
-    (model_today_ratio)
+    (bsm_model_today_ratio)
 
     The tenor is the REAL option's calendar DTE(quotes[label]["dte"])
     wing/body ratios are tenor-sensitive
@@ -199,7 +199,7 @@ def wing_series(ratios_by_maturity):
             series[level].append((day, ratio))
     return series
 
-def model_today_ratio(quote):
+def bsm_model_today_ratio(quote):
     """model implied wing/body ratio at TODAY's real spot
 
     This is the only place today's vol level enters the chart:
@@ -225,7 +225,7 @@ def plot_tail_cheapness(save_path=None):
     _log_today_quotes(quotes)
     hist = historical_ratios(quotes)
     series = wing_series(hist)
-    model_today = model_today_ratio(quotes["3m"])
+    model_today = bsm_model_today_ratio(quotes["3m"])
     logger.info("series points per wing: %s", {pct: len(series[pct]) for pct in WING_LEVELS})
     today = date.today()
     save_path = save_path or _default_save_path(today)
