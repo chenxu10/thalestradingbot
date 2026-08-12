@@ -6,8 +6,8 @@ Run it:
 Output: figures/tail_cheapness_<date>.png (named after today's date)
 
 Reconstruction assumptions (stated on the chart):
-- 10y history: wing/body ratio reconstructed from REAL VIX (the body's own
-  price) and REAL QQQ closes via BSM, with TODAY's real skew offsets held
+- 10y history: wing/body ratio reconstructed from REAL VXN (Nasdaq-100 vol,
+  ^VXN) and REAL QQQ closes via BSM, with TODAY's real skew offsets held
   constant and a flat term structure. The vol LEVEL is anchored to today's
   real ATM IV (the market's vol premium) — NOT to today's wing ratio, so
   today's real wing quote stays an independent, out-of-sample test point.
@@ -15,6 +15,9 @@ Reconstruction assumptions (stated on the chart):
   model prices the same maturity as the quotes it is compared against.
 - Today's dots: REAL mid-market quotes from the yfinance chain, compared
   against the model-implied point at today's real ATM IV + skew offsets.
+
+TOFIX:
+10year to 1999
 """
 
 import logging
@@ -92,38 +95,44 @@ def fetch_today_quotes():
     return quotes
 
 
-class PriceHistory:
-    """Aligned VIX/QQQ closes over the window: the (dates, vix, qqq) data clump."""
+def _close(series_or_df, day):
+    """Scalar close on a date from a yfinance Series or DataFrame (multi-col feeds)."""
+    value = series_or_df.loc[day]
+    return float(value.iloc[0]) if hasattr(value, "iloc") else float(value)
 
-    def __init__(self, dates, vix, qqq):
+
+class PriceHistory:
+    """Aligned VXN/QQQ closes over the window: the (dates, vxn, qqq) data clump."""
+
+    def __init__(self, dates, vxn, qqq):
         self.dates = dates
-        self.vix = vix
+        self.vxn = vxn
         self.qqq = qqq
 
 
 def download_price_history(years=10):
-    """Phase A: download and align VIX/QQQ closes over the window."""
+    """Phase A: download and align VXN/QQQ closes over the window."""
     end = datetime.now().date()
     start = end - timedelta(days=int(years * 365.25))
-    vix = yf.download("^VIX", start=start, end=end, progress=False, auto_adjust=False)["Close"]
+    vxn = yf.download("^VXN", start=start, end=end, progress=False, auto_adjust=False)["Close"]
     qqq = yf.download("QQQ", start=start, end=end, progress=False, auto_adjust=False)["Close"]
-    dates = vix.index.intersection(qqq.index)
+    dates = vxn.index.intersection(qqq.index)
     if len(dates) == 0:
-        raise RuntimeError("no overlapping VIX/QQQ history downloaded — check network and retry")
-    return PriceHistory(dates, vix.loc[dates], qqq.loc[dates])
+        raise RuntimeError("no overlapping VXN/QQQ history downloaded — check network and retry")
+    return PriceHistory(dates, vxn.loc[dates], qqq.loc[dates])
 
 
 def reconstruct_ratios(history, skew, t_years, vol_anchor):
     """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction.
 
-    Each day's VIX is scaled by vol_anchor (today's real ATM IV / VIX), so the
+    Each day's VXN is scaled by vol_anchor (today's real ATM IV / VXN), so the
     reconstructed vol LEVEL matches today's market while each day's relative
     vol move stays real. Skew offsets are today's real ones, held constant.
     """
     ratios = []
     for idx in history.dates:
-        s = float(history.qqq.loc[idx].iloc[0])
-        v = float(history.vix.loc[idx].iloc[0]) / 100.0 * vol_anchor
+        s = _close(history.qqq, idx)
+        v = _close(history.vxn, idx) / 100.0 * vol_anchor
         if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
             continue
         body = bs_straddle(s, v, t_years)
@@ -134,7 +143,7 @@ def reconstruct_ratios(history, skew, t_years, vol_anchor):
 
 
 def historical_ratios(quotes, years=10):
-    """Wing/body ratio history reconstructed from real VIX + QQQ closes.
+    """Wing/body ratio history reconstructed from real VXN + QQQ closes.
 
     The vol level is anchored to today's real ATM IV (vol premium) — NOT to
     today's wing ratio — so the terminal reconstructed point is model-implied
@@ -143,17 +152,17 @@ def historical_ratios(quotes, years=10):
     real quote price the same maturity — wing/body ratios are tenor-sensitive.
     """
     history = download_price_history(years)
-    vix_last = float(history.vix.loc[history.dates[-1]].iloc[0])
+    vxn_last = _close(history.vxn, history.dates[-1])
     logger.info(
-        "history: %d aligned VIX/QQQ closes (%s .. %s), vix_last=%.2f",
+        "history: %d aligned VXN/QQQ closes (%s .. %s), vxn_last=%.2f",
         len(history.dates),
         history.dates[0].date(),
         history.dates[-1].date(),
-        vix_last,
+        vxn_last,
     )
     ratios = {}
     for label in MATURITIES:
-        vol_anchor = quotes[label]["atm_iv"] / (vix_last / 100.0)
+        vol_anchor = quotes[label]["atm_iv"] / (vxn_last / 100.0)
         t_years = quotes[label]["dte"] / 365.0
         ratios[label] = reconstruct_ratios(history, quotes[label]["skew_pts"], t_years, vol_anchor)
         logger.info(
@@ -302,7 +311,7 @@ def _decorate_axes(ax, quotes, today, today_ratio, q25, verdict):
         f"{int(DECISION_LEVEL*100)}% OTM put / ATM straddle today = {today_ratio:.4f} vs 25th pct buy line {q25:.4f} -> {verdict}"
     )
     ax.set_ylabel("far-OTM put price / ATM straddle price (log scale)")
-    ax.set_xlabel("10 years of history (reconstructed: real VIX + QQQ closes, BSM, vol anchored to today's real ATM IV)")
+    ax.set_xlabel("10 years of history (reconstructed: real VXN + QQQ closes, BSM, vol anchored to today's real ATM IV)")
     ax.set_yscale("log")
     ax.set_yticks([0.01, 0.02, 0.05, 0.1, 0.2])
     ax.get_yaxis().set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
