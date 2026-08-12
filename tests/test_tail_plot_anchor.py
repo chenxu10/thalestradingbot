@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import pandas as pd
 
 from fentu.pricingservices.tail_plot import (
@@ -7,7 +8,7 @@ from fentu.pricingservices.tail_plot import (
     _verdict,
     download_price_history,
     historical_ratios,
-    percentile,
+    model_today_ratio,
     reconstruct_ratios,
     wing_series,
 )
@@ -37,12 +38,20 @@ def _fake_close_prices(n=100):
     idx = pd.date_range("2025-01-02", periods=n, freq="B")
     return pd.DataFrame({"Close": [22.0] * n}, index=idx)
 
+def _25th_percentile_wing_ratio(series_by_wing, pct):
+    return np.percentile([ratio for day, ratio in series_by_wing[pct]], 25)
+
 def test_verdict_responds_to_real_quote_while_history_fixed():
-    series = wing_series(_hist())
-    q25 = percentile([r for d, r in series[0.25]], 25)
+    series_by_wing = wing_series(_hist())
+    q25 = _25th_percentile_wing_ratio(series_by_wing, 0.25)
 
     assert _verdict(q25 * 0.5, q25) == "CHEAP - buy the tail"
     assert _verdict(q25 * 2, q25) == "NOT cheap - wait, let the strangles fund"
+
+
+def test_model_today_ratio_tracks_today_atm_iv():
+    quote = {"spot": 500, "atm_iv": 0.2, "skew_pts": SKEW, "dte": 90}
+    assert model_today_ratio(dict(quote, atm_iv=0.4))[0.25] > model_today_ratio(quote)[0.25]
 
 def test_download_price_history_uses_vxn_not_vix(monkeypatch):
     symbols_seen = []

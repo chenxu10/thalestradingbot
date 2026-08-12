@@ -1,4 +1,4 @@
-from fentu.pricingservices.tail_ratio import wing_to_body_ratio
+from fentu.pricingservices.tail_plot import wing_to_body_ratio
 
 
 def test_wing_to_body_ratio_known_case():

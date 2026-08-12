@@ -50,9 +50,14 @@ from fentu.pricingservices.option_quotes import (
     put_iv,
     straddle_mid,
 )
-from fentu.pricingservices.tail_ratio import percentile
 
 logger = logging.getLogger(__name__)
+
+
+def wing_to_body_ratio(wing_price: float, straddle_price: float) -> float:
+    """Ratio of far-OTM wing price to ATM straddle price, same date."""
+    return wing_price / straddle_price
+
 
 MATURITIES = {"3m": 90}  # calendar days to expiry (pick_expiry matches calendar DTE); ~3 months ~ 63 trading days
 WING_LEVELS = [0.20, 0.25, 0.30]  # OTM fractions
@@ -199,6 +204,26 @@ def wing_series(hist):
     }
     return result
 
+def model_today_ratio(quote):
+    """model implied wing/body ratio at TODAY's real spot
+
+    This is the only place today's vol level enters the chart:
+
+    a display point comparable to today's real quote, kept out of the percentile lines.
+    """
+    spot = quote["spot"]
+    atm_iv = quote["atm_iv"]
+    skew = quote["skew_pts"]
+    t_years = quote["dte"] / 365.0
+    body = bs_straddle(spot, atm_iv, t_years)
+    ratios = {}
+    for pct in WING_LEVELS:
+        wing_strike = spot * (1 - pct)
+        wing_vol = atm_iv + skew[pct] / 100.0
+        wing_price = bs_put(spot, wing_strike, wing_vol, t_years)
+        ratios[pct] = wing_price / body
+    return ratios
+
 
 def plot_tail_cheapness(save_path=None):
     quotes = fetch_today_quotes()
@@ -289,9 +314,9 @@ def _plot_decision_annotations(ax, series):
         return float("nan")
     dates = [d for d, r in sr]
     vals = [r for d, r in sr if math.isfinite(r)]
-    q25 = percentile(vals, 25)
-    q50 = percentile(vals, 50)
-    q75 = percentile(vals, 75)
+    q25 = np.percentile(vals, 25)
+    q50 = np.percentile(vals, 50)
+    q75 = np.percentile(vals, 75)
     for text, y, color, dash in [
         (f"red line: 25th pct of 10y ratio, {int(DECISION_LEVEL*100)}% OTM wing -> buy line ({q25:.4f})", q25, "#d62728", "--"),
         (f"blue line: 50th pct (median) of 10y ratio, {int(DECISION_LEVEL*100)}% OTM wing ({q50:.4f})", q50, "#1f77b4", "-."),
