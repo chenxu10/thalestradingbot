@@ -194,6 +194,29 @@ def split_terminal(hist):
 
 def plot_tail_cheapness(save_path=None):
     quotes = fetch_today_quotes()
+    _log_today_quotes(quotes)
+    hist = historical_ratios(quotes)
+    series, model_today = split_terminal(hist)
+    logger.info("series points per wing: %s", {pct: len(series[pct]) for pct in WING_LEVELS})
+    today = date.today()
+    save_path = save_path or _default_save_path(today)
+
+    today_ratio = _real_today_ratio(quotes)
+
+    fig, ax = plt.subplots(figsize=(13, 7))
+    _plot_wing_series(ax, series)
+    q25 = _plot_decision_annotations(ax, series)
+    _plot_today_marker(ax, today_ratio, model_today)
+    verdict = _verdict(today_ratio, q25)
+    _log_decision(verdict, today_ratio, q25, model_today)
+    _decorate_axes(ax, quotes, today, today_ratio, q25, verdict)
+
+    _save_figure(fig, save_path)
+    return save_path, today_ratio, q25
+
+
+def _log_today_quotes(quotes):
+    """Log each maturity's real quotes: expiry, DTE, spot, ATM IV, straddle, wings."""
     for label, q in quotes.items():
         wings = ", ".join(f"{int(p * 100)}%: {w:.3f}" for p, w in q["wing"].items())
         logger.info(
@@ -206,21 +229,20 @@ def plot_tail_cheapness(save_path=None):
             q["straddle"],
             wings,
         )
-    hist = historical_ratios(quotes)
-    series, model_today = split_terminal(hist)
-    logger.info("series points per wing: %s", {pct: len(series[pct]) for pct in WING_LEVELS})
-    today = date.today()
-    if save_path is None:
-        save_path = f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
 
-    fig, ax = plt.subplots(figsize=(13, 7))
-    today_ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
-    logger.info("today real ratio (%d%% OTM wing/straddle) = %.4f", int(DECISION_LEVEL * 100), today_ratio)
 
-    _plot_wing_series(ax, series)
-    q25 = _plot_decision_annotations(ax, series)
-    _plot_today_marker(ax, today_ratio, model_today)
-    verdict = _verdict(today_ratio, q25)
+def _real_today_ratio(quotes):
+    """Today's real decision-wing ratio (25% OTM put / ATM straddle)."""
+    ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
+    logger.info("today real ratio (%d%% OTM wing/straddle) = %.4f", int(DECISION_LEVEL * 100), ratio)
+    return ratio
+
+
+def _default_save_path(today):
+    return f"figures/tail_cheapness_{today.strftime('%b').lower()}{today.day}_{today.year}.png"
+
+
+def _log_decision(verdict, today_ratio, q25, model_today):
     logger.info(
         "decision wing: q25 buy line=%.4f, model-implied today=%s, verdict=%s (today %.4f vs q25 %.4f)",
         q25,
@@ -229,13 +251,13 @@ def plot_tail_cheapness(save_path=None):
         today_ratio,
         q25,
     )
-    _decorate_axes(ax, quotes, today, today_ratio, q25, verdict)
 
+
+def _save_figure(fig, save_path):
     fig.tight_layout()
     fig.savefig(save_path, dpi=150)
     logger.info("saved %s", save_path)
     print(f"saved {save_path}")
-    return save_path, today_ratio, q25
 
 
 def _plot_wing_series(ax, series):

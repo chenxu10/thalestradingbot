@@ -482,51 +482,70 @@ def plot_distribution(lengths, fit: dict, out_path: str):
     xm = fit.get("x_min")
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
-    # --- Panel 1: frequency distribution (log-log) ---
+    _plot_frequency_panel(ax1, data, alpha, xm, fit)
+    _plot_ccdf_panel(ax2, data, alpha, xm, fit)
+
+    fig.suptitle(f"Function-length power law: alpha={alpha:.2f}" if alpha else "Function lengths",
+                 fontsize=13)
+    _save_figure(fig, out_path)
+
+
+def _plot_frequency_panel(ax, data, alpha, xm, fit):
+    """Panel 1: frequency distribution (log-log) with the fitted x^-alpha curve."""
     vals, counts = np.unique(data, return_counts=True)
-    ax1.loglog(vals, counts, "o", color="steelblue", alpha=0.6, label="data")
+    ax.loglog(vals, counts, "o", color="steelblue", alpha=0.6, label="data")
     if alpha is not None and np.isfinite(alpha) and xm:
         Z = float(zeta(alpha, xm))
         xs = np.arange(xm, max(vals.max(), xm) + 1)
         expected = fit["n_total"] * xs.astype(float) ** (-alpha) / Z
-        ax1.loglog(xs, expected, "r-", lw=2, label=f"fit x^-a, a={alpha:.2f}")
-    ax1.set_xlabel("function line count (log)")
-    ax1.set_ylabel("# functions (log)")
-    ax1.set_title("Frequency distribution (log-log)")
-    ax1.legend()
-    ax1.grid(True, which="both", alpha=0.3)
+        ax.loglog(xs, expected, "r-", lw=2, label=f"fit x^-a, a={alpha:.2f}")
+    ax.set_xlabel("function line count (log)")
+    ax.set_ylabel("# functions (log)")
+    ax.set_title("Frequency distribution (log-log)")
+    ax.legend()
+    ax.grid(True, which="both", alpha=0.3)
 
-    # --- Panel 2: CCDF (log-log) ---
+
+def _plot_ccdf_panel(ax, data, alpha, xm, fit):
+    """Panel 2: CCDF (log-log) + power-law fit, banded by the alpha_std range."""
     xs_u = np.unique(data)
     n = len(data)
     ccdf_emp = np.array([np.sum(data >= x) / n for x in xs_u])
-    ax2.loglog(xs_u, ccdf_emp, "o", color="steelblue", alpha=0.6, label="empirical CCDF")
+    ax.loglog(xs_u, ccdf_emp, "o", color="steelblue", alpha=0.6, label="empirical CCDF")
     if alpha is not None and np.isfinite(alpha) and xm:
         Z = float(zeta(alpha, xm))
-        xs = np.arange(xm, max(vals.max(), xm) * 2)
-        ax2.loglog(xs, zeta(alpha, xs) / Z, "r-", lw=2,
-                   label=f"fit  a={alpha:.2f} +/- {fit.get('alpha_std') or 0:.2f}")
+        xs = np.arange(xm, max(xs_u.max(), xm) * 2)
         sigma = fit.get("alpha_std") or 0.0
-        if sigma > 0:
-            for a, style, lbl in [(alpha + 1.96 * sigma, "--", f"+1.96s (a={alpha+1.96*sigma:.2f})"),
-                                  (alpha - 1.96 * sigma, "--", f"-1.96s (a={alpha-1.96*sigma:.2f})")]:
-                if a > 1.0:
-                    ax2.loglog(xs, zeta(a, xs) / float(zeta(a, xm)), "k:", alpha=0.5)
-        txt = (f"a = {alpha:.2f} +/- {1.96*sigma:.2f} (95% range)\n"
-               f"x_min = {xm}, n_tail = {fit['n_tail']}\n"
-               f"p = {fit['p']:.3f}" if fit.get('p') is not None else
-               f"a = {alpha:.2f} +/- {1.96*sigma:.2f} (95% range)\n"
-               f"x_min = {xm}, n_tail = {fit['n_tail']}")
-        ax2.text(0.05, 0.05, txt, transform=ax2.transAxes, fontsize=9,
-                 va="bottom", bbox=dict(boxstyle="round", fc="wheat", alpha=0.7))
-    ax2.set_xlabel("function line count (log)")
-    ax2.set_ylabel("P(X >= x) (log)")
-    ax2.set_title("CCDF (log-log) + power-law fit")
-    ax2.legend()
-    ax2.grid(True, which="both", alpha=0.3)
+        ax.loglog(xs, zeta(alpha, xs) / Z, "r-", lw=2,
+                  label=f"fit  a={alpha:.2f} +/- {sigma:.2f}")
+        _plot_alpha_band(ax, xs, alpha, xm, sigma)
+        ax.text(0.05, 0.05, _ccdf_fit_text(alpha, xm, fit, sigma),
+                transform=ax.transAxes, fontsize=9, va="bottom",
+                bbox=dict(boxstyle="round", fc="wheat", alpha=0.7))
+    ax.set_xlabel("function line count (log)")
+    ax.set_ylabel("P(X >= x) (log)")
+    ax.set_title("CCDF (log-log) + power-law fit")
+    ax.legend()
+    ax.grid(True, which="both", alpha=0.3)
 
-    fig.suptitle(f"Function-length power law: alpha={alpha:.2f}" if alpha else "Function lengths",
-                 fontsize=13)
+
+def _plot_alpha_band(ax, xs, alpha, xm, sigma):
+    """Dashed curves at alpha +/- 1.96*sigma (95% typical range)."""
+    if sigma <= 0:
+        return
+    for a in (alpha + 1.96 * sigma, alpha - 1.96 * sigma):
+        if a > 1.0:
+            ax.loglog(xs, zeta(a, xs) / float(zeta(a, xm)), "k:", alpha=0.5)
+
+
+def _ccdf_fit_text(alpha, xm, fit, sigma):
+    head = f"a = {alpha:.2f} +/- {1.96 * sigma:.2f} (95% range)\n"
+    if fit.get("p") is not None:
+        return f"{head}x_min = {xm}, n_tail = {fit['n_tail']}\np = {fit['p']:.3f}"
+    return f"{head}x_min = {xm}, n_tail = {fit['n_tail']}"
+
+
+def _save_figure(fig, out_path):
     fig.tight_layout()
     os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
     fig.savefig(out_path, dpi=120)
