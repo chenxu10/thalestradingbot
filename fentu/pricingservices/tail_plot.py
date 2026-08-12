@@ -122,24 +122,29 @@ def download_price_history(years=10):
     return PriceHistory(dates, vxn.loc[dates], qqq.loc[dates])
 
 
-def reconstruct_ratios(history, skew, t_years, vol_anchor):
+def reconstruct_ratios(history, skew, t_years, vol_anchor=1.0):
     """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction.
 
-    Each day's VXN is scaled by vol_anchor (today's real ATM IV / VXN), so the
-    reconstructed vol LEVEL matches today's market while each day's relative
-    vol move stays real. Skew offsets are today's real ones, held constant.
+    With vol_anchor=1.0 each day's vol is that day's own real VXN.
+    So it's distribution doesn't move with today's quotes.
     """
-    ratios = []
-    for idx in history.dates:
+
+    def day_ratios(idx):
         s = _close(history.qqq, idx)
         v = _close(history.vxn, idx) / 100.0 * vol_anchor
         if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
-            continue
+            return []
         body = bs_straddle(s, v, t_years)
+        factor = 1.0 / body if body > 0 else float("nan")
+        row = []
         for pct in WING_LEVELS:
-            w = bs_put(s, s * (1 - pct), v + skew[pct] / 100.0, t_years)
-            ratios.append((idx.date(), pct, w / body if body > 0 else float("nan")))
-    return ratios
+            wing_strike = s * (1 - pct)
+            wing_vol = v + skew[pct] / 100.0
+            wing_price = bs_put(s, wing_strike, wing_vol, t_years)
+            row.append((idx.date(), pct, wing_price * factor))
+        return row
+
+    return [ratio for idx in history.dates for ratio in day_ratios(idx)]
 
 
 def historical_ratios(quotes, years=10):
@@ -177,19 +182,16 @@ def historical_ratios(quotes, years=10):
     return ratios
 
 
-def split_terminal(hist):
-    """Phase 1 (data): split off the terminal model point from each wing series.
-
-    Returns (series, model_today): per-wing (date, ratio) pairs minus the last
-    close, and the last-close model ratio per wing. The verdict compares
-    today's REAL ratio against the series only, keeping it out-of-sample.
+def wing_series(hist):
     """
-    series, model_today = {}, {}
-    for pct in WING_LEVELS:
-        pts = [(d, r) for d, p_, r in hist["3m"] if p_ == pct and math.isfinite(r)]
-        series[pct] = pts[:-1]
-        model_today[pct] = pts[-1] if pts else None
-    return series, model_today
+    Every point is genuine history(each day's own VXN level)
+    Today's real qutes stays out-of-sample by construction
+    """
+    result = {
+        pct: [(d, r) for d, p_, r in hist["3m"] if p_ == pct and math.isfinite(r)]
+        for pct in WING_LEVELS
+    }
+    return result
 
 
 def plot_tail_cheapness(save_path=None):

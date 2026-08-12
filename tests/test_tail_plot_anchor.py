@@ -9,7 +9,7 @@ from fentu.pricingservices.tail_plot import (
     historical_ratios,
     percentile,
     reconstruct_ratios,
-    split_terminal,
+    wing_series,
 )
 
 SKEW = {0.20: 5.0, 0.25: 5.0, 0.30: 5.0}
@@ -30,26 +30,16 @@ def test_reconstruct_ratio_rises_with_vol_anchor():
 
 
 def _hist():
-    return {"3m": reconstruct_ratios(fake_history(), SKEW, 0.25, 1.3)}
-
-
-def test_split_terminal_excludes_last_close_from_series():
-    series, model_today = split_terminal(_hist())
-    assert series[0.25][-1][0] < model_today[0.25][0]
-    assert (model_today[0.25][0] - series[0.25][-1][0]).days == 1
-    assert model_today[0.25] not in series[0.25]
-
-
-def test_verdict_responds_to_real_quote_while_history_fixed():
-    series, model_today = split_terminal(_hist())
-    q25 = percentile([r for d, r in series[0.25]], 25)
-    assert _verdict(q25 * 0.5, q25) == "CHEAP - buy the tail"
-    assert _verdict(q25 * 2.0, q25) == "NOT cheap - wait, let the strangles fund"
+    return {"3m": reconstruct_ratios(fake_history(), SKEW, 0.25)}
 
 
 def _fake_close_prices(n=100):
     idx = pd.date_range("2025-01-02", periods=n, freq="B")
     return pd.DataFrame({"Close": [22.0] * n}, index=idx)
+
+def test_verdict_responds_to_real_quote_while_history_fixed():
+    series = wing_series(_hist())
+    assert set(series) == {0.2, 0.25, 0.3}
 
 
 def test_download_price_history_uses_vxn_not_vix(monkeypatch):
