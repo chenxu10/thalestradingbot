@@ -57,6 +57,7 @@ def wing_to_body_ratio(wing_price: float, straddle_price: float) -> float:
 
 
 MATURITIES = {"3m": 90}  # calendar days to expiry (pick_expiry matches calendar DTE); ~3 months ~ 63 trading days
+DEFAULT_MATURITY = "3m"  # the only quoted tenor, kept out of WING_LEVELS/decision math
 WING_LEVELS = [0.20, 0.25, 0.30]  # OTM fractions
 DECISION_LEVEL = 0.25  # the wing this plot decides on
 LEVEL_COLORS = {0.20: "#1f77b4", 0.25: "#ff7f0e", 0.30: "#9467bd"}
@@ -130,6 +131,19 @@ def download_price_history(years=10):
     return PriceHistory(dates, vxn.loc[dates], qqq.loc[dates])
 
 
+def _bsm_wing_ratios(spot, atm_vol, skew, t_years):
+    """BSM wing/body ratio per OTM level at one (spot, vol) level."""
+    body = bs_straddle(spot, atm_vol, t_years)
+    factor = 1.0 / body if body > 0 else float("nan")
+    ratios = {}
+    for pct in WING_LEVELS:
+        wing_strike = spot * (1 - pct)
+        wing_vol = atm_vol + skew[pct] / 100.0
+        wing_price = bs_put(spot, wing_strike, wing_vol, t_years)
+        ratios[pct] = wing_price * factor
+    return ratios
+
+
 def reconstruct_ratios(history, skew, t_years, vol_anchor=1.0):
     """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction.
 
@@ -138,21 +152,21 @@ def reconstruct_ratios(history, skew, t_years, vol_anchor=1.0):
     """
 
     def day_ratios(idx):
+        day = idx.date()
         s = _close(history.qqq, idx)
         v = _close(history.vxn, idx) / 100.0 * vol_anchor
         if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
             return []
-        body = bs_straddle(s, v, t_years)
-        factor = 1.0 / body if body > 0 else float("nan")
+        ratios = _bsm_wing_ratios(s, v, skew, t_years)
         row = []
-        for pct in WING_LEVELS:
-            wing_strike = s * (1 - pct)
-            wing_vol = v + skew[pct] / 100.0
-            wing_price = bs_put(s, wing_strike, wing_vol, t_years)
-            row.append((idx.date(), pct, wing_price * factor))
+        for pct, ratio in ratios.items():
+            row.append((day, pct, ratio))
         return row
 
-    return [ratio for idx in history.dates for ratio in day_ratios(idx)]
+    all_ratios = []
+    for idx in history.dates:
+        all_ratios.extend(day_ratios(idx))
+    return all_ratios
 
 
 def historical_ratios(quotes, years=10):
@@ -177,6 +191,7 @@ def historical_ratios(quotes, years=10):
     ratios = {}
     for label in MATURITIES:
         t_years = quotes[label]["dte"] / 365.0
+        # TOFIX: a residual circularity via skew
         ratios[label] = reconstruct_ratios(history, quotes[label]["skew_pts"], t_years)
         logger.info(
             "label %s: dte=%d days -> t=%.4f y, reconstructed %d points",
@@ -194,7 +209,7 @@ def wing_series(ratios_by_maturity):
     Today's real qutes stays out-of-sample by construction
     """
     series = {pct: [] for pct in WING_LEVELS}
-    for day, level, ratio in ratios_by_maturity["3m"]:
+    for day, level, ratio in ratios_by_maturity[DEFAULT_MATURITY]:
         if level in series and math.isfinite(ratio):
             series[level].append((day, ratio))
     return series
@@ -206,18 +221,7 @@ def bsm_model_today_ratio(quote):
 
     a display point comparable to today's real quote, kept out of the percentile lines.
     """
-    spot = quote["spot"]
-    atm_iv = quote["atm_iv"]
-    skew = quote["skew_pts"]
-    t_years = quote["dte"] / 365.0
-    body = bs_straddle(spot, atm_iv, t_years)
-    ratios = {}
-    for pct in WING_LEVELS:
-        wing_strike = spot * (1 - pct)
-        wing_vol = atm_iv + skew[pct] / 100.0
-        wing_price = bs_put(spot, wing_strike, wing_vol, t_years)
-        ratios[pct] = wing_price / body
-    return ratios
+    return _bsm_wing_ratios(quote["spot"], quote["atm_iv"], quote["skew_pts"], quote["dte"] / 365.0)
 
 
 def plot_tail_cheapness(save_path=None):
@@ -225,7 +229,7 @@ def plot_tail_cheapness(save_path=None):
     _log_today_quotes(quotes)
     hist = historical_ratios(quotes)
     series = wing_series(hist)
-    model_today = bsm_model_today_ratio(quotes["3m"])
+    model_today = bsm_model_today_ratio(quotes[DEFAULT_MATURITY])
     logger.info("series points per wing: %s", {pct: len(series[pct]) for pct in WING_LEVELS})
     today = date.today()
     save_path = save_path or _default_save_path(today)
@@ -262,7 +266,7 @@ def _log_today_quotes(quotes):
 
 def _real_today_ratio(quotes):
     """Today's real decision-wing ratio (25% OTM put / ATM straddle)."""
-    ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
+    ratio = quotes[DEFAULT_MATURITY]["wing"][DECISION_LEVEL] / quotes[DEFAULT_MATURITY]["straddle"]
     logger.info("today real ratio (%d%% OTM wing/straddle) = %.4f", int(DECISION_LEVEL * 100), ratio)
     return ratio
 
