@@ -1,5 +1,11 @@
 """Tail-cheapness plot: is today's far-OTM wing cheap vs the ATM body?
 
+The script is built on the idea:
+
+Don't buy an option if you have a reason, guess what it's already priced in!
+
+Never buy an option if it's not cheap.
+
 Run it:
     uv run python -m fentu.pricingservices.tail_plot
 

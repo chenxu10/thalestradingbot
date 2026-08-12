@@ -39,8 +39,10 @@ def _fake_close_prices(n=100):
 
 def test_verdict_responds_to_real_quote_while_history_fixed():
     series = wing_series(_hist())
-    assert set(series) == {0.2, 0.25, 0.3}
+    q25 = percentile([r for d, r in series[0.25]], 25)
 
+    assert _verdict(q25 * 0.5, q25) == "CHEAP - buy the tail"
+    assert _verdict(q25 * 2, q25) == "NOT cheap - wait, let the strangles fund"
 
 def test_download_price_history_uses_vxn_not_vix(monkeypatch):
     symbols_seen = []
