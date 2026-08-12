@@ -12,27 +12,3 @@ def percentile(series, pct):
     hi = min(lo + 1, n - 1)
     frac = rank - lo
     return data[lo] + frac * (data[hi] - data[lo])
-
-
-def daily_series(wing_quotes: dict, straddle_quotes: dict) -> dict:
-    """Per maturity: (date, ratio) pairs for dates present in both quote sets, sorted."""
-    series = {}
-    for maturity in wing_quotes:
-        wings = wing_quotes[maturity]
-        straddles = straddle_quotes[maturity]
-        common_dates = set(wings) & set(straddles)
-        series[maturity] = sorted(
-            (d, wing_to_body_ratio(wings[d], straddles[d])) for d in common_dates
-        )
-    return series
-
-
-def signals(series: list, line: float) -> list:
-    """Dates where the ratio crosses below the buy line (prev >= line, cur < line)."""
-    result = []
-    previous_ratio = None
-    for d, ratio in series:
-        if previous_ratio is not None and previous_ratio >= line and ratio < line:
-            result.append(d)
-        previous_ratio = ratio
-    return result
