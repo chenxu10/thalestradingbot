@@ -13,17 +13,14 @@ Output: figures/tail_cheapness_<date>.png (named after today's date)
 
 Reconstruction assumptions (stated on the chart):
 - 10y history: wing/body ratio reconstructed from REAL VXN (Nasdaq-100 vol,
-  ^VXN) and REAL QQQ closes via BSM, with TODAY's real skew offsets held
-  constant and a flat term structure. The vol LEVEL is anchored to today's
-  real ATM IV (the market's vol premium) — NOT to today's wing ratio, so
-  today's real wing quote stays an independent, out-of-sample test point.
-- The tenor is the REAL option's actual calendar DTE (~90 days), so the
-  model prices the same maturity as the quotes it is compared against.
-- Today's dots: REAL mid-market quotes from the yfinance chain, compared
-  against the model-implied point at today's real ATM IV + skew offsets.
+  ^VXN) and REAL QQQ closes via BSM at EACH DAY's OWN VXN vol level,
+  with today's real skew offsets held constant and a flat term structure.
+- Today's dots: real mid-market quotes from the yfinance chain, compared
+against a model-implied point priced at today's real spot, ATM_IV and 
+skew offsets-the ONLY place today's vol level enters the chart.
 
-TOFIX:
-10year to 1999
+- TODO:
+historical span needs to extend from 10years to 1999
 """
 
 import logging
@@ -191,16 +188,16 @@ def historical_ratios(quotes, years=10):
     return ratios
 
 
-def wing_series(hist):
+def wing_series(ratios_by_maturity):
     """
     Every point is genuine history(each day's own VXN level)
     Today's real qutes stays out-of-sample by construction
     """
-    result = {
-        pct: [(d, r) for d, p_, r in hist["3m"] if p_ == pct and math.isfinite(r)]
-        for pct in WING_LEVELS
-    }
-    return result
+    series = {pct: [] for pct in WING_LEVELS}
+    for day, level, ratio in ratios_by_maturity["3m"]:
+        if level in series and math.isfinite(ratio):
+            series[level].append((day, ratio))
+    return series
 
 def model_today_ratio(quote):
     """model implied wing/body ratio at TODAY's real spot
@@ -227,7 +224,8 @@ def plot_tail_cheapness(save_path=None):
     quotes = fetch_today_quotes()
     _log_today_quotes(quotes)
     hist = historical_ratios(quotes)
-    series, model_today = split_terminal(hist)
+    series = wing_series(hist)
+    model_today = model_today_ratio(quotes["3m"])
     logger.info("series points per wing: %s", {pct: len(series[pct]) for pct in WING_LEVELS})
     today = date.today()
     save_path = save_path or _default_save_path(today)
@@ -275,7 +273,7 @@ def _default_save_path(today):
 
 def _log_decision(verdict, today_ratio, q25, model_today):
     logger.info(
-        "decision wing: q25 buy line=%.4f, model-implied today=%s, verdict=%s (today %.4f vs q25 %.4f)",
+        "decision wing: q25 buy line=%.4f, model-implied today=%.4f, verdict=%s (today %.4f vs q25 %.4f)",
         q25,
         model_today[DECISION_LEVEL],
         verdict,
@@ -331,16 +329,16 @@ def _plot_decision_annotations(ax, series):
 
 
 def _plot_today_marker(ax, today_ratio, model_today):
-    m_date, m_ratio = model_today[DECISION_LEVEL]
+    m_ratio = model_today[DECISION_LEVEL]
     ax.scatter(
-        [m_date],
+        [date.today()],
         [m_ratio],
         marker="D",
         s=90,
         facecolors="none",
         edgecolors="gray",
         zorder=4,
-        label=f"model-implied today (BSM, real ATM IV + skew): {m_ratio:.4f}",
+        label=f"model-implied today (BSM, real spot + ATM IV + skew): {m_ratio:.4f}",
     )
     ax.scatter(
         [date.today()],
@@ -364,7 +362,7 @@ def _decorate_axes(ax, quotes, today, today_ratio, q25, verdict):
         f"{int(DECISION_LEVEL*100)}% OTM put / ATM straddle today = {today_ratio:.4f} vs 25th pct buy line {q25:.4f} -> {verdict}"
     )
     ax.set_ylabel("far-OTM put price / ATM straddle price (log scale)")
-    ax.set_xlabel("10 years of history (reconstructed: real VXN + QQQ closes, BSM, vol anchored to today's real ATM IV)")
+    ax.set_xlabel("10 years of history (reconstructed: real VXN + QQQ closes, BSM, each day at its own VXN vol level")
     ax.set_yscale("log")
     ax.set_yticks([0.01, 0.02, 0.05, 0.1, 0.2])
     ax.get_yaxis().set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
