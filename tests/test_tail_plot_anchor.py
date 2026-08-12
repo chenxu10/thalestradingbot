@@ -76,3 +76,16 @@ def test_historical_ratios_flows_vxn_seam(monkeypatch):
     ratios = historical_ratios(quotes, years=1)
     assert len(ratios["3m"]) == 300
     assert all(math.isfinite(r) for d, p_, r in ratios["3m"])
+
+def test_buy_line_ignores_today_atm_iv(monkeypatch):
+    monkeypatch.setattr(
+        "fentu.pricingservices.tail_plot.yf.download",
+        lambda symbol, start=None, end=None, progress=False, auto_adjust=False: _fake_close_prices(),
+    )
+    cheap_vol = {"3m": {"atm_iv": 0.18, "skew_pts": SKEW, "dte": 90}}
+    expensive_vol = {"3m": {"atm_iv": 0.36, "skew_pts": SKEW, "dte": 90}}
+    cheap_series = wing_series(historical_ratios(cheap_vol, years=1))
+    expensive_series = wing_series(historical_ratios(expensive_vol, years=1))
+    q25_cheap = _25th_percentile_wing_ratio(cheap_series, 0.25)
+    q25_expensive = _25th_percentile_wing_ratio(expensive_series, 0.25)
+    assert q25_cheap == q25_expensive

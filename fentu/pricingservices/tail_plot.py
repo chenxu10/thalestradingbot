@@ -159,33 +159,31 @@ def reconstruct_ratios(history, skew, t_years, vol_anchor=1.0):
 
 
 def historical_ratios(quotes, years=10):
-    """Wing/body ratio history reconstructed from real VXN + QQQ closes.
+    """Wing/body ratio history reconstructed from real VXN + QQQ closes, UNANCHORED.
 
-    The vol level is anchored to today's real ATM IV (vol premium) — NOT to
-    today's wing ratio — so the terminal reconstructed point is model-implied
-    and today's real wing quote remains an independent test point. The tenor
-    is the REAL option's calendar DTE (quotes[label]["dte"]), so model and
-    real quote price the same maturity — wing/body ratios are tenor-sensitive.
+    Each day is priced at that day's own VXN level.
+    They do not scale with today's ATM-IV/VXN basis.
+
+    Today's vol level only enters the separate model-implied display point
+    (model_today_ratio)
+
+    The tenor is the REAL option's calendar DTE(quotes[label]["dte"])
+    wing/body ratios are tenor-sensitive
     """
     history = download_price_history(years)
-    vxn_last = _close(history.vxn, history.dates[-1])
     logger.info(
-        "history: %d aligned VXN/QQQ closes (%s .. %s), vxn_last=%.2f",
+        "history: %d aligned VXN/QQQ closes (%s .. %s)",
         len(history.dates),
         history.dates[0].date(),
         history.dates[-1].date(),
-        vxn_last,
     )
     ratios = {}
     for label in MATURITIES:
-        vol_anchor = quotes[label]["atm_iv"] / (vxn_last / 100.0)
         t_years = quotes[label]["dte"] / 365.0
-        ratios[label] = reconstruct_ratios(history, quotes[label]["skew_pts"], t_years, vol_anchor)
+        ratios[label] = reconstruct_ratios(history, quotes[label]["skew_pts"], t_years)
         logger.info(
-            "label %s: atm_iv=%.4f, vol_anchor=%.3f, dte=%d days -> t=%.4f y, reconstructed %d points",
+            "label %s: dte=%d days -> t=%.4f y, reconstructed %d points",
             label,
-            quotes[label]["atm_iv"],
-            vol_anchor,
             quotes[label]["dte"],
             t_years,
             len(ratios[label]),
