@@ -168,6 +168,14 @@ def reconstruct_ratios(history, skew, t_years, vol_anchor=1.0):
         all_ratios.extend(day_ratios(idx))
     return all_ratios
 
+def bsm_model_today_ratio(quote):
+    """model implied wing/body ratio at TODAY's real spot
+
+    This is the only place today's vol level enters the chart:
+
+    a display point comparable to today's real quote, kept out of the percentile lines.
+    """
+    return _bsm_wing_ratios(quote["spot"], quote["atm_iv"], quote["skew_pts"], quote["dte"] / 365.0)
 
 def historical_ratios(quotes, years=10):
     """Wing/body ratio history reconstructed from real VXN + QQQ closes, UNANCHORED.
@@ -214,14 +222,6 @@ def wing_series(ratios_by_maturity):
             series[level].append((day, ratio))
     return series
 
-def bsm_model_today_ratio(quote):
-    """model implied wing/body ratio at TODAY's real spot
-
-    This is the only place today's vol level enters the chart:
-
-    a display point comparable to today's real quote, kept out of the percentile lines.
-    """
-    return _bsm_wing_ratios(quote["spot"], quote["atm_iv"], quote["skew_pts"], quote["dte"] / 365.0)
 
 
 def plot_tail_cheapness(save_path=None):
