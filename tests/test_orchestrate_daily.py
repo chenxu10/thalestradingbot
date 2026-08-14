@@ -121,3 +121,22 @@ def test_main_skip_tail_skips_option_chain(capsys):
     out = capsys.readouterr().out
     assert "QQQ tail-to-body ratio" not in out
     fake_tail.assert_not_called()
+
+
+def test_main_survives_unusable_qqq_quotes(capsys):
+    """Closed-market zero quotes must skip the chart, not crash the day."""
+    monitor = _FakeMonitor([_panel(label="USO", signal=False, multiple=0.5)])
+    with patch(
+        "fentu.orchestrator.orchestrate_daily.PortfolioMonitor",
+        return_value=monitor,
+    ), patch(
+        "fentu.pricingservices.tail_plot.plot_tail_cheapness",
+        side_effect=RuntimeError(
+            "QQQ option quotes unusable today (closed market returns zeros): "
+            "straddle=0.00, 25% wing=0.00, atm_iv=0.0000"),
+    ):
+        assert main([]) == 0
+
+    out = capsys.readouterr().out
+    assert "QQQ tail chart skipped" in out
+    assert "straddle=0.00" in out

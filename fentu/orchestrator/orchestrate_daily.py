@@ -85,7 +85,11 @@ def main(argv=None):
         return 0
 
     print("\n--- NDX100 QQQ tail-to-body ratio (every day) ---")
-    save_path, today_ratio, q25 = tail_plot.plot_tail_cheapness()
+    try:
+        save_path, today_ratio, q25 = tail_plot.plot_tail_cheapness()
+    except Exception as exc:  # noqa: BLE001 — a broken chart must not kill the day
+        print(f"QQQ tail chart skipped: {exc}")
+        return 0
     # Reuse the tail_plot verdict wording — the single source of the decision.
     verdict = tail_plot._verdict(today_ratio, q25)
     decision_level = int(tail_plot.DECISION_LEVEL * 100)
