@@ -1,5 +1,11 @@
 """Tail-cheapness plot: is today's far-OTM wing cheap vs the ATM body?
 
+The script is built on the idea:
+
+Don't buy an option if you have a reason, guess what it's already priced in!
+
+Never buy an option if it's not cheap.
+
 Run it:
     uv run python -m fentu.pricingservices.tail_plot
 
@@ -7,17 +13,14 @@ Output: figures/tail_cheapness_<date>.png (named after today's date)
 
 Reconstruction assumptions (stated on the chart):
 - 10y history: wing/body ratio reconstructed from REAL VXN (Nasdaq-100 vol,
-  ^VXN) and REAL QQQ closes via BSM, with TODAY's real skew offsets held
-  constant and a flat term structure. The vol LEVEL is anchored to today's
-  real ATM IV (the market's vol premium) — NOT to today's wing ratio, so
-  today's real wing quote stays an independent, out-of-sample test point.
-- The tenor is the REAL option's actual calendar DTE (~90 days), so the
-  model prices the same maturity as the quotes it is compared against.
-- Today's dots: REAL mid-market quotes from the yfinance chain, compared
-  against the model-implied point at today's real ATM IV + skew offsets.
+  ^VXN) and REAL QQQ closes via BSM at EACH DAY's OWN VXN vol level,
+  with today's real skew offsets held constant and a flat term structure.
+- Today's dots: real mid-market quotes from the yfinance chain, compared
+against a model-implied point priced at today's real spot, ATM_IV and 
+skew offsets-the ONLY place today's vol level enters the chart.
 
-TOFIX:
-10year to 1999
+- TODO:
+historical span needs to extend from 10years to 1999
 """
 
 import logging
@@ -44,11 +47,17 @@ from fentu.pricingservices.option_quotes import (
     put_iv,
     straddle_mid,
 )
-from fentu.pricingservices.tail_ratio import percentile
 
 logger = logging.getLogger(__name__)
 
+
+def wing_to_body_ratio(wing_price: float, straddle_price: float) -> float:
+    """Ratio of far-OTM wing price to ATM straddle price, same date."""
+    return wing_price / straddle_price
+
+
 MATURITIES = {"3m": 90}  # calendar days to expiry (pick_expiry matches calendar DTE); ~3 months ~ 63 trading days
+DEFAULT_MATURITY = "3m"  # the only quoted tenor, kept out of WING_LEVELS/decision math
 WING_LEVELS = [0.20, 0.25, 0.30]  # OTM fractions
 DECISION_LEVEL = 0.25  # the wing this plot decides on
 LEVEL_COLORS = {0.20: "#1f77b4", 0.25: "#ff7f0e", 0.30: "#9467bd"}
@@ -122,54 +131,79 @@ def download_price_history(years=10):
     return PriceHistory(dates, vxn.loc[dates], qqq.loc[dates])
 
 
-def reconstruct_ratios(history, skew, t_years, vol_anchor):
-    """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction.
-
-    Each day's VXN is scaled by vol_anchor (today's real ATM IV / VXN), so the
-    reconstructed vol LEVEL matches today's market while each day's relative
-    vol move stays real. Skew offsets are today's real ones, held constant.
-    """
-    ratios = []
-    for idx in history.dates:
-        s = _close(history.qqq, idx)
-        v = _close(history.vxn, idx) / 100.0 * vol_anchor
-        if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
-            continue
-        body = bs_straddle(s, v, t_years)
-        for pct in WING_LEVELS:
-            w = bs_put(s, s * (1 - pct), v + skew[pct] / 100.0, t_years)
-            ratios.append((idx.date(), pct, w / body if body > 0 else float("nan")))
+def _bsm_wing_ratios(spot, atm_vol, skew, t_years):
+    """BSM wing/body ratio per OTM level at one (spot, vol) level."""
+    body = bs_straddle(spot, atm_vol, t_years)
+    factor = 1.0 / body if body > 0 else float("nan")
+    ratios = {}
+    for pct in WING_LEVELS:
+        wing_strike = spot * (1 - pct)
+        wing_vol = atm_vol + skew[pct] / 100.0
+        wing_price = bs_put(spot, wing_strike, wing_vol, t_years)
+        ratios[pct] = wing_price * factor
     return ratios
 
 
-def historical_ratios(quotes, years=10):
-    """Wing/body ratio history reconstructed from real VXN + QQQ closes.
+def reconstruct_ratios(history, skew, t_years, vol_anchor=1.0):
+    """Phase B: wing/body price ratios per (date, OTM level) from the BSM reconstruction.
 
-    The vol level is anchored to today's real ATM IV (vol premium) — NOT to
-    today's wing ratio — so the terminal reconstructed point is model-implied
-    and today's real wing quote remains an independent test point. The tenor
-    is the REAL option's calendar DTE (quotes[label]["dte"]), so model and
-    real quote price the same maturity — wing/body ratios are tenor-sensitive.
+    With vol_anchor=1.0 each day's vol is that day's own real VXN.
+    So it's distribution doesn't move with today's quotes.
+    """
+
+    def day_ratios(idx):
+        day = idx.date()
+        s = _close(history.qqq, idx)
+        v = _close(history.vxn, idx) / 100.0 * vol_anchor
+        if not (math.isfinite(s) and math.isfinite(v)) or v <= 0:
+            return []
+        ratios = _bsm_wing_ratios(s, v, skew, t_years)
+        row = []
+        for pct, ratio in ratios.items():
+            row.append((day, pct, ratio))
+        return row
+
+    all_ratios = []
+    for idx in history.dates:
+        all_ratios.extend(day_ratios(idx))
+    return all_ratios
+
+def bsm_model_today_ratio(quote):
+    """model implied wing/body ratio at TODAY's real spot
+
+    This is the only place today's vol level enters the chart:
+
+    a display point comparable to today's real quote, kept out of the percentile lines.
+    """
+    return _bsm_wing_ratios(quote["spot"], quote["atm_iv"], quote["skew_pts"], quote["dte"] / 365.0)
+
+def historical_ratios(quotes, years=10):
+    """Wing/body ratio history reconstructed from real VXN + QQQ closes, UNANCHORED.
+
+    Each day is priced at that day's own VXN level.
+    They do not scale with today's ATM-IV/VXN basis.
+
+    Today's vol level only enters the separate model-implied display point
+    (bsm_model_today_ratio)
+
+    The tenor is the REAL option's calendar DTE(quotes[label]["dte"])
+    wing/body ratios are tenor-sensitive
     """
     history = download_price_history(years)
-    vxn_last = _close(history.vxn, history.dates[-1])
     logger.info(
-        "history: %d aligned VXN/QQQ closes (%s .. %s), vxn_last=%.2f",
+        "history: %d aligned VXN/QQQ closes (%s .. %s)",
         len(history.dates),
         history.dates[0].date(),
         history.dates[-1].date(),
-        vxn_last,
     )
     ratios = {}
     for label in MATURITIES:
-        vol_anchor = quotes[label]["atm_iv"] / (vxn_last / 100.0)
         t_years = quotes[label]["dte"] / 365.0
-        ratios[label] = reconstruct_ratios(history, quotes[label]["skew_pts"], t_years, vol_anchor)
+        # TOFIX: a residual circularity via skew
+        ratios[label] = reconstruct_ratios(history, quotes[label]["skew_pts"], t_years)
         logger.info(
-            "label %s: atm_iv=%.4f, vol_anchor=%.3f, dte=%d days -> t=%.4f y, reconstructed %d points",
+            "label %s: dte=%d days -> t=%.4f y, reconstructed %d points",
             label,
-            quotes[label]["atm_iv"],
-            vol_anchor,
             quotes[label]["dte"],
             t_years,
             len(ratios[label]),
@@ -177,26 +211,25 @@ def historical_ratios(quotes, years=10):
     return ratios
 
 
-def split_terminal(hist):
-    """Phase 1 (data): split off the terminal model point from each wing series.
-
-    Returns (series, model_today): per-wing (date, ratio) pairs minus the last
-    close, and the last-close model ratio per wing. The verdict compares
-    today's REAL ratio against the series only, keeping it out-of-sample.
+def wing_series(ratios_by_maturity):
     """
-    series, model_today = {}, {}
-    for pct in WING_LEVELS:
-        pts = [(d, r) for d, p_, r in hist["3m"] if p_ == pct and math.isfinite(r)]
-        series[pct] = pts[:-1]
-        model_today[pct] = pts[-1] if pts else None
-    return series, model_today
+    Every point is genuine history(each day's own VXN level)
+    Today's real qutes stays out-of-sample by construction
+    """
+    series = {pct: [] for pct in WING_LEVELS}
+    for day, level, ratio in ratios_by_maturity[DEFAULT_MATURITY]:
+        if level in series and math.isfinite(ratio):
+            series[level].append((day, ratio))
+    return series
+
 
 
 def plot_tail_cheapness(save_path=None):
     quotes = fetch_today_quotes()
     _log_today_quotes(quotes)
     hist = historical_ratios(quotes)
-    series, model_today = split_terminal(hist)
+    series = wing_series(hist)
+    model_today = bsm_model_today_ratio(quotes[DEFAULT_MATURITY])
     logger.info("series points per wing: %s", {pct: len(series[pct]) for pct in WING_LEVELS})
     today = date.today()
     save_path = save_path or _default_save_path(today)
@@ -233,7 +266,7 @@ def _log_today_quotes(quotes):
 
 def _real_today_ratio(quotes):
     """Today's real decision-wing ratio (25% OTM put / ATM straddle)."""
-    ratio = quotes["3m"]["wing"][DECISION_LEVEL] / quotes["3m"]["straddle"]
+    ratio = quotes[DEFAULT_MATURITY]["wing"][DECISION_LEVEL] / quotes[DEFAULT_MATURITY]["straddle"]
     logger.info("today real ratio (%d%% OTM wing/straddle) = %.4f", int(DECISION_LEVEL * 100), ratio)
     return ratio
 
@@ -244,7 +277,7 @@ def _default_save_path(today):
 
 def _log_decision(verdict, today_ratio, q25, model_today):
     logger.info(
-        "decision wing: q25 buy line=%.4f, model-implied today=%s, verdict=%s (today %.4f vs q25 %.4f)",
+        "decision wing: q25 buy line=%.4f, model-implied today=%.4f, verdict=%s (today %.4f vs q25 %.4f)",
         q25,
         model_today[DECISION_LEVEL],
         verdict,
@@ -281,9 +314,9 @@ def _plot_decision_annotations(ax, series):
         return float("nan")
     dates = [d for d, r in sr]
     vals = [r for d, r in sr if math.isfinite(r)]
-    q25 = percentile(vals, 25)
-    q50 = percentile(vals, 50)
-    q75 = percentile(vals, 75)
+    q25 = np.percentile(vals, 25)
+    q50 = np.percentile(vals, 50)
+    q75 = np.percentile(vals, 75)
     for text, y, color, dash in [
         (f"red line: 25th pct of 10y ratio, {int(DECISION_LEVEL*100)}% OTM wing -> buy line ({q25:.4f})", q25, "#d62728", "--"),
         (f"blue line: 50th pct (median) of 10y ratio, {int(DECISION_LEVEL*100)}% OTM wing ({q50:.4f})", q50, "#1f77b4", "-."),
@@ -300,16 +333,16 @@ def _plot_decision_annotations(ax, series):
 
 
 def _plot_today_marker(ax, today_ratio, model_today):
-    m_date, m_ratio = model_today[DECISION_LEVEL]
+    m_ratio = model_today[DECISION_LEVEL]
     ax.scatter(
-        [m_date],
+        [date.today()],
         [m_ratio],
         marker="D",
         s=90,
         facecolors="none",
         edgecolors="gray",
         zorder=4,
-        label=f"model-implied today (BSM, real ATM IV + skew): {m_ratio:.4f}",
+        label=f"model-implied today (BSM, real spot + ATM IV + skew): {m_ratio:.4f}",
     )
     ax.scatter(
         [date.today()],
@@ -333,7 +366,7 @@ def _decorate_axes(ax, quotes, today, today_ratio, q25, verdict):
         f"{int(DECISION_LEVEL*100)}% OTM put / ATM straddle today = {today_ratio:.4f} vs 25th pct buy line {q25:.4f} -> {verdict}"
     )
     ax.set_ylabel("far-OTM put price / ATM straddle price (log scale)")
-    ax.set_xlabel("10 years of history (reconstructed: real VXN + QQQ closes, BSM, vol anchored to today's real ATM IV)")
+    ax.set_xlabel("10 years of history (reconstructed: real VXN + QQQ closes, BSM, each day at its own VXN vol level")
     ax.set_yscale("log")
     ax.set_yticks([0.01, 0.02, 0.05, 0.1, 0.2])
     ax.get_yaxis().set_major_formatter(matplotlib.ticker.FormatStrFormatter("%.2f"))
