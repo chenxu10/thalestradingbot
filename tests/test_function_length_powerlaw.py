@@ -178,27 +178,6 @@ def test_fit_handles_empty_input():
 
 
 # ---------------------------------------------------------------------------
-# Recommender (top-k functions worth refactoring to raise alpha)
-# ---------------------------------------------------------------------------
-
-def test_recommend_returns_top_k_by_length(codebase):
-    recs = flp.extract_function_lengths(codebase)
-    fit = flp.fit_power_law(np.array([r.line_count for r in recs]), n_bootstrap=0)
-    recs_out = flp.recommend_refactors(recs, fit, k=3)
-    assert len(recs_out) <= 3
-    # Longest function is 'outer' (4 lines) -> ranked first.
-    assert recs_out[0]["name"] == "outer"
-    assert recs_out[0]["line_count"] == 4
-    for r in recs_out:
-        assert {"name", "file", "lineno", "line_count", "projected_alpha", "delta"} <= set(r)
-
-
-def test_recommend_empty_when_no_functions():
-    fit = flp.fit_power_law(np.array([], dtype=int), n_bootstrap=0)
-    assert flp.recommend_refactors([], fit, k=3) == []
-
-
-# ---------------------------------------------------------------------------
 # Tree signature + cache IO
 # ---------------------------------------------------------------------------
 

@@ -155,14 +155,6 @@ def _window_line(label, stats, last):
     )
 
 
-def levels_report(instrument=DEFAULT_INSTRUMENT, repository=None, today=None):
-    """Multi-line high/low levels report for `instrument` (any yfinance ticker)."""
-    repo = repository if repository is not None else ReturnsRepository()
-    today = today if today is not None else date.today()
-    open_high_low_close = repo.try_fetch_open_high_low_close(instrument)
-    return _report_from_open_high_low_close(open_high_low_close, instrument, today)
-
-
 def _report_from_open_high_low_close(open_high_low_close, instrument, today):
     """The report from a pre-built frame (None/empty -> "<ticker> unavailable")."""
     if open_high_low_close is None or open_high_low_close.empty:

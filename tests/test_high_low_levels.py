@@ -7,19 +7,17 @@ the current price's distance to each level (where the stop clusters sit, per
 Paul Tudor Jones's moving-volume lesson).
 """
 from datetime import date
-from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
 
 from fentu.explatoryservices.high_low_levels import (
-    levels_report,
+    _report_from_open_high_low_close,
     levels_view,
     main,
     stop_zone,
     window_high_low,
 )
-from fentu.explatoryservices.volcalculator import ReturnsRepository
 
 
 def _open_high_low_close(rows):
@@ -320,21 +318,17 @@ def _coincident_history():
     )
 
 
-def _repo_with(open_high_low_close):
-    repo = MagicMock(spec=ReturnsRepository)
-    repo.try_fetch_open_high_low_close.return_value = open_high_low_close
-    return repo
-
-
 class TestLevelsReport:
+    """The production report path: _report_from_open_high_low_close."""
+
     TODAY = date(2026, 7, 22)
 
     def test_reports_all_windows_with_distances(self):
         # distances from last close 77.00: 88/77-1=+14.3%, 70/77-1=-9.1%,
         # 90/77-1=+16.9%, 66/77-1=-14.3%. USO reports 2mo + war + the same
         # trailing-6mo window every ticker gets (its resistance/support).
-        report = levels_report(
-            "USO", repository=_repo_with(_uso_history()), today=self.TODAY
+        report = _report_from_open_high_low_close(
+            _uso_history(), "USO", self.TODAY
         )
 
         assert report == (
@@ -352,20 +346,19 @@ class TestLevelsReport:
 
     def test_extensible_to_any_instrument(self):
         # Triangulate: a second ticker forces `instrument` to be a real
-        # parameter — same history, different label, fetched ticker verified.
-        repo = _repo_with(_uso_history())
+        # parameter — same history, different label.
+        report = _report_from_open_high_low_close(
+            _uso_history(), "BNO", self.TODAY
+        )
 
-        report = levels_report("BNO", repository=repo, today=self.TODAY)
-
-        repo.try_fetch_open_high_low_close.assert_called_once_with("BNO")
         assert report.splitlines()[0] == "BNO @ 77.00"
         assert "high 88.00 (2026-05-25, +14.3% above)" in report
 
     def test_non_uso_ticker_reports_6mo_window_not_war(self):
         # BNO gets the 2mo + 6mo windows; the war-specific line is absent.
-        repo = _repo_with(_uso_history())
-
-        report = levels_report("BNO", repository=repo, today=self.TODAY)
+        report = _report_from_open_high_low_close(
+            _uso_history(), "BNO", self.TODAY
+        )
 
         assert "since 2026-01-22" in report
         assert "war start" not in report
@@ -374,39 +367,11 @@ class TestLevelsReport:
         assert "high 90.00 (2026-03-04, +16.9% above)" in report
         assert "low 66.00 (2026-04-08, -14.3% below)" in report
 
-    def test_defaults_to_uso_when_no_instrument_given(self):
-        repo = _repo_with(_uso_history())
-
-        report = levels_report(repository=repo, today=self.TODAY)
-
-        repo.try_fetch_open_high_low_close.assert_called_once_with("USO")
-        assert report.splitlines()[0] == "USO @ 77.00"
-
-    def test_unavailable_on_fetch_exception(self):
-        repo = MagicMock(spec=ReturnsRepository)
-        repo.try_fetch_open_high_low_close.return_value = None
-
+    def test_unavailable_on_none_history(self):
         assert (
-            levels_report("USO", repository=repo, today=self.TODAY)
+            _report_from_open_high_low_close(None, "USO", self.TODAY)
             == "USO unavailable"
         )
-
-    def test_defaults_today_and_constructs_default_repository(self):
-        class FakeDate(date):
-            @classmethod
-            def today(cls):
-                return cls(2026, 7, 22)
-
-        with pytest.MonkeyPatch.context() as mp:
-            mp.setattr("fentu.explatoryservices.high_low_levels.date", FakeDate)
-            mp.setattr(
-                "fentu.explatoryservices.high_low_levels.ReturnsRepository._raw_open_high_low_close",
-                lambda self, ticker: _uso_history(),
-            )
-            report = levels_report()
-
-        assert report.splitlines()[0] == "USO @ 77.00"
-        assert "past 2mo (since 2026-05-22)" in report
 
     def test_unavailable_on_empty_history(self):
         empty = pd.DataFrame(
@@ -415,6 +380,6 @@ class TestLevelsReport:
         )
 
         assert (
-            levels_report("USO", repository=_repo_with(empty), today=self.TODAY)
+            _report_from_open_high_low_close(empty, "USO", self.TODAY)
             == "USO unavailable"
         )

@@ -51,11 +51,6 @@ from fentu.pricingservices.option_quotes import (
 logger = logging.getLogger(__name__)
 
 
-def wing_to_body_ratio(wing_price: float, straddle_price: float) -> float:
-    """Ratio of far-OTM wing price to ATM straddle price, same date."""
-    return wing_price / straddle_price
-
-
 MATURITIES = {"3m": 90}  # calendar days to expiry (pick_expiry matches calendar DTE); ~3 months ~ 63 trading days
 DEFAULT_MATURITY = "3m"  # the only quoted tenor, kept out of WING_LEVELS/decision math
 WING_LEVELS = [0.20, 0.25, 0.30]  # OTM fractions
