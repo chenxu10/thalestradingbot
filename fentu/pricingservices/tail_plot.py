@@ -224,7 +224,7 @@ def wing_series(ratios_by_maturity):
 
 
 
-def plot_tail_cheapness(save_path=None):
+def plot_tail_cheapness(save_path=None, show=False):
     quotes = fetch_today_quotes()
     _log_today_quotes(quotes)
     _validate_today_quotes(quotes)
@@ -246,6 +246,8 @@ def plot_tail_cheapness(save_path=None):
     _decorate_axes(ax, quotes, today, today_ratio, q25, verdict)
 
     _save_figure(fig, save_path)
+    if show:
+        plt.show()
     return save_path, today_ratio, q25
 
 

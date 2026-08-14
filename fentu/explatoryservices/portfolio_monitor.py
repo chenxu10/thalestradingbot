@@ -194,8 +194,12 @@ class PortfolioMonitor:
 
     # --- presentation (pure render from the view-model) --------------------
 
-    def visualize(self):
-        panels = self.prepare_panels()
+    def visualize(self, panels=None):
+        """Render the 2x2 signal panel. `panels` may be prebuilt (from
+        ``prepare_panels``) so a caller that already fetched them for its own
+        report does not fetch a second time."""
+        if panels is None:
+            panels = self.prepare_panels()
         fig, axes = plt.subplots(2, 2, figsize=(13, 8))
         for ax, panel in zip(axes.flat, panels):
             plot_signal_panel(ax, panel)

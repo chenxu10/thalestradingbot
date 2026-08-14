@@ -1,12 +1,17 @@
 """
 Test the daily orchestrator: signal gate -> high/low levels -> QQQ tail chart.
 
-All three reused tools are mocked at their seams (no network):
+All reused tools are mocked at their seams (no network, no GUI):
 
-- ``PortfolioMonitor.prepare_panels`` supplies the signal/noise view-model.
-- ``levels_report`` is the high/low report for SIGNAL tickers only.
-- ``tail_plot.plot_tail_cheapness`` runs every day (unless ``--skip-tail``).
+- ``PortfolioMonitor.prepare_panels`` supplies the signal/noise view-model and
+  ``visualize`` pops the 2x2 panel (only when plots are shown).
+- ``ReturnsRepository.try_fetch_open_high_low_close`` supplies price frames;
+  ``_report_from_open_high_low_close`` the text and ``plot_high_low_levels``
+  the chart for SIGNAL tickers only.
+- ``tail_plot.plot_tail_cheapness`` runs every day (unless ``--skip-tail``)
+  with ``show=`` matching the ``--no-show`` flag.
 """
+import pandas as pd
 from unittest.mock import patch
 
 from fentu.orchestrator.orchestrate_daily import (
@@ -29,6 +34,11 @@ def _panel(label="TQQQ", available=True, signal=True, multiple=2.0,
     }
 
 
+def _frame():
+    """Non-empty open_high_low_close-shaped frame (so plots are attempted)."""
+    return pd.DataFrame({"Close": [100.0, 101.0]})
+
+
 class _FakeMonitor:
     """PortfolioMonitor-shaped fake: fixed holdings, injected panels."""
 
@@ -37,9 +47,24 @@ class _FakeMonitor:
 
     def __init__(self, panels):
         self.panels = panels
+        self.shown_panels = None
 
     def prepare_panels(self):
         return self.panels
+
+    def visualize(self, panels=None):
+        self.shown_panels = panels if panels is not None else self.panels
+        return None
+
+
+class _FakeRepository:
+    """ReturnsRepository-shaped fake: frames by ticker, no network."""
+
+    def __init__(self, frames=None):
+        self._frames = frames or {}
+
+    def try_fetch_open_high_low_close(self, instrument):
+        return self._frames.get(instrument)
 
 
 def test_signal_panels_keep_only_available_signals():
@@ -62,57 +87,102 @@ def test_format_panel_line_unavailable_and_undefined_usual():
             format_panel_line(_panel(signal=False, multiple=None)))
 
 
-def test_main_runs_levels_for_signal_only_and_tail_every_day(capsys):
+def test_main_no_show_reports_levels_for_signal_only_and_runs_tail(capsys):
     monitor = _FakeMonitor([
         _panel(label="TQQQ", signal=True),
         _panel(label="USO", signal=False, multiple=0.5),
     ])
+    repository = _FakeRepository({"TQQQ": _frame()})
     with patch(
         "fentu.orchestrator.orchestrate_daily.PortfolioMonitor",
         return_value=monitor,
     ), patch(
-        "fentu.orchestrator.orchestrate_daily.levels_report",
-        return_value="TQQQ @ 100.00\n2mo: high ...",
-    ) as fake_levels, patch(
+        "fentu.orchestrator.orchestrate_daily.ReturnsRepository",
+        return_value=repository,
+    ), patch(
+        "fentu.orchestrator.orchestrate_daily._report_from_open_high_low_close",
+        return_value="TQQQ @ 101.00\n2mo: high ...",
+    ) as fake_report, patch(
+        "fentu.orchestrator.orchestrate_daily.plot_high_low_levels",
+    ) as fake_plot, patch(
         "fentu.pricingservices.tail_plot.plot_tail_cheapness",
         return_value=("figures/tail_cheapness_aug14_2026.png", 0.03, 0.04),
     ) as fake_tail:
-        assert main([]) == 0
+        assert main(["--no-show"]) == 0
 
     out = capsys.readouterr().out
     assert "TQQQ: last +1.20%" in out
     assert "SIGNAL" in out and "noise" in out
-    fake_levels.assert_called_once_with("TQQQ")
-    fake_tail.assert_called_once_with()
+    assert "TQQQ SIGNAL today -> high/low levels" in out
+    monitor.shown_panels is None  # --no-show: the 2x2 panel never pops out
+    fake_report.assert_called_once()
+    assert fake_report.call_args[0][1] == "TQQQ"
+    fake_plot.assert_not_called()
+    fake_tail.assert_called_once_with(show=False)
     # 0.03 < q25 0.04 -> cheap, the reused tail_plot verdict.
     assert "CHEAP - buy the tail" in out
     assert "chart: figures/tail_cheapness_aug14_2026.png" in out
 
 
-def test_main_no_signal_still_runs_tail(capsys):
-    monitor = _FakeMonitor([_panel(label="USO", signal=False, multiple=0.5)])
+def test_main_shows_panel_level_plot_and_tail_chart(capsys):
+    monitor = _FakeMonitor([_panel(label="TQQQ", signal=True)])
+    repository = _FakeRepository({"TQQQ": _frame()})
     with patch(
         "fentu.orchestrator.orchestrate_daily.PortfolioMonitor",
         return_value=monitor,
     ), patch(
-        "fentu.orchestrator.orchestrate_daily.levels_report",
-    ) as fake_levels, patch(
+        "fentu.orchestrator.orchestrate_daily.ReturnsRepository",
+        return_value=repository,
+    ), patch(
+        "fentu.orchestrator.orchestrate_daily._report_from_open_high_low_close",
+        return_value="TQQQ @ 101.00",
+    ), patch(
+        "fentu.orchestrator.orchestrate_daily.plot_high_low_levels",
+    ) as fake_plot, patch(
+        "fentu.pricingservices.tail_plot.plot_tail_cheapness",
+        return_value=("figures/tail_cheapness_aug14_2026.png", 0.03, 0.04),
+    ) as fake_tail:
+        assert main([]) == 0
+
+    assert monitor.shown_panels is not None  # the 2x2 panel pops out
+    fake_plot.assert_called_once()
+    assert fake_plot.call_args[0][1] == "TQQQ"
+    assert fake_plot.call_args[1]["show"] is True
+    fake_tail.assert_called_once_with(show=True)
+
+
+def test_main_no_signal_still_runs_tail(capsys):
+    monitor = _FakeMonitor([_panel(label="USO", signal=False, multiple=0.5)])
+    repository = _FakeRepository()
+    with patch(
+        "fentu.orchestrator.orchestrate_daily.PortfolioMonitor",
+        return_value=monitor,
+    ), patch(
+        "fentu.orchestrator.orchestrate_daily.ReturnsRepository",
+        return_value=repository,
+    ), patch(
+        "fentu.orchestrator.orchestrate_daily.plot_high_low_levels",
+    ) as fake_plot, patch(
         "fentu.pricingservices.tail_plot.plot_tail_cheapness",
         return_value=("figures/tail_cheapness_aug14_2026.png", 0.05, 0.04),
     ):
-        assert main([]) == 0
+        assert main(["--no-show"]) == 0
 
     out = capsys.readouterr().out
     assert "no SIGNAL today" in out
-    fake_levels.assert_not_called()
+    fake_plot.assert_not_called()
     assert "NOT cheap - wait, let the strangles fund" in out
 
 
 def test_main_skip_tail_skips_option_chain(capsys):
     monitor = _FakeMonitor([_panel(label="USO", signal=False, multiple=0.5)])
+    repository = _FakeRepository()
     with patch(
         "fentu.orchestrator.orchestrate_daily.PortfolioMonitor",
         return_value=monitor,
+    ), patch(
+        "fentu.orchestrator.orchestrate_daily.ReturnsRepository",
+        return_value=repository,
     ), patch(
         "fentu.pricingservices.tail_plot.plot_tail_cheapness",
     ) as fake_tail:
@@ -126,9 +196,13 @@ def test_main_skip_tail_skips_option_chain(capsys):
 def test_main_survives_unusable_qqq_quotes(capsys):
     """Closed-market zero quotes must skip the chart, not crash the day."""
     monitor = _FakeMonitor([_panel(label="USO", signal=False, multiple=0.5)])
+    repository = _FakeRepository()
     with patch(
         "fentu.orchestrator.orchestrate_daily.PortfolioMonitor",
         return_value=monitor,
+    ), patch(
+        "fentu.orchestrator.orchestrate_daily.ReturnsRepository",
+        return_value=repository,
     ), patch(
         "fentu.pricingservices.tail_plot.plot_tail_cheapness",
         side_effect=RuntimeError(
