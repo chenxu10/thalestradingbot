@@ -63,14 +63,6 @@ def qq_plot(x, ax=None, show=True):
         plt.show()
     return ax
 
-def calculate_within_onestrd_prop(data):
-    close = data
-    mean = close.mean()
-    std = close.std()
-    print("mean close price change is {}".format(mean))
-    print("1 standard deviation close close price change is {}".format(std))
-
-
 def fit_normal_distribution(data):
     """Fit normal distribution and return parameters and PDF."""
     mu, sigma = stats.norm.fit(data)

@@ -38,7 +38,7 @@ import os
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -276,37 +276,6 @@ def fit_power_law(lengths, n_bootstrap: int = 0, seed: int = 0) -> dict:
     if n_bootstrap and n_bootstrap > 0 and n_tail >= 10:
         rng = np.random.default_rng(seed)
         out["p"] = _bootstrap_pvalue(data, xm, alpha, n_tail, n_bootstrap, rng)
-    return out
-
-
-# ---------------------------------------------------------------------------
-# Refactor recommendations (top-k longest functions; projected alpha if
-# shortened 25% — the lever that raises alpha / lightens the tail)
-# ---------------------------------------------------------------------------
-
-def recommend_refactors(records: list[FuncRec], fit: dict, k: int = 3) -> list[dict]:
-    cur = fit.get("alpha")
-    if not records or cur is None or not np.isfinite(cur):
-        return []
-    data = np.array([r.line_count for r in records], dtype=int)
-    ranked = sorted(range(len(records)), key=lambda i: records[i].line_count, reverse=True)
-    out = []
-    for i in ranked[:k]:
-        r = records[i]
-        # Project: halve this function's length (a substantial, realistic refactor).
-        new_len = max(1, int(round(r.line_count * 0.5)))
-        sim = data.copy()
-        sim[i] = new_len
-        proj = fit_power_law(sim, n_bootstrap=0).get("alpha")
-        delta = (proj - cur) if (proj is not None and np.isfinite(proj)) else float("nan")
-        out.append({
-            "name": r.name,
-            "file": r.file,
-            "lineno": r.lineno,
-            "line_count": r.line_count,
-            "projected_alpha": proj,
-            "delta": delta,
-        })
     return out
 
 

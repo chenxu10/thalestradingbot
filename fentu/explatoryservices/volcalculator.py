@@ -67,12 +67,11 @@ Topology Diagram (ASCII)
  |  daily/weekly/monthly/yearly_returns are @property + setter, cached.      |
  |  return_periods is a @property building the dict lazily.                  |
  |                                                                           |
- |  Each former private helper (_get_prices, _get_vix_open_high_low_close,                  |
- |  _get_current_vix_value, _plot_*_panel, _show_panel_unavailable) is kept  |
+ |  Each former private helper (_get_prices, _get_vix_open_high_low_close,   |
+ |  _get_current_vix_value, _plot_*_panel) is kept                          |
  |  as a delegating shim so existing callers/tests stay green.               |
  |                                                                           |
  |  [Volatility]    calculate_daily_volatility() -> DailyVolatility          |
- |  [Calendar]      get_calendar_year_returns() / calculate_yearly_return_.. |
  |  [Extreme]       find_negative/positive_extreme_returns(k|threshold)      |
  |  [Visualization] visualize_percentage_change(period, tail_percent)        |
  |     +-> _prepare_percentage_change_data() (data view-model)               |
@@ -80,7 +79,7 @@ Topology Diagram (ASCII)
  |           +-> ps.qq_plot / ps.histgram_plot / spl.plot_loglog_with_fit    |
  |           +-> _plot_vix_panel             (delegates -> dashboard)        |
  |           +-> matplotlib 3x2 gridspec + suptitle                          |
- |  [Reporting]     show_today_return / get_past_{week,year}_price_and_log_  |
+ |  [Reporting]     get_past_week_price_and_log_returns()                    |
  +---------------------------------------------------------------------------+
 
  Entry Point
@@ -387,29 +386,16 @@ class VolatilityFacade:
 
     # --- delegating shims (preserve pre-refactor surface) -------------------
 
-    def _get_raw_open_high_low_close(self, instrument):
-        return self._repository._raw_open_high_low_close(instrument)
-
     def _get_prices(self, instrument):
         return self._repository.get_prices(instrument)
 
-    def _get_returns(self, instrument, period_length):
-        return self._repository.get_returns(instrument, period_length)
-
     def _get_vix_open_high_low_close(self):
         return self._repository.get_vix_open_high_low_close()
-
-    def _get_vix_prices(self):
-        return self._repository.get_vix_prices()
 
     def _get_current_vix_value(self, vix_open_high_low_close=None, now_et=None):
         if vix_open_high_low_close is None:
             vix_open_high_low_close = self._get_vix_open_high_low_close()
         return self._clock.current_vix_value(vix_open_high_low_close, now_et=now_et)
-
-    def _show_panel_unavailable(self, ax, title, message, detail=""):
-        dashboard = getattr(self, '_dashboard', None) or VolatilityDashboard()
-        return dashboard.show_panel_unavailable(ax, title, message, detail)
 
     def _plot_vix_panel(self, ax):
         try:
@@ -419,45 +405,6 @@ class VolatilityFacade:
             self._dashboard.plot_vix_panel(ax, vix_open_high_low_close, current_value=current)
         except Exception:
             self._dashboard.show_panel_unavailable(ax, "VIX Index", "VIX unavailable")
-
-    def calculate_yearly_return_list(self, prices, yearly_returns_list, years):
-        for year in years:
-            # Get first and last trading day prices for each year
-            year_data = prices[prices.index.year == year]
-            if not year_data.empty:
-                first_price = year_data.iloc[0]
-                last_price = year_data.iloc[-1]
-                
-                # Calculate return
-                year_return = (last_price - first_price) / first_price
-                
-                yearly_returns_list.append({
-                    'Date': pd.Timestamp(f'{year}-12-31'),
-                    'Close': year_return
-                })
-        return yearly_returns_list
-    
-    def get_calendar_year_returns(self, instrument=None):
-        """
-        Calculate returns for each calendar year from 2003 to present.
-        Returns a DataFrame with yearly returns where each return represents
-        buying on Jan 1st and selling on Dec 31st of the same year.
-        """
-        instrument = instrument or self.instrument
-        prices = self._get_prices(instrument)
-        
-        # Create empty list to store yearly returns
-        yearly_returns_list = []
-        
-        # Get unique years from the price data
-        years = prices.index.year.unique()
-        
-        yearly_returns_list = self.calculate_yearly_return_list(
-            prices, yearly_returns_list, years)
-        calendar_returns = pd.DataFrame(yearly_returns_list)
-        calendar_returns = calendar_returns.sort_values('Date', ascending=False)
-        
-        return calendar_returns
 
     def calculate_daily_volatility(self):
         return self.daily_volatility.calculate_1std_daily_volatility(self.daily_returns)
@@ -602,19 +549,9 @@ class VolatilityFacade:
         """
         return self._find_extreme_returns(period, k, threshold, side='positive')
 
-    def show_today_return(self):
-        """Show recent daily returns"""
-        print(self.daily_returns.tail(20))
-
     def get_past_week_price_and_log_returns(self):
         """Get most recent 5 trading days prices with daily log returns"""
         prices = self._get_prices(self.instrument).tail(5)
-        log_returns = np.log(prices / prices.shift(1))
-        return pd.DataFrame({'price': prices, 'log_return': log_returns})
-
-    def get_past_year_price_and_log_returns(self):
-        """Get most recent ~252 trading days prices with daily log returns"""
-        prices = self._get_prices(self.instrument).tail(252)
         log_returns = np.log(prices / prices.shift(1))
         return pd.DataFrame({'price': prices, 'log_return': log_returns})
 
@@ -633,10 +570,4 @@ if __name__ == "__main__":
     print(f"Worst months (below -20%): {volatility.find_negative_extreme_returns('monthly', threshold=-0.2)}")
     print(f"Best days (above +20%): {volatility.find_positive_extreme_returns('daily', threshold=0.2)}")
     print(f"Best months (above +20%): {volatility.find_positive_extreme_returns('monthly', threshold=0.2)}")
-
-    # Calculate calendar year returns
-    #calendar_returns = volatility.get_calendar_year_returns(ticker)
-    
-    
-
 

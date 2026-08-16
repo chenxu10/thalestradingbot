@@ -16,7 +16,7 @@ from fentu.explatoryservices.volcalculator import VolatilityFacade
 class TestPriceLogReturns:
     @pytest.fixture
     def mock_prices(self):
-        """A tz-naive price series long enough for the year test (>= 252 rows)."""
+        """A tz-naive synthetic price series long enough for the week test."""
         dates = pd.date_range(start='2024-01-01', end='2025-12-31', freq='B')
         np.random.seed(42)
         prices = 100 + np.cumsum(np.random.randn(len(dates)) * 0.5)
@@ -48,17 +48,6 @@ class TestPriceLogReturns:
         assert 'price' in df.columns
         assert 'log_return' in df.columns
         assert len(df) == 5
-
-        expected = np.log(df['price'].iloc[1] / df['price'].iloc[0])
-        assert abs(df['log_return'].iloc[1] - expected) < 1e-10
-
-    def test_get_past_year_price_and_log_returns(self, facade):
-        """Test most recent past year prices with daily log returns"""
-        df = facade.get_past_year_price_and_log_returns()
-
-        assert 'price' in df.columns
-        assert 'log_return' in df.columns
-        assert 240 <= len(df) <= 260
 
         expected = np.log(df['price'].iloc[1] / df['price'].iloc[0])
         assert abs(df['log_return'].iloc[1] - expected) < 1e-10

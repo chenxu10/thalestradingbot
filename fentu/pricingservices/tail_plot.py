@@ -51,11 +51,6 @@ from fentu.pricingservices.option_quotes import (
 logger = logging.getLogger(__name__)
 
 
-def wing_to_body_ratio(wing_price: float, straddle_price: float) -> float:
-    """Ratio of far-OTM wing price to ATM straddle price, same date."""
-    return wing_price / straddle_price
-
-
 MATURITIES = {"3m": 90}  # calendar days to expiry (pick_expiry matches calendar DTE); ~3 months ~ 63 trading days
 DEFAULT_MATURITY = "3m"  # the only quoted tenor, kept out of WING_LEVELS/decision math
 WING_LEVELS = [0.20, 0.25, 0.30]  # OTM fractions
@@ -224,9 +219,10 @@ def wing_series(ratios_by_maturity):
 
 
 
-def plot_tail_cheapness(save_path=None):
+def plot_tail_cheapness(save_path=None, show=False):
     quotes = fetch_today_quotes()
     _log_today_quotes(quotes)
+    _validate_today_quotes(quotes)
     hist = historical_ratios(quotes)
     series = wing_series(hist)
     model_today = bsm_model_today_ratio(quotes[DEFAULT_MATURITY])
@@ -245,6 +241,8 @@ def plot_tail_cheapness(save_path=None):
     _decorate_axes(ax, quotes, today, today_ratio, q25, verdict)
 
     _save_figure(fig, save_path)
+    if show:
+        plt.show()
     return save_path, today_ratio, q25
 
 
@@ -261,6 +259,43 @@ def _log_today_quotes(quotes):
             q["atm_iv"],
             q["straddle"],
             wings,
+        )
+
+
+def _quote_display(value, fmt=".2f"):
+    """Human-safe quote value for error messages (None/NaN -> 'missing')."""
+    if value is None or value != value:
+        return "missing"
+    return format(value, fmt)
+
+
+def _validate_today_quotes(quotes):
+    """Fail fast with a clear message when today's quotes can't price the ratio.
+
+    A closed market (or a stale chain) comes back from yfinance as zeros:
+    bid=ask=0 -> straddle/wing mids of 0 and IV 0. The wing/body ratio would
+    divide by zero and the BSM model point would be priced at vol 0 — both
+    meaningless, so refuse to draw the chart instead of crashing.
+    """
+    quote = quotes.get(DEFAULT_MATURITY)
+    if quote is None:
+        raise RuntimeError(
+            "no QQQ option chain near the 3m tenor today — market closed?"
+        )
+    unusable = []
+    if not quote["straddle"] or not quote["straddle"] > 0:
+        unusable.append(f"straddle={_quote_display(quote['straddle'])}")
+    wing = quote["wing"].get(DECISION_LEVEL)
+    if not wing or not wing > 0:
+        unusable.append(
+            f"{int(DECISION_LEVEL * 100)}% wing={_quote_display(wing)}"
+        )
+    if not quote["atm_iv"] or not quote["atm_iv"] > 0:
+        unusable.append(f"atm_iv={_quote_display(quote['atm_iv'], '.4f')}")
+    if unusable:
+        raise RuntimeError(
+            "QQQ option quotes unusable today (closed market returns zeros): "
+            + ", ".join(unusable)
         )
 
 

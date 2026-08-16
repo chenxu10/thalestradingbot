@@ -2,9 +2,11 @@ import math
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from fentu.pricingservices.tail_plot import (
     PriceHistory,
+    _validate_today_quotes,
     _verdict,
     download_price_history,
     historical_ratios,
@@ -89,3 +91,29 @@ def test_buy_line_ignores_today_atm_iv(monkeypatch):
     q25_cheap = _25th_percentile_wing_ratio(cheap_series, 0.25)
     q25_expensive = _25th_percentile_wing_ratio(expensive_series, 0.25)
     assert q25_cheap == q25_expensive
+
+
+def _quote(straddle=10.0, wing=2.0, atm_iv=0.20):
+    return {"3m": {
+        "straddle": straddle,
+        "wing": {0.20: wing, 0.25: wing, 0.30: wing},
+        "atm_iv": atm_iv,
+    }}
+
+
+def test_validate_today_quotes_accepts_live_market_quotes():
+    _validate_today_quotes(_quote())  # must not raise
+
+
+def test_validate_today_quotes_rejects_closed_market_zeros():
+    with pytest.raises(RuntimeError, match="straddle=0.00"):
+        _validate_today_quotes(_quote(straddle=0.0))
+    with pytest.raises(RuntimeError, match="25% wing=0.00"):
+        _validate_today_quotes(_quote(wing=0.0))
+    with pytest.raises(RuntimeError, match="atm_iv=0.0000"):
+        _validate_today_quotes(_quote(atm_iv=0.0))
+
+
+def test_validate_today_quotes_rejects_missing_tenor():
+    with pytest.raises(RuntimeError, match="market closed"):
+        _validate_today_quotes({})

@@ -83,18 +83,6 @@ class TestVixSubplot:
                     "QQQ", start_date="2025-03-01", end_date="2025-06-01"
                 )
 
-    def test_get_vix_prices_returns_full_history_unfiltered(self, facade):
-        """VIX subplot data is the full ^VIX history, ignoring the ETF window."""
-        vix = facade._get_vix_prices()
-
-        assert vix.name == "Close"
-        # spans 1990 (or earlier than 1992) up to today
-        assert vix.index.min().year <= 1992
-        assert vix.index.max().year >= 2026
-        # NOT filtered to the facade's 2025-03-01..2025-06-01 window
-        assert (vix.index < pd.Timestamp("2025-03-01")).any()
-        assert (vix.index > pd.Timestamp("2025-06-01")).any()
-
     def test_current_vix_value_when_market_opened_today_uses_open(self, facade):
         """After 9:30 ET on a trading day present in the data, use today's open."""
         label, value = facade._get_current_vix_value(now_et=_et(2026, 6, 24, 10, 0))
