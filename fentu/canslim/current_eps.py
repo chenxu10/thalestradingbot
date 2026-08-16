@@ -20,12 +20,11 @@ class CurrentEpsResult:
     reason: Optional[str] = None
 
 
-class CurrentEpsCriterion:
-    def __init__(self, min_growth: float = DEFAULT_MIN_GROWTH):
-        self.min_growth = min_growth
-
-    def score(self, current_eps: float, prior_year_eps: float) -> CurrentEpsResult:
-        if prior_year_eps <= 0:
-            return CurrentEpsResult(passed=False, growth=float("nan"), reason="negative_base")
-        growth = (current_eps - prior_year_eps) / prior_year_eps
-        return CurrentEpsResult(passed=growth >= self.min_growth - _EPSILON, growth=growth)
+def score_current_eps(
+    current_eps: float, prior_year_eps: float, min_growth: float = DEFAULT_MIN_GROWTH
+) -> CurrentEpsResult:
+    """Pure function: score one quarter's EPS YoY growth against the threshold."""
+    if prior_year_eps <= 0:
+        return CurrentEpsResult(passed=False, growth=float("nan"), reason="negative_base")
+    growth = (current_eps - prior_year_eps) / prior_year_eps
+    return CurrentEpsResult(passed=growth >= min_growth - _EPSILON, growth=growth)

@@ -13,7 +13,7 @@ from typing import Optional
 
 import pandas as pd
 
-from fentu.canslim.current_eps import CurrentEpsCriterion, CurrentEpsResult
+from fentu.canslim.current_eps import CurrentEpsResult, score_current_eps
 
 DILUTED_EPS_ROW = "Diluted EPS"
 SAME_QUARTER_TOLERANCE_DAYS = 100
@@ -94,7 +94,7 @@ def screen_current_eps(ticker: str, min_growth: float = 0.20) -> ScreenResult:
     if failure is not None:
         return failure
     current_eps, prior_year_eps, current_period, prior_period = data
-    result = CurrentEpsCriterion(min_growth).score(current_eps, prior_year_eps)
+    result = score_current_eps(current_eps, prior_year_eps, min_growth)
     return ScreenResult(
         ticker=ticker,
         current_eps=current_eps,

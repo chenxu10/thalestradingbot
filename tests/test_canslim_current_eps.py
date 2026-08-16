@@ -21,36 +21,36 @@ Acceptance criteria (criterion C, current quarter only):
 """
 import pytest
 
-from fentu.canslim.current_eps import CurrentEpsCriterion
+from fentu.canslim.current_eps import score_current_eps
 
 
 class TestCurrentEpsCriterionPass:
     def test_30_percent_yoy_growth_passes(self):
-        result = CurrentEpsCriterion().score(current_eps=0.65, prior_year_eps=0.50)
+        result = score_current_eps(current_eps=0.65, prior_year_eps=0.50)
         assert result.passed is True
         assert result.growth == pytest.approx(0.30)
         assert result.reason is None
 
     def test_exactly_threshold_20_percent_passes(self):
-        result = CurrentEpsCriterion().score(current_eps=0.60, prior_year_eps=0.50)
+        result = score_current_eps(current_eps=0.60, prior_year_eps=0.50)
         assert result.passed is True
         assert result.growth == pytest.approx(0.20)
 
 
 class TestCurrentEpsCriterionFail:
     def test_declining_eps_fails(self):
-        result = CurrentEpsCriterion().score(current_eps=0.55, prior_year_eps=0.60)
+        result = score_current_eps(current_eps=0.55, prior_year_eps=0.60)
         assert result.passed is False
         assert result.growth == pytest.approx(-0.083333333, rel=1e-6)
 
     def test_flat_eps_fails(self):
-        result = CurrentEpsCriterion().score(current_eps=0.50, prior_year_eps=0.50)
+        result = score_current_eps(current_eps=0.50, prior_year_eps=0.50)
         assert result.passed is False
         assert result.growth == pytest.approx(0.0)
 
 
 class TestCurrentEpsCriterionNegativeBase:
     def test_loss_narrowing_from_negative_base_fails(self):
-        result = CurrentEpsCriterion().score(current_eps=-0.10, prior_year_eps=-0.20)
+        result = score_current_eps(current_eps=-0.10, prior_year_eps=-0.20)
         assert result.passed is False
         assert result.reason == "negative_base"
